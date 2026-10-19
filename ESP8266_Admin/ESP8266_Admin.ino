@@ -67,7 +67,7 @@ main{max-width:1000px;margin:auto;padding:16px;display:grid;grid-template-column
 section{background:#1b2735;border:1px solid #34465b;border-radius:12px;padding:16px;margin-bottom:14px}
 h2{font-size:18px;margin:0 0 14px}h3{font-size:15px;margin:14px 0 8px;color:#b9c9da}
 label{display:block;font-size:14px;margin:10px 0 5px;color:#c8d5e2}
-input[type=text],input[type=password],input[type=number],select{width:100%;padding:10px;border:1px solid #465c73;border-radius:7px;background:#101923;color:#fff;font-size:15px}
+input[type=text],input[type=password],input[type=number],select{width:100%;padding:10px;border:1px solid #465c73;border-radius:7px;background:#101923;color:#fff;font-size:15px}.wifi-scan{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.wifi-scan button{white-space:nowrap}.wifi-scan-status{margin-top:8px;font-size:12px;color:#9fb0c2;line-height:1.5}
 .checks{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;align-items:center;gap:8px;background:#243447;padding:10px;border-radius:7px;font-size:14px}
 .check input{width:18px;height:18px}.positions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:bold;cursor:pointer}
@@ -126,7 +126,7 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 <section>
 <h2>Подключение к Wi-Fi</h2>
 <div class="status" id="netStatus">Получение состояния устройства…</div>
-<label for="ssid">Имя сети Wi-Fi (SSID)</label><input id="ssid" type="text" maxlength="32" autocomplete="off">
+<label for="networkList">Найденные сети Wi-Fi</label><div class="wifi-scan"><select id="networkList"><option value="">Сначала нажмите «Сканировать сети»</option></select><button class="secondary" id="scanNetworks">Сканировать сети</button></div><p class="wifi-scan-status" id="scanStatus">Список ещё не обновлялся.</p><label for="ssid">Выбранная сеть (SSID)</label><input id="ssid" type="text" maxlength="32" autocomplete="off">
 <label for="password">Пароль Wi-Fi</label><input id="password" type="password" maxlength="63" autocomplete="new-password">
 <p class="hint">Пароль не отображается обратно в браузере. Если сеть уже настроена, оставьте поле пароля пустым, чтобы сохранить текущий пароль. После сохранения устройство перезапустится.</p>
 <div class="actions"><button class="primary" id="saveWifi">Сохранить Wi-Fi и перезапустить</button></div>
@@ -206,6 +206,21 @@ async function choosePage(page){
 }
 document.getElementById('page1').addEventListener('click',()=>choosePage(1));
 document.getElementById('page2').addEventListener('click',()=>choosePage(2));
+document.getElementById('networkList').addEventListener('change',()=>{if(val('networkList'))setVal('ssid',val('networkList'));});
+document.getElementById('scanNetworks').addEventListener('click',async()=>{
+ const button=document.getElementById('scanNetworks');const status=document.getElementById('scanStatus');const list=document.getElementById('networkList');
+ button.disabled=true;status.textContent='Идёт поиск сетей… это может занять несколько секунд.';
+ try{
+  const r=await fetch('/api/scan?t='+Date.now(),{cache:'no-store'});const j=await r.json();
+  if(!r.ok||!j.ok)throw new Error(j.message||('HTTP '+r.status));
+  list.innerHTML='';
+  if(!j.networks.length){list.add(new Option('Сети не найдены',''));status.textContent='Сети не найдены. Повторите сканирование или проверьте диапазон 2,4 ГГц.';return;}
+  list.add(new Option('— Выберите сеть —',''));
+  j.networks.forEach(n=>{const bars=n.rssi>=-55?'▂▄▆█':n.rssi>=-67?'▂▄▆':n.rssi>=-75?'▂▄':'▂';const lock=n.secure?'🔒':'без пароля';list.add(new Option(bars+'  '+n.ssid+'  ·  '+n.rssi+' dBm  ·  '+lock,n.ssid));});
+  status.textContent='Найдено сетей: '+j.networks.length+'. Чем ближе RSSI к 0 dBm, тем сильнее сигнал.';
+ }catch(e){status.textContent='Ошибка сканирования: '+(e.message||'нет ответа от ESP8266');}
+ finally{button.disabled=false;}
+});
 document.getElementById('saveWifi').addEventListener('click',async()=>{
  const body=new URLSearchParams({ssid:val('ssid'),password:val('password')});
  try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
@@ -520,6 +535,41 @@ void handleSetPage() {
   renderTFT();
 }
 
+void handleScanWiFi() {
+  // Keep the setup access point alive while scanning nearby 2.4 GHz networks.
+  WiFi.mode(WIFI_AP_STA);
+  if (!apActive) {
+    WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1),
+                      IPAddress(255, 255, 255, 0));
+    apActive = WiFi.softAP(AP_SSID, AP_PASS);
+  }
+
+  Serial.println(F("Wi-Fi scan requested from admin page."));
+  int count = WiFi.scanNetworks(false, true);
+  if (count < 0) {
+    server.send(500, "application/json; charset=utf-8",
+                "{\\"ok\\":false,\\"message\\":\\"Не удалось выполнить сканирование Wi-Fi.\\"}");
+    return;
+  }
+
+  String json = "{\\"ok\\":true,\\"networks\\":[";
+  bool first = true;
+  for (int i = 0; i < count; i++) {
+    String networkName = WiFi.SSID(i);
+    if (networkName.length() == 0) continue; // Ignore hidden SSIDs.
+    if (!first) json += ",";
+    first = false;
+    int rssi = WiFi.RSSI(i);
+    bool secure = WiFi.encryptionType(i) != ENC_TYPE_NONE;
+    json += "{\\"ssid\\":\\"" + jsonEscape(networkName) + "\\",";
+    json += "\\"rssi\\":" + String(rssi) + ",";
+    json += "\\"secure\\":" + String(secure ? "true" : "false") + "}";
+  }
+  json += "]}";
+  WiFi.scanDelete();
+  server.send(200, "application/json; charset=utf-8", json);
+}
+
 void handleSaveWiFi() {
   String newSsid = server.arg("ssid");
   String newPassword = server.arg("password");
@@ -550,6 +600,7 @@ void handleNotFound() {
 void setupWebServer() {
   server.on("/", HTTP_GET, handleRoot);
   server.on("/api/config", HTTP_GET, handleApiConfig);
+  server.on("/api/scan", HTTP_GET, handleScanWiFi);
   server.on("/api/save", HTTP_POST, handleSaveDisplay);
   server.on("/api/page", HTTP_GET, handleSetPage);
   server.on("/api/page", HTTP_POST, handleSetPage);
