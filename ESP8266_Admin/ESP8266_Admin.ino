@@ -193,11 +193,16 @@ document.getElementById('defaults').addEventListener('click',()=>{
  loadConfig(Object.assign({},defaults,{ssid:val('ssid'),networkStatus:document.getElementById('netStatus').textContent,networkLabel:document.getElementById('prevNetwork').textContent}));
 });
 async function choosePage(page){
+ const status=document.getElementById('pageStatus');
+ status.textContent='Переключаю на страницу '+page+'…';
  try{
-  const r=await fetch('/api/page',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({page:String(page)})});
+  const r=await fetch('/api/page?page='+page+'&t='+Date.now(),{cache:'no-store'});
   const j=await r.json();
-  document.getElementById('pageStatus').textContent=j.message;
- }catch(e){document.getElementById('pageStatus').textContent='Не удалось связаться с ESP8266';}
+  if(!r.ok||!j.ok) throw new Error(j.message||('HTTP '+r.status));
+  status.textContent=j.message;
+ }catch(e){
+  status.textContent='Ошибка переключения: '+(e.message||'нет ответа от ESP8266');
+ }
 }
 document.getElementById('page1').addEventListener('click',()=>choosePage(1));
 document.getElementById('page2').addEventListener('click',()=>choosePage(2));
@@ -497,16 +502,22 @@ void handleSaveDisplay() {
 }
 
 void handleSetPage() {
-  uint8_t page = server.arg("page") == "2" ? 2 : 1;
+  String requested = server.arg("page");
+  uint8_t page = requested == "2" ? 2 : 1;
+  Serial.print(F("Admin requested TFT page: "));
+  Serial.println(page);
+
   cfg.tftPage = page;
   if (!saveConfig()) {
     server.send(500, "application/json; charset=utf-8",
                 "{\"ok\":false,\"message\":\"Не удалось сохранить страницу в LittleFS.\"}");
     return;
   }
-  renderTFT();
+
   server.send(200, "application/json; charset=utf-8",
               String("{\"ok\":true,\"message\":\"Выбрана страница ") + String(page) + "\"}");
+  delay(20);
+  renderTFT();
 }
 
 void handleSaveWiFi() {
@@ -540,6 +551,7 @@ void setupWebServer() {
   server.on("/", HTTP_GET, handleRoot);
   server.on("/api/config", HTTP_GET, handleApiConfig);
   server.on("/api/save", HTTP_POST, handleSaveDisplay);
+  server.on("/api/page", HTTP_GET, handleSetPage);
   server.on("/api/page", HTTP_POST, handleSetPage);
   server.on("/api/wifi", HTTP_POST, handleSaveWiFi);
   server.onNotFound(handleNotFound);
