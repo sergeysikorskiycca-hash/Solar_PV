@@ -319,7 +319,7 @@ bool saveConfig() {
 
 void drawCyrillicText(const String& text, int x, int baselineY, uint16_t color, bool large) {
   u8g2Fonts.setForegroundColor(color);
-  u8g2Fonts.setFont(large ? u8g2_font_unifont_t_cyrillic : u8g2_font_6x10_t_cyrillic);
+  u8g2Fonts.setFont(large ? u8g2_font_unifont_t_cyrillic : u8g2_font_6x13_t_cyrillic);
   u8g2Fonts.setCursor(x, baselineY);
   u8g2Fonts.print(text);
 }
