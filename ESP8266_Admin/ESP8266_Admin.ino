@@ -40,6 +40,7 @@ struct AppConfig {
   int voltageX, voltageY;
   int currentX, currentY;
   int batteryX, batteryY;
+  uint8_t tftPage;
 };
 
 AppConfig cfg;
@@ -116,6 +117,10 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 <div><label for="batteryY">Аккумулятор — Y</label><input id="batteryY" type="number" min="40" max="240"></div>
 </div>
 <div class="actions"><button class="primary" id="saveDisplay">Сохранить и применить</button><button class="secondary" id="defaults">Сбросить макет</button></div>
+<h3>Страница дисплея</h3>
+<p class="hint">Выберите страницу для физического дисплея. Автоматического переключения нет.</p>
+<div class="actions"><button class="secondary" id="page1">Страница 1 · Показатели</button><button class="secondary" id="page2">Страница 2 · Wi-Fi</button></div>
+<p class="status" id="pageStatus">Активна страница 1</p>
 <p class="hint">Значения на экране демонстрационные. На первом этапе датчики и ESP32 не подключаются.</p>
 </section>
 <section>
@@ -165,6 +170,7 @@ function loadConfig(c){
  ['Power','Voltage','Current','Battery'].forEach(k=>document.getElementById('show'+k).checked=!!c['show'+k]);
  ids.forEach(id=>setVal(id,c[id]));
  setVal('ssid',c.ssid||'');setVal('password','');
+ document.getElementById('pageStatus').textContent='Активна страница '+(c.tftPage===2?'2 · Wi-Fi':'1 · Показатели');
  document.getElementById('netStatus').textContent=c.networkStatus;
  document.getElementById('prevNetwork').textContent=c.networkLabel;
  updatePreview();
@@ -186,6 +192,15 @@ document.getElementById('saveDisplay').addEventListener('click',async()=>{
 document.getElementById('defaults').addEventListener('click',()=>{
  loadConfig(Object.assign({},defaults,{ssid:val('ssid'),networkStatus:document.getElementById('netStatus').textContent,networkLabel:document.getElementById('prevNetwork').textContent}));
 });
+async function choosePage(page){
+ try{
+  const r=await fetch('/api/page',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({page:String(page)})});
+  const j=await r.json();
+  document.getElementById('pageStatus').textContent=j.message;
+ }catch(e){document.getElementById('pageStatus').textContent='Не удалось связаться с ESP8266';}
+}
+document.getElementById('page1').addEventListener('click',()=>choosePage(1));
+document.getElementById('page2').addEventListener('click',()=>choosePage(2));
 document.getElementById('saveWifi').addEventListener('click',async()=>{
  const body=new URLSearchParams({ssid:val('ssid'),password:val('password')});
  try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
@@ -260,6 +275,7 @@ void setDefaults() {
   cfg.voltageX = 8; cfg.voltageY = 125;
   cfg.currentX = 125; cfg.currentY = 125;
   cfg.batteryX = 8; cfg.batteryY = 205;
+  cfg.tftPage = 1;
 }
 
 void loadConfig() {
@@ -290,6 +306,7 @@ void loadConfig() {
     else if (key == "currentY") cfg.currentY = clampInt(value.toInt(), 40, 240);
     else if (key == "batteryX") cfg.batteryX = clampInt(value.toInt(), 0, 16);
     else if (key == "batteryY") cfg.batteryY = clampInt(value.toInt(), 40, 240);
+    else if (key == "tftPage") cfg.tftPage = value == "2" ? 2 : 1;
   }
   f.close();
 }
@@ -314,6 +331,7 @@ bool saveConfig() {
   f.println("currentY=" + String(cfg.currentY));
   f.println("batteryX=" + String(cfg.batteryX));
   f.println("batteryY=" + String(cfg.batteryY));
+  f.println("tftPage=" + String(cfg.tftPage));
   f.close();
   return true;
 }
@@ -355,6 +373,29 @@ void drawTFTStatus(bool force = false) {
 void renderTFT() {
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextWrap(false);
+
+  if (cfg.tftPage == 2) {
+    drawCyrillicText("СОСТОЯНИЕ WI-FI", 8, 25, ST77XX_WHITE, true);
+    drawCyrillicText("Страница 2", 8, 45, 0x07E0, false);
+    if (WiFi.status() == WL_CONNECTED) {
+      drawCyrillicText("Сеть: " + cfg.ssid, 8, 78, 0xBDF7, false);
+      drawCyrillicText("Сигнал: " + String(WiFi.RSSI()) + " dBm", 8, 103, 0xBDF7, false);
+      drawCyrillicText("IP: " + WiFi.localIP().toString(), 8, 128, 0xBDF7, false);
+    } else {
+      drawCyrillicText("Роутер не подключён", 8, 78, 0xF800, false);
+      drawCyrillicText("Сеть: " + cfg.ssid, 8, 103, 0xBDF7, false);
+    }
+    if (apActive) {
+      drawCyrillicText("Точка настройки:", 8, 165, 0xBDF7, false);
+      drawCyrillicText("SolarPV-Setup", 8, 188, 0xBDF7, false);
+      drawCyrillicText("192.168.4.1", 8, 211, 0xBDF7, false);
+    }
+    tft.drawFastHLine(8, 294, 224, 0x5B6D);
+    lastStatusText = "";
+    drawTFTStatus(true);
+    return;
+  }
+
   drawCyrillicText(cfg.title, 8, 25, ST77XX_WHITE, true);
   drawCyrillicText("ДЕМО-ДАННЫЕ", 8, 43, 0x07E0, false);
 
@@ -396,7 +437,8 @@ String makeConfigJson() {
     label = "Wi-Fi: нет связи";
   }
   j += "\"networkStatus\":\"" + jsonEscape(net) + "\",";
-  j += "\"networkLabel\":\"" + jsonEscape(label) + "\"}";
+  j += "\"networkLabel\":\"" + jsonEscape(label) + "\",";
+  j += "\"tftPage\":" + String(cfg.tftPage) + "}";
   return j;
 }
 
@@ -454,6 +496,19 @@ void handleSaveDisplay() {
               String("{\"ok\":") + (ok ? "true" : "false") + ",\"message\":\"" + message + "\"}");
 }
 
+void handleSetPage() {
+  uint8_t page = server.arg("page") == "2" ? 2 : 1;
+  cfg.tftPage = page;
+  if (!saveConfig()) {
+    server.send(500, "application/json; charset=utf-8",
+                "{\"ok\":false,\"message\":\"Не удалось сохранить страницу в LittleFS.\"}");
+    return;
+  }
+  renderTFT();
+  server.send(200, "application/json; charset=utf-8",
+              String("{\"ok\":true,\"message\":\"Выбрана страница ") + String(page) + "\"}");
+}
+
 void handleSaveWiFi() {
   String newSsid = server.arg("ssid");
   String newPassword = server.arg("password");
@@ -485,6 +540,7 @@ void setupWebServer() {
   server.on("/", HTTP_GET, handleRoot);
   server.on("/api/config", HTTP_GET, handleApiConfig);
   server.on("/api/save", HTTP_POST, handleSaveDisplay);
+  server.on("/api/page", HTTP_POST, handleSetPage);
   server.on("/api/wifi", HTTP_POST, handleSaveWiFi);
   server.onNotFound(handleNotFound);
   server.begin();
