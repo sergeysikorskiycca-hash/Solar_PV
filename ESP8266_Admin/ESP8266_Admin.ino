@@ -346,7 +346,7 @@ void renderTFT() {
   tft.drawFastHLine(8, 294, 224, 0x5B6D);
   String status;
   if (WiFi.status() == WL_CONNECTED) {
-    status = "Wi-Fi " + WiFi.localIP().toString();
+    status = "Wi-Fi " + String(WiFi.RSSI()) + " dBm " + WiFi.localIP().toString();
   } else if (apActive) {
     status = "Настройка Wi-Fi: 192.168.4.1";
   } else {
@@ -372,8 +372,9 @@ String makeConfigJson() {
   String net;
   String label;
   if (WiFi.status() == WL_CONNECTED) {
-    net = "Подключено к роутеру: " + WiFi.localIP().toString();
-    label = "Wi-Fi: подключён";
+    net = "Подключено к роутеру: " + WiFi.localIP().toString() +
+          " · уровень сигнала: " + String(WiFi.RSSI()) + " dBm";
+    label = "Wi-Fi: " + String(WiFi.RSSI()) + " dBm";
   } else if (apActive) {
     net = "Точка настройки активна: SolarPV-Setup · адрес 192.168.4.1";
     label = "Режим настройки";
