@@ -49,6 +49,7 @@ bool webStarted = false;
 unsigned long disconnectedSince = 0;
 unsigned long restartAt = 0;
 unsigned long lastStatusDraw = 0;
+String lastStatusText = "";
 
 const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <!doctype html>
@@ -332,6 +333,25 @@ void drawCard(const char* label, const char* value, int x, int y, int w, int h) 
 }
 
 
+String getTFTStatusText() {
+  if (WiFi.status() == WL_CONNECTED) {
+    return "Wi-Fi " + String(WiFi.RSSI()) + " dBm " + WiFi.localIP().toString();
+  } else if (apActive) {
+    return "Настройка Wi-Fi: 192.168.4.1";
+  }
+  return "Подключение к Wi-Fi...";
+}
+
+void drawTFTStatus(bool force = false) {
+  String status = getTFTStatusText();
+  if (!force && status == lastStatusText) return;
+
+  // Clear only the footer status area; do not flash the whole display.
+  tft.fillRect(0, 296, 240, 24, ST77XX_BLACK);
+  drawCyrillicText(status, 8, 313, 0xBDF7, false);
+  lastStatusText = status;
+}
+
 void renderTFT() {
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextWrap(false);
@@ -344,15 +364,8 @@ void renderTFT() {
   if (cfg.showBattery) drawCard("Аккумулятор", "DEMO %", cfg.batteryX, cfg.batteryY, 224, 58);
 
   tft.drawFastHLine(8, 294, 224, 0x5B6D);
-  String status;
-  if (WiFi.status() == WL_CONNECTED) {
-    status = "Wi-Fi " + String(WiFi.RSSI()) + " dBm " + WiFi.localIP().toString();
-  } else if (apActive) {
-    status = "Настройка Wi-Fi: 192.168.4.1";
-  } else {
-    status = "Подключение к Wi-Fi...";
-  }
-  drawCyrillicText(status, 8, 313, 0xBDF7, false);
+  lastStatusText = "";
+  drawTFTStatus(true);
 }
 
 
@@ -555,8 +568,9 @@ void loop() {
     }
   }
 
-  if (millis() - lastStatusDraw >= 5000UL) {
+  // Check Wi-Fi status every 15 seconds, repaint only the footer when it changes.
+  if (millis() - lastStatusDraw >= 15000UL) {
     lastStatusDraw = millis();
-    renderTFT();
+    drawTFTStatus();
   }
 }
