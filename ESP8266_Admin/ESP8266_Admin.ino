@@ -12,6 +12,7 @@
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
+#include <U8g2_for_Adafruit_GFX.h>
 
 // Existing TFT wiring. SPI SCLK/MOSI use the ESP8266 hardware SPI pins D5/D7.
 static const uint8_t TFT_CS_PIN   = D8;
@@ -23,6 +24,7 @@ static const char* AP_PASS = "SolarPV8266";
 static const char* CONFIG_PATH = "/solarpv.cfg";
 
 Adafruit_ST7789 tft(TFT_CS_PIN, TFT_DC_PIN, TFT_RST_PIN);
+U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 ESP8266WebServer server(80);
 
 struct AppConfig {
@@ -89,7 +91,7 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 <div>
 <section>
 <h2>Оформление экрана</h2>
-<label for="title">Заголовок TFT (до 18 латинских символов)</label>
+<label for="title">Заголовок TFT (до 18 символов, русский и английский)</label>
 <input id="title" type="text" maxlength="18" value="SOLAR PV">
 <label for="fontScale">Размер текста</label>
 <select id="fontScale"><option value="1">Обычный</option><option value="2">Крупный</option></select>
@@ -198,17 +200,33 @@ fetch('/api/config').then(r=>r.json()).then(loadConfig).catch(()=>{document.getE
 String sanitizeTitle(String s) {
   s.trim();
   String out;
-  out.reserve(18);
-  for (size_t i = 0; i < s.length() && out.length() < 18; i++) {
-    char c = s[i];
-    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-        (c >= '0' && c <= '9') || c == ' ' || c == '-' || c == '_') {
-      out += c;
+  out.reserve(54);
+  // Preserve complete UTF-8 sequences for Russian and Latin titles.
+  for (size_t i = 0; i < s.length() && out.length() < 54; i++) {
+    uint8_t c = (uint8_t)s[i];
+    if (c < 0x80) {
+      if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+          (c >= '0' && c <= '9') || c == ' ' || c == '-' || c == '_' ||
+          c == '.' || c == ':' || c == '/') out += (char)c;
+      continue;
+    }
+    uint8_t count = (c & 0xE0) == 0xC0 ? 2 :
+                    ((c & 0xF0) == 0xE0 ? 3 :
+                    ((c & 0xF8) == 0xF0 ? 4 : 0));
+    if (count == 0 || i + count > s.length() || out.length() + count > 54) continue;
+    bool valid = true;
+    for (uint8_t j = 1; j < count; j++) {
+      if (((uint8_t)s[i + j] & 0xC0) != 0x80) valid = false;
+    }
+    if (valid) {
+      out += s.substring(i, i + count);
+      i += count - 1;
     }
   }
   if (out.length() == 0) out = "SOLAR PV";
   return out;
 }
+
 
 int clampInt(int value, int low, int high) {
   if (value < low) return low;
@@ -299,49 +317,44 @@ bool saveConfig() {
   return true;
 }
 
+void drawCyrillicText(const String& text, int x, int baselineY, uint16_t color, bool large) {
+  u8g2Fonts.setForegroundColor(color);
+  u8g2Fonts.setFont(large ? u8g2_font_unifont_t_cyrillic : u8g2_font_6x10_t_cyrillic);
+  u8g2Fonts.setCursor(x, baselineY);
+  u8g2Fonts.print(text);
+}
+
 void drawCard(const char* label, const char* value, int x, int y, int w, int h) {
   tft.fillRoundRect(x, y, w, h, 5, 0x29C6);
   tft.drawRoundRect(x, y, w, h, 5, 0x5B6D);
-  tft.setTextSize(1);
-  tft.setTextColor(0xBDF7);
-  tft.setCursor(x + 6, y + 7);
-  tft.print(label);
-  tft.setTextSize(cfg.fontScale);
-  tft.setTextColor(0xFEA0);
-  tft.setCursor(x + 6, y + 25);
-  tft.print(value);
+  drawCyrillicText(String(label), x + 6, y + 19, 0xBDF7, false);
+  drawCyrillicText(String(value), x + 6, y + 43, 0xFEA0, cfg.fontScale == 2);
 }
+
 
 void renderTFT() {
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextWrap(false);
-  tft.setTextColor(ST77XX_WHITE);
-  tft.setTextSize(2);
-  tft.setCursor(8, 7);
-  tft.print(cfg.title);
-  tft.setTextSize(1);
-  tft.setTextColor(0x07E0);
-  tft.setCursor(8, 32);
-  tft.print("DEMO DATA");
-  tft.setTextColor(ST77XX_WHITE);
-  if (cfg.showPower) drawCard("PV Power", "DEMO W", cfg.powerX, cfg.powerY, 224, 58);
-  if (cfg.showVoltage) drawCard("Voltage", "DEMO V", cfg.voltageX, cfg.voltageY, 106, 58);
-  if (cfg.showCurrent) drawCard("Current", "DEMO A", cfg.currentX, cfg.currentY, 106, 58);
-  if (cfg.showBattery) drawCard("Battery", "DEMO %", cfg.batteryX, cfg.batteryY, 224, 58);
+  drawCyrillicText(cfg.title, 8, 25, ST77XX_WHITE, true);
+  drawCyrillicText("ДЕМО-ДАННЫЕ", 8, 43, 0x07E0, false);
+
+  if (cfg.showPower) drawCard("Мощность PV", "DEMO W", cfg.powerX, cfg.powerY, 224, 58);
+  if (cfg.showVoltage) drawCard("Напряжение", "DEMO V", cfg.voltageX, cfg.voltageY, 106, 58);
+  if (cfg.showCurrent) drawCard("Ток", "DEMO A", cfg.currentX, cfg.currentY, 106, 58);
+  if (cfg.showBattery) drawCard("Аккумулятор", "DEMO %", cfg.batteryX, cfg.batteryY, 224, 58);
 
   tft.drawFastHLine(8, 294, 224, 0x5B6D);
-  tft.setTextSize(1);
-  tft.setTextColor(0xBDF7);
-  tft.setCursor(8, 302);
+  String status;
   if (WiFi.status() == WL_CONNECTED) {
-    tft.print("Wi-Fi ");
-    tft.print(WiFi.localIP());
+    status = "Wi-Fi " + WiFi.localIP().toString();
   } else if (apActive) {
-    tft.print("Setup AP 192.168.4.1");
+    status = "Настройка Wi-Fi: 192.168.4.1";
   } else {
-    tft.print("Wi-Fi: connecting...");
+    status = "Подключение к Wi-Fi...";
   }
+  drawCyrillicText(status, 8, 313, 0xBDF7, false);
 }
+
 
 String makeConfigJson() {
   String j = "{";
@@ -387,14 +400,13 @@ void startAccessPoint() {
 }
 
 void stopAccessPointIfConnected() {
-  if (apActive && cfg.ssid.length() > 0 && WiFi.status() == WL_CONNECTED) {
-    WiFi.softAPdisconnect(true);
-    WiFi.mode(WIFI_STA);
-    apActive = false;
-    Serial.print(F("Router IP: ")); Serial.println(WiFi.localIP());
-    renderTFT();
+  // Keep SolarPV-Setup available even when the router is connected.
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print(F("Router IP: "));
+    Serial.println(WiFi.localIP());
   }
 }
+
 
 void handleRoot() {
   server.send_P(200, "text/html; charset=utf-8", INDEX_HTML);
@@ -485,6 +497,7 @@ void connectWiFiAtBoot() {
     disconnectedSince = 0;
     Serial.print(F("Connected. IP: "));
     Serial.println(WiFi.localIP());
+    startAccessPoint();  // Keep both router and setup AP available.
   } else {
     Serial.println(F("Wi-Fi connection failed; enabling setup AP."));
     startAccessPoint();
@@ -509,14 +522,12 @@ void setup() {
 
   tft.init(240, 320);
   tft.setRotation(0);
+  u8g2Fonts.begin(tft);
+  u8g2Fonts.setFontMode(1);
+  u8g2Fonts.setFontDirection(0);
   tft.fillScreen(ST77XX_BLACK);
-  tft.setTextColor(ST77XX_WHITE);
-  tft.setTextSize(2);
-  tft.setCursor(8, 12);
-  tft.println(F("SOLAR PV"));
-  tft.setTextSize(1);
-  tft.setCursor(8, 40);
-  tft.println(F("Starting admin..."));
+  drawCyrillicText("СОЛАР PV", 8, 28, ST77XX_WHITE, true);
+  drawCyrillicText("Запуск админки...", 8, 48, 0xBDF7, false);
 
   WiFi.persistent(false);
   WiFi.setAutoReconnect(true);
