@@ -104,7 +104,7 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 <p class="hint">Координаты задаются в пикселях. Полноширинные блоки: X от 0 до 16. Половинные: X от 0 до 128. Y от 40 до 240.</p>
 <div class="positions">
 <div><label for="powerX">Мощность — X</label><input id="powerX" type="number" min="0" max="16"></div>
-<div><label for="powerY">Мощность — Y</label><input id="powerY" type="number" min="40" max="240"></div>
+<div><label for="powerY">Мощность — Y</label><input id="powerY" type="number" min="40" max="230"></div>
 <div><label for="voltageX">Напряжение — X</label><input id="voltageX" type="number" min="0" max="128"></div>
 <div><label for="voltageY">Напряжение — Y</label><input id="voltageY" type="number" min="40" max="240"></div>
 <div><label for="currentX">Ток — X</label><input id="currentX" type="number" min="0" max="128"></div>
@@ -264,7 +264,7 @@ void loadConfig() {
     else if (key == "showBattery") cfg.showBattery = value == "1";
     else if (key == "fontScale") cfg.fontScale = value == "2" ? 2 : 1;
     else if (key == "powerX") cfg.powerX = clampInt(value.toInt(), 0, 16);
-    else if (key == "powerY") cfg.powerY = clampInt(value.toInt(), 40, 240);
+    else if (key == "powerY") cfg.powerY = clampInt(value.toInt(), 40, 230);
     else if (key == "voltageX") cfg.voltageX = clampInt(value.toInt(), 0, 128);
     else if (key == "voltageY") cfg.voltageY = clampInt(value.toInt(), 40, 240);
     else if (key == "currentX") cfg.currentX = clampInt(value.toInt(), 0, 128);
@@ -412,13 +412,13 @@ void handleSaveDisplay() {
   cfg.showCurrent = server.hasArg("showCurrent");
   cfg.showBattery = server.hasArg("showBattery");
   cfg.powerX = clampInt(server.arg("powerX").toInt(), 0, 16);
-  cfg.powerY = clampInt(server.arg("powerY").toInt(), 40, 240);
+  cfg.powerY = clampInt(server.arg("powerY").toInt(), 40, 230);
   cfg.voltageX = clampInt(server.arg("voltageX").toInt(), 0, 128);
-  cfg.voltageY = clampInt(server.arg("voltageY").toInt(), 40, 240);
+  cfg.voltageY = clampInt(server.arg("voltageY").toInt(), 40, 230);
   cfg.currentX = clampInt(server.arg("currentX").toInt(), 0, 128);
-  cfg.currentY = clampInt(server.arg("currentY").toInt(), 40, 240);
+  cfg.currentY = clampInt(server.arg("currentY").toInt(), 40, 230);
   cfg.batteryX = clampInt(server.arg("batteryX").toInt(), 0, 16);
-  cfg.batteryY = clampInt(server.arg("batteryY").toInt(), 40, 240);
+  cfg.batteryY = clampInt(server.arg("batteryY").toInt(), 40, 230);
 
   bool ok = saveConfig();
   renderTFT();
@@ -499,7 +499,11 @@ void setup() {
   Serial.println(F("Solar_PV ESP8266 Admin MVP"));
 
   fsReady = LittleFS.begin();
-  if (!fsReady) Serial.println(F("ERROR: LittleFS mount failed; settings cannot be saved."));
+  if (!fsReady) {
+    Serial.println(F("LittleFS mount failed; trying first-time format."));
+    if (LittleFS.format()) fsReady = LittleFS.begin();
+  }
+  if (!fsReady) Serial.println(F("ERROR: LittleFS unavailable; settings cannot be saved."));
 
   loadConfig();
 
@@ -515,6 +519,7 @@ void setup() {
   tft.println(F("Starting admin..."));
 
   WiFi.persistent(false);
+  WiFi.setAutoReconnect(true);
   connectWiFiAtBoot();
   setupWebServer();
   renderTFT();
