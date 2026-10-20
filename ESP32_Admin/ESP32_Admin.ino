@@ -18,6 +18,8 @@
 #include "AppConfig.h"
 #include "ConfigStore.h"
 #include "Display.h"
+#include "WifiManager.h"
+#include "WebAdmin.h"
 #include "WebPage.h"
 
 static const char* AP_SSID = "SolarPV-Setup";
@@ -113,19 +115,6 @@ String makeConfigJson() {
   j += "\"networkLabel\":\"" + jsonEscape(label) + "\",";
   j += "\"tftPage\":" + String(cfg.tftPage) + "}";
   return j;
-}
-
-void startAccessPoint() {
-  if (apActive) return;
-  if (cfg.ssid.length() > 0) WiFi.mode(WIFI_AP_STA);
-  else WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
-  apActive = WiFi.softAP(AP_SSID, AP_PASS);
-  Serial.println();
-  Serial.println(F("Setup access point requested."));
-  Serial.print(F("SSID: ")); Serial.println(AP_SSID);
-  Serial.println(F("Open http://192.168.4.1"));
-  renderTFT();
 }
 
 void stopAccessPointIfConnected() {
@@ -261,47 +250,6 @@ void handleSaveWiFi() {
 void handleNotFound() {
   server.sendHeader("Location", "/", true);
   server.send(302, "text/plain", "");
-}
-
-void setupWebServer() {
-  server.on("/", HTTP_GET, handleRoot);
-  server.on("/api/config", HTTP_GET, handleApiConfig);
-  server.on("/api/scan", HTTP_GET, handleScanWiFi);
-  server.on("/api/save", HTTP_POST, handleSaveDisplay);
-  server.on("/api/page", HTTP_GET, handleSetPage);
-  server.on("/api/page", HTTP_POST, handleSetPage);
-  server.on("/api/wifi", HTTP_POST, handleSaveWiFi);
-  server.onNotFound(handleNotFound);
-  server.begin();
-  webStarted = true;
-  Serial.println(F("Web admin started on port 80."));
-}
-
-void connectWiFiAtBoot() {
-  if (cfg.ssid.length() == 0) {
-    startAccessPoint();
-    return;
-  }
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(cfg.ssid.c_str(), cfg.password.c_str());
-  Serial.print(F("Connecting to configured Wi-Fi"));
-  unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000UL) {
-    delay(250);
-    Serial.print('.');
-  }
-  Serial.println();
-  if (WiFi.status() == WL_CONNECTED) {
-    disconnectedSince = 0;
-    Serial.print(F("Connected. IP: "));
-    Serial.println(WiFi.localIP());
-    startAccessPoint();  // Keep both router and setup AP available.
-  } else {
-    Serial.println(F("Wi-Fi connection failed; enabling setup AP."));
-    startAccessPoint();
-    disconnectedSince = millis();
-  }
 }
 
 void setup() {
