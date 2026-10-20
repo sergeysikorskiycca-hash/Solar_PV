@@ -375,7 +375,7 @@ String getTFTStatusText() {
   if (WiFi.status() == WL_CONNECTED) {
     return "Wi-Fi " + String(WiFi.RSSI()) + " dBm " + WiFi.localIP().toString();
   } else if (apActive) {
-    return "Настройка Wi-Fi: 192.168.4.1";
+    return "Точка настройки: " + WiFi.softAPIP().toString();
   }
   return "Подключение к Wi-Fi...";
 }
@@ -400,7 +400,7 @@ void renderTFT() {
     if (WiFi.status() == WL_CONNECTED) {
       drawCyrillicText("Сеть: " + cfg.ssid, 8, 78, 0xBDF7, false);
       drawCyrillicText("Сигнал: " + String(WiFi.RSSI()) + " dBm", 8, 103, 0xBDF7, false);
-      drawCyrillicText("IP: " + WiFi.localIP().toString(), 8, 128, 0xBDF7, false);
+      drawCyrillicText("IP роутера: " + WiFi.localIP().toString(), 8, 128, 0xBDF7, false);
     } else {
       drawCyrillicText("Роутер не подключён", 8, 78, 0xF800, false);
       drawCyrillicText("Сеть: " + cfg.ssid, 8, 103, 0xBDF7, false);
@@ -408,7 +408,7 @@ void renderTFT() {
     if (apActive) {
       drawCyrillicText("Точка настройки:", 8, 165, 0xBDF7, false);
       drawCyrillicText("SolarPV-Setup", 8, 188, 0xBDF7, false);
-      drawCyrillicText("192.168.4.1", 8, 211, 0xBDF7, false);
+      drawCyrillicText("IP точки: " + WiFi.softAPIP().toString(), 8, 211, 0xBDF7, false);
     }
     tft.drawFastHLine(8, 294, 224, 0x5B6D);
     lastStatusText = "";
