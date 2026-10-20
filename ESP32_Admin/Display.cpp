@@ -25,7 +25,7 @@ String getTFTStatusText() {
   return "Подключение к Wi-Fi...";
 }
 
-void drawTFTStatus(bool force = false) {
+void drawTFTStatus(bool force) {
   String status = getTFTStatusText();
   if (!force && status == lastStatusText) return;
 
