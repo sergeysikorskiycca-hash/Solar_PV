@@ -27,6 +27,13 @@ Adafruit_ST7789 tft(TFT_CS_PIN, TFT_DC_PIN, TFT_RST_PIN);
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 ESP8266WebServer server(80);
 
+static const uint8_t MAX_SAVED_NETWORKS = 8;
+struct SavedNetwork { String ssid; String password; };
+SavedNetwork savedNetworks[MAX_SAVED_NETWORKS];
+uint8_t savedNetworkCount = 0;
+int findSavedNetwork(const String& ssid);
+bool addOrUpdateSavedNetwork(const String& ssid, const String& password);
+
 struct AppConfig {
   String ssid;
   String password;
@@ -127,8 +134,8 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 <h2>Подключение к Wi-Fi</h2>
 <div class="status" id="netStatus">Получение состояния устройства…</div>
 <label for="networkList">Найденные сети Wi-Fi</label><div class="wifi-scan"><select id="networkList"><option value="">Сначала нажмите «Сканировать сети»</option></select><button class="secondary" id="scanNetworks">Сканировать сети</button></div><p class="wifi-scan-status" id="scanStatus">Список ещё не обновлялся.</p><label for="ssid">Выбранная сеть (SSID)</label><input id="ssid" type="text" maxlength="32" autocomplete="off">
-<label for="password">Пароль Wi-Fi</label><input id="password" type="password" maxlength="63" autocomplete="new-password">
-<p class="hint">Пароль не отображается обратно в браузере. Если сеть уже настроена, оставьте поле пароля пустым, чтобы сохранить текущий пароль. После сохранения устройство перезапустится.</p>
+<label for="password">Пароль Wi-Fi</label><input id="password" type="text" maxlength="63" autocomplete="new-password">
+<p class="hint">Пароль отображается при вводе. Для сохранённой сети оставьте поле пустым — устройство использует сохранённый пароль. Можно сохранить до 8 сетей; настройки переживают перезагрузку и отключение питания.</p>
 <div class="actions"><button class="primary" id="saveWifi">Сохранить Wi-Fi и перезапустить</button></div>
 </section>
 </div>
@@ -170,6 +177,7 @@ function loadConfig(c){
  ['Power','Voltage','Current','Battery'].forEach(k=>document.getElementById('show'+k).checked=!!c['show'+k]);
  ids.forEach(id=>setVal(id,c[id]));
  setVal('ssid',c.ssid||'');setVal('password','');
+ renderSavedNetworks(c.savedNetworks||[]);
  document.getElementById('pageStatus').textContent='Активна страница '+(c.tftPage===2?'2 · Wi-Fi':'1 · Показатели');
  document.getElementById('netStatus').textContent=c.networkStatus;
  document.getElementById('prevNetwork').textContent=c.networkLabel;
@@ -206,6 +214,12 @@ async function choosePage(page){
 }
 document.getElementById('page1').addEventListener('click',()=>choosePage(1));
 document.getElementById('page2').addEventListener('click',()=>choosePage(2));
+function renderSavedNetworks(networks){
+ const list=document.getElementById('networkList');list.innerHTML='';
+ list.add(new Option('— Сохранённые сети и сканирование —',''));
+ networks.forEach(n=>list.add(new Option('★ '+n.ssid+' · сохранена',n.ssid)));
+ if(!networks.length)list.add(new Option('Сохранённых сетей пока нет',''));
+}
 document.getElementById('networkList').addEventListener('change',()=>{if(val('networkList'))setVal('ssid',val('networkList'));});
 document.getElementById('scanNetworks').addEventListener('click',async()=>{
  const button=document.getElementById('scanNetworks');const status=document.getElementById('scanStatus');const list=document.getElementById('networkList');
@@ -213,11 +227,13 @@ document.getElementById('scanNetworks').addEventListener('click',async()=>{
  try{
   const r=await fetch('/api/scan?t='+Date.now(),{cache:'no-store'});const j=await r.json();
   if(!r.ok||!j.ok)throw new Error(j.message||('HTTP '+r.status));
-  list.innerHTML='';
-  if(!j.networks.length){list.add(new Option('Сети не найдены',''));status.textContent='Сети не найдены. Повторите сканирование или проверьте диапазон 2,4 ГГц.';return;}
-  list.add(new Option('— Выберите сеть —',''));
-  j.networks.forEach(n=>{const bars=n.rssi>=-55?'▂▄▆█':n.rssi>=-67?'▂▄▆':n.rssi>=-75?'▂▄':'▂';const lock=n.secure?'🔒':'без пароля';list.add(new Option(bars+'  '+n.ssid+'  ·  '+n.rssi+' dBm  ·  '+lock,n.ssid));});
-  status.textContent='Найдено сетей: '+j.networks.length+'. Чем ближе RSSI к 0 dBm, тем сильнее сигнал.';
+  const config=(await (await fetch('/api/config')).json());
+  const saved=config.savedNetworks||[];
+  list.innerHTML='';list.add(new Option('— Выберите сеть —',''));
+  saved.forEach(n=>list.add(new Option('★ '+n.ssid+' · сохранена',n.ssid)));
+  j.networks.forEach(n=>{if(Array.from(list.options).some(o=>o.value===n.ssid))return;const bars=n.rssi>=-55?'▂▄▆█':n.rssi>=-67?'▂▄▆':n.rssi>=-75?'▂▄':'▂';const lock=n.secure?'🔒':'без пароля';list.add(new Option(bars+'  '+n.ssid+'  ·  '+n.rssi+' dBm  ·  '+lock,n.ssid));});
+  if(!j.networks.length)status.textContent='Сети не найдены. Сохранённые сети остаются доступны в списке.';
+  else status.textContent='Найдено сетей: '+j.networks.length+'. ★ — сети, пароль которых уже сохранён.';
  }catch(e){status.textContent='Ошибка сканирования: '+(e.message||'нет ответа от ESP8266');}
  finally{button.disabled=false;}
 });
@@ -303,6 +319,7 @@ void loadConfig() {
   if (!fsReady) return;
   File f = LittleFS.open(CONFIG_PATH, "r");
   if (!f) return;
+  for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) { savedNetworks[i].ssid = ""; savedNetworks[i].password = ""; }
   while (f.available()) {
     String line = f.readStringUntil('\n');
     line.trim();
@@ -327,8 +344,29 @@ void loadConfig() {
     else if (key == "batteryX") cfg.batteryX = clampInt(value.toInt(), 0, 16);
     else if (key == "batteryY") cfg.batteryY = clampInt(value.toInt(), 40, 240);
     else if (key == "tftPage") cfg.tftPage = value == "2" ? 2 : 1;
+    else if (key.startsWith("wifi") && key.endsWith("_ssid")) { int i = key.substring(4, key.length() - 5).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].ssid = value; }
+    else if (key.startsWith("wifi") && key.endsWith("_password")) { int i = key.substring(4, key.length() - 9).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].password = value; }
   }
   f.close();
+  savedNetworkCount = 0;
+  for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) if (savedNetworks[i].ssid.length()) savedNetworkCount++;
+  // Migrate the currently configured network from the older single-network config.
+  if (cfg.ssid.length() && findSavedNetwork(cfg.ssid) < 0) addOrUpdateSavedNetwork(cfg.ssid, cfg.password);
+}
+
+int findSavedNetwork(const String& ssid) {
+  for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) if (ssid.length() && savedNetworks[i].ssid == ssid) return i;
+  return -1;
+}
+
+bool addOrUpdateSavedNetwork(const String& ssid, const String& password) {
+  int index = findSavedNetwork(ssid);
+  if (index < 0) for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) if (!savedNetworks[i].ssid.length()) { index = i; break; }
+  if (index < 0) return false;
+  savedNetworks[index].ssid = ssid; savedNetworks[index].password = password;
+  savedNetworkCount = 0;
+  for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) if (savedNetworks[i].ssid.length()) savedNetworkCount++;
+  return true;
 }
 
 bool saveConfig() {
@@ -352,6 +390,10 @@ bool saveConfig() {
   f.println("batteryX=" + String(cfg.batteryX));
   f.println("batteryY=" + String(cfg.batteryY));
   f.println("tftPage=" + String(cfg.tftPage));
+  for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) {
+    f.println("wifi" + String(i) + "_ssid=" + savedNetworks[i].ssid);
+    f.println("wifi" + String(i) + "_password=" + savedNetworks[i].password);
+  }
   f.close();
   return true;
 }
@@ -443,6 +485,15 @@ String makeConfigJson() {
   j += "\"currentX\":" + String(cfg.currentX) + ",\"currentY\":" + String(cfg.currentY) + ",";
   j += "\"batteryX\":" + String(cfg.batteryX) + ",\"batteryY\":" + String(cfg.batteryY) + ",";
   j += "\"ssid\":\"" + jsonEscape(cfg.ssid) + "\",";
+  j += "\"savedNetworks\":[";
+  bool firstSaved = true;
+  for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) {
+    if (!savedNetworks[i].ssid.length()) continue;
+    if (!firstSaved) j += ",";
+    firstSaved = false;
+    j += "{\"ssid\":\"" + jsonEscape(savedNetworks[i].ssid) + "\"}";
+  }
+  j += "],";
   String net;
   String label;
   if (WiFi.status() == WL_CONNECTED) {
@@ -579,9 +630,25 @@ void handleSaveWiFi() {
                 "{\"ok\":false,\"message\":\"Укажите имя Wi-Fi сети (SSID).\"}");
     return;
   }
-  if (newPassword.length() > 0) cfg.password = newPassword;
-  if (cfg.password.length() > 63) cfg.password = cfg.password.substring(0, 63);
+  String effectivePassword = newPassword;
+  if (effectivePassword.length() == 0) {
+    int savedIndex = findSavedNetwork(newSsid);
+    if (savedIndex >= 0) effectivePassword = savedNetworks[savedIndex].password;
+    else if (cfg.ssid == newSsid) effectivePassword = cfg.password;
+    else {
+      server.send(400, "application/json; charset=utf-8",
+                  "{\"ok\":false,\"message\":\"Для новой сети введите пароль. Для сохранённой сети пароль можно оставить пустым.\"}");
+      return;
+    }
+  }
+  if (effectivePassword.length() > 63) effectivePassword = effectivePassword.substring(0, 63);
+  if (!addOrUpdateSavedNetwork(newSsid, effectivePassword)) {
+    server.send(400, "application/json; charset=utf-8",
+                "{\"ok\":false,\"message\":\"Память заполнена: сохранено 8 сетей.\"}");
+    return;
+  }
   cfg.ssid = newSsid;
+  cfg.password = effectivePassword;
   if (!saveConfig()) {
     server.send(500, "application/json; charset=utf-8",
                 "{\"ok\":false,\"message\":\"Не удалось сохранить настройки. Проверьте LittleFS.\"}");
