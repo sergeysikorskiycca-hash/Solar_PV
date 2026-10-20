@@ -1,8 +1,8 @@
-# ESP32 Admin rewrite — audit and migration plan
+# ESP32 Admin rewrite — port status and migration notes
 
 Base reviewed: `ESP8266_Admin/ESP8266_Admin.ino` on `main` (766 lines; approximately 34.5 KB of source).
 
-This document records the first code review before porting. The existing ESP8266 sketch is intentionally left unchanged.
+The first ESP32 port now exists in `ESP32_Admin.ino`; configurable TFT GPIO defaults are isolated in `DisplayConfig.h`. The existing ESP8266 sketch on `main` is intentionally left unchanged. The port is an initial platform adaptation, not yet a compile-verified release.
 
 ## Existing behavior to preserve
 
@@ -22,12 +22,12 @@ This document records the first code review before porting. The existing ESP8266
 
 ## Findings from the code review
 
-### Fix in the new implementation
+### Review findings and implementation status
 
-1. **Serial output in the main loop:** `stopAccessPointIfConnected()` is called on every pass through `loop()`, but currently only prints the router IP. Once connected, this can flood Serial output. The function name also implies it may stop the AP, while its actual behavior is to keep the AP running and log the IP. Replace it with explicit, non-repeating connection/status handling.
-2. **Unused state:** `savedNetworkCount` is updated but never read. Remove it unless the new design has a real use for it.
-3. **Filesystem recovery can erase settings:** the current sketch automatically formats LittleFS after a mount failure. The ESP32 rewrite should not automatically format storage on a mount error. Report the failure and preserve user data; formatting should be an explicit recovery choice.
-4. **Platform-specific Wi-Fi constants:** scan security checks use ESP8266-specific `ENC_TYPE_NONE`. The ESP32 implementation must use the ESP32 core's authentication/security values and verify them against the installed core version.
+1. **Serial output in the main loop — addressed in the port:** the loop no longer prints the router IP repeatedly. A connection IP is still logged once during boot connection.
+2. **Unused state — addressed in the port:** removed `savedNetworkCount`, which was written but never read.
+3. **Filesystem recovery can erase settings — addressed in the port:** LittleFS is mounted with automatic formatting disabled (`LittleFS.begin(false)`). A mount failure is reported over Serial instead of formatting storage.
+4. **Platform-specific Wi-Fi constants — adapted, still needs compile verification:** the scan security check now uses `WIFI_AUTH_OPEN`.
 5. **Configuration/API responsibilities are mixed:** JSON generation, Wi-Fi management, filesystem persistence, display drawing, request handlers, and a large embedded HTML document all live in one sketch. Separate these concerns to make the port easier to verify.
 
 ### Review notes
@@ -37,7 +37,7 @@ This document records the first code review before porting. The existing ESP8266
 - Preserve the existing `/solarpv.cfg` key/value format where practical, so the new firmware can migrate settings without silently discarding them. ESP8266 and ESP32 have separate physical flash storage, so transfer of existing settings may require entering them again or a deliberate export/import path.
 - Keep the current ESP8266 source untouched as a known-working fallback.
 
-## Proposed ESP32 project structure
+## Planned modular structure
 
 ```
 ESP32_Admin/
@@ -66,3 +66,4 @@ Use a module only where it reduces coupling; avoid creating extra abstractions w
 - No ESP32 compile or hardware test has been performed for this rewrite yet.
 - Exact TFT GPIO wiring on the ESP32 must be confirmed before enabling the display driver.
 - Exact Flash size and partition selection should be read from the board/core configuration or measured, not guessed from the product listing.
+- The current sketch retains the existing `/solarpv.cfg` key/value format, but settings stored in the ESP8266 flash do not automatically appear in the separate ESP32 board.
