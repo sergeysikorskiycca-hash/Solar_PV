@@ -2,7 +2,7 @@
 
 Base reviewed: `ESP8266_Admin/ESP8266_Admin.ino` on `main` (766 lines; approximately 34.5 KB of source).
 
-The ESP32 port is being refactored on `esp32-admin-refactor`; TFT GPIO defaults are isolated in `DisplayConfig.h`, and the embedded HTML/CSS/JavaScript page has been moved to `WebPage.h`. The existing ESP8266 sketch on `main` is intentionally left unchanged. This is not yet a compile-verified release.
+The ESP32 port is being refactored on `esp32-admin-refactor`; TFT GPIO defaults are isolated in `DisplayConfig.h`, the embedded HTML/CSS/JavaScript page is in `WebPage.h`, startup Wi-Fi/AP handling is in `WifiManager.cpp`, and HTTP route registration is in `WebAdmin.cpp`. The existing ESP8266 sketch on `main` is intentionally left unchanged. This is not yet a compile-verified release.
 
 ## Existing behavior to preserve
 
@@ -28,7 +28,7 @@ The ESP32 port is being refactored on `esp32-admin-refactor`; TFT GPIO defaults 
 2. **Unused state — addressed in the port:** removed `savedNetworkCount`, which was written but never read.
 3. **Filesystem recovery can erase settings — addressed in the port:** LittleFS is mounted with automatic formatting disabled (`LittleFS.begin(false)`). A mount failure is reported over Serial instead of formatting storage.
 4. **Platform-specific Wi-Fi constants — adapted, still needs compile verification:** the scan security check now uses `WIFI_AUTH_OPEN`.
-5. **Configuration/API responsibilities are mixed:** JSON generation, Wi-Fi management, filesystem persistence, display drawing, request handlers, and a large embedded HTML document all live in one sketch. Separate these concerns to make the port easier to verify.
+5. **Module separation — partial:** configuration persistence, display rendering, Wi-Fi/AP startup, HTTP route registration, and HTML are separated. The API handler implementations and JSON generation still remain in `ESP32_Admin.ino` and should be moved into `WebAdmin.cpp` in a follow-up cleanup.
 
 ### Review notes
 
@@ -63,7 +63,7 @@ Use a module only where it reduces coupling; avoid creating extra abstractions w
 
 ## Current status and items not yet verified
 
-- The current port has `ESP32_Admin.ino`, `DisplayConfig.h`, and `WebPage.h`; splitting configuration storage, display, Wi-Fi management, and HTTP handlers into modules remains the next refactoring step.
+- The current port has separate `ConfigStore.cpp`, `Display.cpp`, `WifiManager.cpp`, and `WebAdmin.cpp` modules. API handler bodies still remain in the sketch, so web-admin modularization is partial.
 - No ESP32 compile or hardware test has been performed for this rewrite yet. Do not upload it as a verified build.
 - `DisplayConfig.h` currently defines CS=GPIO16, DC=GPIO17, RESET=GPIO4; hardware SPI signals are SCLK=GPIO18 and MOSI=GPIO23. The user confirmed these signal connections can be routed along one side of the board, but no compile or hardware test has been performed.
 - Exact Flash size and partition selection should be read from the board/core configuration or measured, not guessed from the product listing.
