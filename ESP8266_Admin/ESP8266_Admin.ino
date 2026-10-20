@@ -719,6 +719,9 @@ void setup() {
   if (!fsReady) Serial.println(F("ERROR: LittleFS unavailable; settings cannot be saved."));
 
   loadConfig();
+  // Always start on the main TFT page after power-up or restart.
+  // Keep the saved page setting untouched; it only affects the current session.
+  cfg.tftPage = 1;
 
   tft.init(240, 320);
   tft.setRotation(0);
