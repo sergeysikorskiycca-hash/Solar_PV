@@ -61,9 +61,10 @@ Use a module only where it reduces coupling; avoid creating extra abstractions w
 5. Test AP access, router access, scanning, save/reboot, saved-network reuse, both TFT pages, Cyrillic text, and no-flicker footer updates.
 6. Record compile memory statistics and compare them with the old ESP8266 build, noting that the old numbers are not measurements of the current sketch.
 
-## Not yet verified
+## Current status and items not yet verified
 
-- No ESP32 compile or hardware test has been performed for this rewrite yet.
-- Exact TFT GPIO wiring on the ESP32 must be confirmed before enabling the display driver.
+- The initial port is currently a single sketch plus `DisplayConfig.h`; splitting it into the modules above is the next refactoring step.
+- No ESP32 compile or hardware test has been performed for this rewrite yet. Do not upload it as a verified build.
+- `DisplayConfig.h` uses a common ESP32 Dev Module starting map: CS=GPIO5, DC=GPIO16, RESET=GPIO17; hardware SPI defaults are SCLK=GPIO18 and MOSI=GPIO23. These are provisional defaults, not verified against the user's actual wiring. Confirm or edit these values before powering/testing the TFT.
 - Exact Flash size and partition selection should be read from the board/core configuration or measured, not guessed from the product listing.
 - The current sketch retains the existing `/solarpv.cfg` key/value format, but settings stored in the ESP8266 flash do not automatically appear in the separate ESP32 board.
