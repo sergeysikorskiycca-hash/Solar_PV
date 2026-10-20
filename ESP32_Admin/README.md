@@ -2,7 +2,7 @@
 
 Base reviewed: `ESP8266_Admin/ESP8266_Admin.ino` on `main` (766 lines; approximately 34.5 KB of source).
 
-The first ESP32 port now exists in `ESP32_Admin.ino`; configurable TFT GPIO defaults are isolated in `DisplayConfig.h`. The existing ESP8266 sketch on `main` is intentionally left unchanged. The port is an initial platform adaptation, not yet a compile-verified release.
+The ESP32 port is being refactored on `esp32-admin-refactor`; TFT GPIO defaults are isolated in `DisplayConfig.h`, and the embedded HTML/CSS/JavaScript page has been moved to `WebPage.h`. The existing ESP8266 sketch on `main` is intentionally left unchanged. This is not yet a compile-verified release.
 
 ## Existing behavior to preserve
 
@@ -63,8 +63,8 @@ Use a module only where it reduces coupling; avoid creating extra abstractions w
 
 ## Current status and items not yet verified
 
-- The initial port is currently a single sketch plus `DisplayConfig.h`; splitting it into the modules above is the next refactoring step.
+- The current port has `ESP32_Admin.ino`, `DisplayConfig.h`, and `WebPage.h`; splitting configuration storage, display, Wi-Fi management, and HTTP handlers into modules remains the next refactoring step.
 - No ESP32 compile or hardware test has been performed for this rewrite yet. Do not upload it as a verified build.
-- `DisplayConfig.h` uses a common ESP32 Dev Module starting map: CS=GPIO5, DC=GPIO16, RESET=GPIO17; hardware SPI defaults are SCLK=GPIO18 and MOSI=GPIO23. These are provisional defaults, not verified against the user's actual wiring. Confirm or edit these values before powering/testing the TFT.
+- `DisplayConfig.h` currently defines CS=GPIO16, DC=GPIO17, RESET=GPIO4; hardware SPI signals are SCLK=GPIO18 and MOSI=GPIO23. The user confirmed these signal connections can be routed along one side of the board, but no compile or hardware test has been performed.
 - Exact Flash size and partition selection should be read from the board/core configuration or measured, not guessed from the product listing.
 - The current sketch retains the existing `/solarpv.cfg` key/value format, but settings stored in the ESP8266 flash do not automatically appear in the separate ESP32 board.
