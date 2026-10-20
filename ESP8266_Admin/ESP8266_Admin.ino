@@ -548,11 +548,11 @@ void handleScanWiFi() {
   int count = WiFi.scanNetworks(false, true);
   if (count < 0) {
     server.send(500, "application/json; charset=utf-8",
-                "{\\"ok\\":false,\\"message\\":\\"Не удалось выполнить сканирование Wi-Fi.\\"}");
+                "{\"ok\":false,\"message\":\"Не удалось выполнить сканирование Wi-Fi.\"}");
     return;
   }
 
-  String json = "{\\"ok\\":true,\\"networks\\":[";
+  String json = "{\"ok\":true,\"networks\":[";
   bool first = true;
   for (int i = 0; i < count; i++) {
     String networkName = WiFi.SSID(i);
@@ -561,9 +561,9 @@ void handleScanWiFi() {
     first = false;
     int rssi = WiFi.RSSI(i);
     bool secure = WiFi.encryptionType(i) != ENC_TYPE_NONE;
-    json += "{\\"ssid\\":\\"" + jsonEscape(networkName) + "\\",";
-    json += "\\"rssi\\":" + String(rssi) + ",";
-    json += "\\"secure\\":" + String(secure ? "true" : "false") + "}";
+    json += "{\"ssid\":\"" + jsonEscape(networkName) + "\",";
+    json += "\"rssi\":" + String(rssi) + ",";
+    json += "\"secure\":" + String(secure ? "true" : "false") + "}";
   }
   json += "]}";
   WiFi.scanDelete();
