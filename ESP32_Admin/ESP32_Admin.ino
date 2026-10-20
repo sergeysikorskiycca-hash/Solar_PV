@@ -191,7 +191,7 @@ document.getElementById('saveDisplay').addEventListener('click',async()=>{
  Object.keys(data).forEach(k=>{if(typeof data[k]==='boolean'){if(data[k])body.set(k,'1')}else body.set(k,data[k])});
  try{const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
   const j=await r.json();alert(j.message);if(j.ok)loadConfig(await (await fetch('/api/config')).json());
- }catch(e){alert('Не удалось связаться с ESP8266. Проверьте подключение.')}
+ }catch(e){alert('Не удалось связаться с ESP32. Проверьте подключение.')}
 });
 document.getElementById('defaults').addEventListener('click',()=>{
  loadConfig(Object.assign({},defaults,{ssid:val('ssid'),networkStatus:document.getElementById('netStatus').textContent,networkLabel:document.getElementById('prevNetwork').textContent}));
@@ -205,7 +205,7 @@ async function choosePage(page){
   if(!r.ok||!j.ok) throw new Error(j.message||('HTTP '+r.status));
   status.textContent=j.message;
  }catch(e){
-  status.textContent='Ошибка переключения: '+(e.message||'нет ответа от ESP8266');
+  status.textContent='Ошибка переключения: '+(e.message||'нет ответа от ESP32');
  }
 }
 document.getElementById('page1').addEventListener('click',()=>choosePage(1));
@@ -230,7 +230,7 @@ document.getElementById('scanNetworks').addEventListener('click',async()=>{
   j.networks.forEach(n=>{if(Array.from(list.options).some(o=>o.value===n.ssid))return;const bars=n.rssi>=-55?'▂▄▆█':n.rssi>=-67?'▂▄▆':n.rssi>=-75?'▂▄':'▂';const lock=n.secure?'🔒':'без пароля';list.add(new Option(bars+'  '+n.ssid+'  ·  '+n.rssi+' dBm  ·  '+lock,n.ssid));});
   if(!j.networks.length)status.textContent='Сети не найдены. Сохранённые сети остаются доступны в списке.';
   else status.textContent='Найдено сетей: '+j.networks.length+'. ★ — сети, пароль которых уже сохранён.';
- }catch(e){status.textContent='Ошибка сканирования: '+(e.message||'нет ответа от ESP8266');}
+ }catch(e){status.textContent='Ошибка сканирования: '+(e.message||'нет ответа от ESP32');}
  finally{button.disabled=false;}
 });
 document.getElementById('saveWifi').addEventListener('click',async()=>{
@@ -644,7 +644,7 @@ void handleSaveWiFi() {
     return;
   }
   server.send(200, "application/json; charset=utf-8",
-              "{\"ok\":true,\"message\":\"Настройки Wi-Fi сохранены. ESP8266 перезапустится; если роутер не подключится, точка SolarPV-Setup останется доступна.\"}");
+              "{\"ok\":true,\"message\":\"Настройки Wi-Fi сохранены. ESP32 перезапустится; если роутер не подключится, точка SolarPV-Setup останется доступна.\"}");
   restartAt = millis() + 1200;
 }
 
@@ -698,7 +698,7 @@ void setup() {
   Serial.begin(115200);
   delay(100);
   Serial.println();
-  Serial.println(F("Solar_PV ESP8266 Admin MVP"));
+  Serial.println(F("Solar_PV ESP32 Admin MVP"));
 
   fsReady = LittleFS.begin(false);  // Never auto-format: preserve existing data on mount errors.
   if (!fsReady) Serial.println(F("ERROR: LittleFS mount failed; automatic format is disabled. Settings cannot be saved."));
