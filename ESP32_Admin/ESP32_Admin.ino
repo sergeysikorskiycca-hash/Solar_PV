@@ -27,7 +27,6 @@ WebServer server(80);
 static const uint8_t MAX_SAVED_NETWORKS = 8;
 struct SavedNetwork { String ssid; String password; };
 SavedNetwork savedNetworks[MAX_SAVED_NETWORKS];
-uint8_t savedNetworkCount = 0;
 int findSavedNetwork(const String& ssid);
 bool addOrUpdateSavedNetwork(const String& ssid, const String& password);
 
@@ -345,8 +344,6 @@ void loadConfig() {
     else if (key.startsWith("wifi") && key.endsWith("_password")) { int i = key.substring(4, key.length() - 9).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].password = value; }
   }
   f.close();
-  savedNetworkCount = 0;
-  for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) if (savedNetworks[i].ssid.length()) savedNetworkCount++;
   // Migrate the currently configured network from the older single-network config.
   if (cfg.ssid.length() && findSavedNetwork(cfg.ssid) < 0) addOrUpdateSavedNetwork(cfg.ssid, cfg.password);
 }
@@ -361,8 +358,6 @@ bool addOrUpdateSavedNetwork(const String& ssid, const String& password) {
   if (index < 0) for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) if (!savedNetworks[i].ssid.length()) { index = i; break; }
   if (index < 0) return false;
   savedNetworks[index].ssid = ssid; savedNetworks[index].password = password;
-  savedNetworkCount = 0;
-  for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) if (savedNetworks[i].ssid.length()) savedNetworkCount++;
   return true;
 }
 
