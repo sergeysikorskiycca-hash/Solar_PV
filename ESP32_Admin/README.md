@@ -16,9 +16,18 @@ The ESP32 port is being refactored on `esp32-admin-refactor`; TFT GPIO defaults 
   - `POST /api/wifi`
 - Up to eight saved Wi-Fi networks; blank password reuses a saved password.
 - Configuration stored in LittleFS, including display layout settings.
-- ST7789 240x320 display, Cyrillic fonts, two pages, and partial footer updates.
+- ST7789 240x320 display, Cyrillic fonts, reusable page layouts, and partial footer updates.
 - Device boots to TFT page 1.
 - Existing HTML preview and plain-text Wi-Fi password entry.
+
+## Reusable page and widget model
+
+- The editor supports up to 4 independently configured pages and up to 8 widgets on each page (bounded for predictable RAM use).
+- All pages use the same widget renderer. Available types: PV power, voltage, current, battery, and Wi-Fi status.
+- The Wi-Fi status widget is no longer hard-wired to page 2; it can be added to any page.
+- Page and widget layouts are transferred through a structured JSON API and saved in LittleFS. Existing `/solarpv.cfg` files without page records are migrated to the original two-page layout.
+- The browser follows the physical TFT page until the user chooses another page to edit. The physical page is polled independently, and the editor has an explicit action to show its selected page on the TFT.
+- Widget labels are edited inline on the preview. Dragging and resizing operate on TFT-pixel coordinates.
 
 ## Findings from the code review
 
