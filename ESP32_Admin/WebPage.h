@@ -17,7 +17,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 .page-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.page-tab{flex:0 0 auto}.page-tab.active{background:#49b78b;color:#081b14}.page-tab.device{outline:2px solid #ffd166;outline-offset:1px}
 .screen{width:240px;height:320px;position:relative;overflow:hidden;margin:0 auto;background:#17212b;border:2px solid #64778a;border-radius:5px;color:#fff}
 .screen-title{position:absolute;left:8px;top:7px;font-size:16px;font-weight:bold;white-space:nowrap;max-width:224px;overflow:hidden;text-overflow:ellipsis}
-.widget{position:absolute;background:#263746;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}.widget.selected{outline:2px solid #49b78b;outline-offset:1px}.widget .name{font-size:10px;color:#aebdca;white-space:nowrap;overflow:hidden;outline:none}.widget .name:focus{user-select:text;cursor:text;background:#17212b;border-radius:2px}.widget .value{font-size:17px;color:#ffd166;font-weight:bold;white-space:nowrap}.widget .wifi-lines{font-size:10px;line-height:1.8;color:#d4e1ee;white-space:normal;overflow-wrap:anywhere}
+.widget{position:absolute;background:#263746;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}.widget.selected{outline:2px solid #49b78b;outline-offset:1px}.widget .name{font-size:10px;color:#aebdca;white-space:nowrap;overflow:hidden;outline:none}.widget .name:focus{user-select:text;cursor:text;background:#17212b;border-radius:2px}.widget .value{font-size:17px;color:#ffd166;font-weight:bold;white-space:nowrap}.widget .wifi-lines{font-size:10px;line-height:1.8;color:#d4e1ee;white-space:normal;overflow-wrap:anywhere}.widget .free-text{font-size:11px;line-height:1.25;color:#f4f7fb;white-space:pre-wrap;overflow-wrap:anywhere;user-select:none}
 .resize-handle{position:absolute;right:0;bottom:0;width:13px;height:13px;background:#49b78b;border:1px solid #eaf0f6;border-radius:3px;cursor:nwse-resize;touch-action:none}
 .screen-footer{position:absolute;bottom:5px;left:8px;right:8px;border-top:1px solid #52616d;padding-top:4px;font-size:9px;color:#aebdca;display:flex;justify-content:space-between}
 .preview-wrap{position:sticky;top:12px;align-self:start}.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px}.toolbar .wide{grid-column:1/-1}.hint{margin-top:8px}.wifi-scan{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
@@ -31,9 +31,9 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <p class="hint">Жёлтая рамка у вкладки показывает страницу, которая сейчас выведена на физический дисплей. Выбирать другую страницу для редактирования можно независимо.</p>
 <div class="status" id="deviceStatus">Получение состояния ESP32…</div></section>
 <section><h2>Библиотека блоков</h2><label for="widgetType">Тип нового блока</label><select id="widgetType">
-<option value="power">Мощность PV</option><option value="voltage">Напряжение</option><option value="current">Ток</option><option value="battery">Аккумулятор</option><option value="wifiStatus">Состояние Wi-Fi</option></select>
+<option value="power">Мощность PV</option><option value="voltage">Напряжение</option><option value="current">Ток</option><option value="battery">Аккумулятор</option><option value="wifiStatus">Состояние Wi-Fi</option><option value="text">Текстовый блок</option></select>
 <div class="row" style="margin-top:8px"><button class="primary" id="addWidget">＋ Добавить на страницу</button><button id="deleteWidget">Удалить выбранный блок</button></div>
-<p class="hint">Щёлкни по подписи блока, чтобы отредактировать её прямо на холсте. Перетаскивай блок мышью, размер меняй за зелёный угол. Все страницы используют одну библиотеку типов блоков.</p>
+<p class="hint">Щёлкни по подписи блока, чтобы изменить её. Перетаскивай блок мышью, размер меняй за зелёный угол.</p><label for="widgetText">Текст выбранного блока</label><textarea id="widgetText" rows="5" maxlength="240" placeholder="Введите комментарий, буквы, цифры и символы…" style="width:100%;padding:9px;border:1px solid #465c73;border-radius:7px;background:#101923;color:#fff;font:14px Arial,sans-serif;resize:vertical"></textarea><p class="hint">Поле активно для текстового блока. Поддерживаются переносы строк; максимум 240 символов.</p>
 <h3>Оформление</h3><p class="hint">Верхний заголовок дисплея берётся из названия выбранной страницы.</p>
 <label for="fontScale">Размер значений</label><select id="fontScale"><option value="1">Обычный</option><option value="2">Крупный</option></select>
 <div class="toolbar" style="margin-top:12px"><button class="primary wide" id="saveDisplay">Сохранить все страницы и применить</button><button id="showOnTft">Показать выбранную страницу на TFT</button><button id="resetLayout">Восстановить исходный макет</button></div>
@@ -55,13 +55,13 @@ const defaults=[
  {type:'current',label:'Ток',x:125,y:125,w:106,h:58,enabled:true},
  {type:'battery',label:'Аккумулятор',x:8,y:205,w:224,h:58,enabled:true}
 ];
-const typeLabels={power:'Мощность PV',voltage:'Напряжение',current:'Ток',battery:'Аккумулятор',wifiStatus:'Состояние Wi-Fi'};
+const typeLabels={power:'Мощность PV',voltage:'Напряжение',current:'Ток',battery:'Аккумулятор',wifiStatus:'Состояние Wi-Fi',text:'Текст'};
 const demoValues={power:'DEMO W',voltage:'DEMO V',current:'DEMO A',battery:'DEMO %'};
 let pages=[],editorPage=0,devicePage=0,selectedWidget=-1,followDevice=true,pointerEdit=null;
 let networkStatus='',networkLabel='Wi-Fi: —',savedNetworks=[];
 const $=id=>document.getElementById(id);
 function clone(x){return JSON.parse(JSON.stringify(x))}
-function normalizePage(p,i){return {title:p.title||('Страница '+(i+1)),widgets:(p.widgets||[]).slice(0,MAX_WIDGETS).map(w=>({type:typeLabels[w.type]?w.type:'power',label:w.label||typeLabels[w.type]||'Блок',x:Number(w.x)||0,y:Number(w.y)||40,w:Math.max(40,Number(w.w)||106),h:Math.max(36,Number(w.h)||58),enabled:w.enabled!==false}))}}
+function normalizePage(p,i){return {title:p.title||('Страница '+(i+1)),widgets:(p.widgets||[]).slice(0,MAX_WIDGETS).map(w=>({type:typeLabels[w.type]?w.type:'power',label:w.label||typeLabels[w.type]||'Блок',text:String(w.text||''),x:Number(w.x)||0,y:Number(w.y)||40,w:Math.max(40,Number(w.w)||106),h:Math.max(36,Number(w.h)||58),enabled:w.enabled!==false}))}}
 function ensurePages(){if(!pages.length)pages=[{title:'Показатели',widgets:clone(defaults)},{title:'Wi-Fi',widgets:[{type:'wifiStatus',label:'Состояние Wi-Fi',x:8,y:55,w:224,h:220,enabled:true}]}];pages=pages.slice(0,MAX_PAGES).map(normalizePage)}
 function widgetValue(w){if(w.type==='wifiStatus')return '<div class="wifi-lines"></div>';return '<div class="value">'+(demoValues[w.type]||'DEMO')+'</div>'}
 function renderTabs(){
@@ -84,6 +84,8 @@ function renderCanvas(){
   node.appendChild(name);
   if(w.type==='wifiStatus'){
    const lines=document.createElement('div');lines.className='wifi-lines';lines.textContent=networkStatus||'Состояние сети появится здесь';node.appendChild(lines);
+  }else if(w.type==='text'){
+   const body=document.createElement('div');body.className='free-text';body.textContent=w.text||'Введите текст в поле ниже';node.appendChild(body);
   }else{
    const value=document.createElement('div');value.className='value';value.textContent=demoValues[w.type]||'DEMO';value.style.fontSize=$('fontScale').value==='2'?'21px':'17px';node.appendChild(value);
   }
@@ -105,7 +107,7 @@ function renderCanvas(){
   node.addEventListener('click',e=>{if(e.target.closest('.name'))return;selectedWidget=i;renderCanvas()});c.appendChild(node);
  });
 }
-function renderAll(){renderTabs();$('pageTitle').value=pages[editorPage].title;renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
+function renderAll(){renderTabs();$('pageTitle').value=pages[editorPage].title;renderCanvas();const p=pages[editorPage],w=p.widgets[selectedWidget];$('widgetText').disabled=!w||w.type!=='text';$('widgetText').value=w&&w.type==='text'?w.text:'';$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
 function loadConfig(c){
  $('fontScale').value=String(c.fontScale||1);$('netStatus').textContent=c.networkStatus||'Wi-Fi не подключён';
  networkStatus=c.networkStatus||'';networkLabel=c.networkLabel||'Wi-Fi: —';savedNetworks=c.savedNetworks||[];
@@ -117,7 +119,7 @@ function loadConfig(c){
 }
 function updateDeviceStatus(){ $('deviceStatus').textContent='Физический дисплей: страница '+(devicePage+1)+' из '+pages.length+'. Редактор: страница '+(editorPage+1)+'.'; }
 function collectData(){
- return {title:'SOLAR PV',fontScale:Number($('fontScale').value),pageCount:pages.length,pages:pages.map(p=>({title:p.title,widgets:p.widgets.map(w=>({type:w.type,label:w.label,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
+ return {title:'SOLAR PV',fontScale:Number($('fontScale').value),pageCount:pages.length,pages:pages.map(p=>({title:p.title,widgets:p.widgets.map(w=>({type:w.type,label:w.label,text:w.text||'',x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
 }
 async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
@@ -142,10 +144,11 @@ $('followDevice').addEventListener('click',()=>{followDevice=true;editorPage=Mat
 $('addWidget').addEventListener('click',()=>{
  const p=pages[editorPage];if(p.widgets.length>=MAX_WIDGETS){alert('На одной странице максимум '+MAX_WIDGETS+' блоков.');return}
  const type=$('widgetType').value;const n=p.widgets.length;
- p.widgets.push({type,label:typeLabels[type],x:8+(n%2)*117,y:55+Math.floor(n/2)*62,w:type==='wifiStatus'?224:106,h:type==='wifiStatus'?120:58,enabled:true});
+ p.widgets.push({type,label:typeLabels[type],text:'',x:8+(n%2)*117,y:55+Math.floor(n/2)*62,w:(type==='wifiStatus'||type==='text')?224:106,h:type==='wifiStatus'?120:(type==='text'?80:58),enabled:true});
  selectedWidget=p.widgets.length-1;renderAll();
 });
 $('deleteWidget').addEventListener('click',()=>{const p=pages[editorPage];if(selectedWidget<0||selectedWidget>=p.widgets.length){alert('Сначала выбери блок на холсте.');return}p.widgets.splice(selectedWidget,1);selectedWidget=-1;renderAll()});
+$('widgetText').addEventListener('input',()=>{const w=pages[editorPage].widgets[selectedWidget];if(!w||w.type!=='text')return;w.text=$('widgetText').value.slice(0,240);renderCanvas()});
 async function saveAll(showMessage){
  const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(collectData())});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||('HTTP '+r.status));
  if(showMessage!==false)alert(j.message);const c=await (await fetch('/api/config?t='+Date.now(),{cache:'no-store'})).json();
