@@ -70,8 +70,8 @@ void renderTFT() {
   tft.setTextWrap(false);
   uint8_t pageIndex = cfg.tftPage > 0 ? cfg.tftPage - 1 : 0;
   if (pageIndex >= cfg.pageCount) pageIndex = 0;
-  drawCyrillicText(cfg.title, 8, 25, ST77XX_WHITE, true);
-  drawCyrillicText(cfg.pages[pageIndex].title, 8, 43, 0x07E0, false);
+  // The selected page name is the only heading; no shared title is drawn.
+  drawCyrillicText(cfg.pages[pageIndex].title, 8, 25, ST77XX_WHITE, true);
   PageConfig& page = cfg.pages[pageIndex];
   for (uint8_t i = 0; i < page.widgetCount; i++) drawWidget(page.widgets[i]);
   tft.drawFastHLine(8, 294, 224, 0x5B6D);
