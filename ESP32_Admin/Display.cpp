@@ -41,6 +41,37 @@ void drawWidget(const WidgetConfig& widget) {
   tft.fillRoundRect(x, y, w, h, 5, 0x29C6);
   tft.drawRoundRect(x, y, w, h, 5, 0x5B6D);
   drawCyrillicText(widget.label, x + 6, y + 18, 0xBDF7, false);
+  if (widget.type == "text") {
+    const int maxWidth = w - 12;
+    const int lineHeight = 14;
+    int lineY = y + 34;
+    String line = "";
+    String content = widget.text;
+    content.replace("\r", "");
+    content += "\n";
+    u8g2Fonts.setFont(u8g2_font_6x13_t_cyrillic);
+    for (size_t pos = 0; pos < content.length();) {
+      if (content[pos] == '\n') {
+        if (lineY <= y + h - 4) drawCyrillicText(line, x + 6, lineY, ST77XX_WHITE, false);
+        line = "";
+        lineY += lineHeight;
+        pos++;
+        continue;
+      }
+      uint8_t lead = (uint8_t)content[pos];
+      size_t bytes = lead < 0x80 ? 1 : ((lead & 0xE0) == 0xC0 ? 2 : ((lead & 0xF0) == 0xE0 ? 3 : ((lead & 0xF8) == 0xF0 ? 4 : 1)));
+      if (pos + bytes > content.length()) bytes = 1;
+      String glyph = content.substring(pos, pos + bytes);
+      String candidate = line + glyph;
+      if (line.length() && u8g2Fonts.getUTF8Width(candidate.c_str()) > maxWidth) {
+        if (lineY <= y + h - 4) drawCyrillicText(line, x + 6, lineY, ST77XX_WHITE, false);
+        line = glyph;
+        lineY += lineHeight;
+      } else line = candidate;
+      pos += bytes;
+    }
+    return;
+  }
   if (widget.type == "wifiStatus") {
     int lineY = y + 39;
     if (WiFi.status() == WL_CONNECTED) {
