@@ -64,10 +64,10 @@ void renderTFT() {
   drawCyrillicText(cfg.title, 8, 25, ST77XX_WHITE, true);
   drawCyrillicText("ДЕМО-ДАННЫЕ", 8, 43, 0x07E0, false);
 
-  if (cfg.showPower) drawCard("Мощность PV", "DEMO W", cfg.powerX, cfg.powerY, 224, 58);
-  if (cfg.showVoltage) drawCard("Напряжение", "DEMO V", cfg.voltageX, cfg.voltageY, 106, 58);
-  if (cfg.showCurrent) drawCard("Ток", "DEMO A", cfg.currentX, cfg.currentY, 106, 58);
-  if (cfg.showBattery) drawCard("Аккумулятор", "DEMO %", cfg.batteryX, cfg.batteryY, 224, 58);
+  if (cfg.showPower) drawCard("Мощность PV", "DEMO W", cfg.powerX, cfg.powerY, cfg.powerW, cfg.powerH);
+  if (cfg.showVoltage) drawCard("Напряжение", "DEMO V", cfg.voltageX, cfg.voltageY, cfg.voltageW, cfg.voltageH);
+  if (cfg.showCurrent) drawCard("Ток", "DEMO A", cfg.currentX, cfg.currentY, cfg.currentW, cfg.currentH);
+  if (cfg.showBattery) drawCard("Аккумулятор", "DEMO %", cfg.batteryX, cfg.batteryY, cfg.batteryW, cfg.batteryH);
 
   tft.drawFastHLine(8, 294, 224, 0x5B6D);
   lastStatusText = "";
