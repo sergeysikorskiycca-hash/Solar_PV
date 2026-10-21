@@ -117,10 +117,7 @@ function loadConfig(c){
 }
 function updateDeviceStatus(){ $('deviceStatus').textContent='Физический дисплей: страница '+(devicePage+1)+' из '+pages.length+'. Редактор: страница '+(editorPage+1)+'.'; }
 function collectData(){
- const d=new URLSearchParams();d.set('title',$('title').value);d.set('fontScale',$('fontScale').value);d.set('pageCount',String(pages.length));
- pages.forEach((p,pi)=>{d.set('page'+pi+'Title',p.title);d.set('page'+pi+'Count',String(p.widgets.length));p.widgets.forEach((w,wi)=>{
-  const k='p'+pi+'w'+wi;d.set(k+'Type',w.type);d.set(k+'Label',w.label);d.set(k+'X',String(w.x));d.set(k+'Y',String(w.y));d.set(k+'W',String(w.w));d.set(k+'H',String(w.h));d.set(k+'Enabled',w.enabled?'1':'0');
- })});return d;
+ return {title:$('title').value,fontScale:Number($('fontScale').value),pageCount:pages.length,pages:pages.map(p=>({title:p.title,widgets:p.widgets.map(w=>({type:w.type,label:w.label,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
 }
 async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
@@ -150,7 +147,7 @@ $('addWidget').addEventListener('click',()=>{
 });
 $('deleteWidget').addEventListener('click',()=>{const p=pages[editorPage];if(selectedWidget<0||selectedWidget>=p.widgets.length){alert('Сначала выбери блок на холсте.');return}p.widgets.splice(selectedWidget,1);selectedWidget=-1;renderAll()});
 async function saveAll(showMessage){
- const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:collectData()});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||('HTTP '+r.status));
+ const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(collectData())});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||('HTTP '+r.status));
  if(showMessage!==false)alert(j.message);const c=await (await fetch('/api/config?t='+Date.now(),{cache:'no-store'})).json();
  const oldEditor=editorPage;loadConfig(c);editorPage=Math.min(oldEditor,pages.length-1);followDevice=false;renderAll();return true;
 }
