@@ -45,6 +45,8 @@ void setDefaults() {
   cfg.ssid = "";
   cfg.password = "";
   cfg.title = "SOLAR PV";
+  cfg.powerLabel = "Мощность PV"; cfg.voltageLabel = "Напряжение";
+  cfg.currentLabel = "Ток"; cfg.batteryLabel = "Аккумулятор";
   cfg.showPower = true;
   cfg.showVoltage = true;
   cfg.showCurrent = true;
@@ -73,6 +75,10 @@ void loadConfig() {
     if (key == "ssid") cfg.ssid = value;
     else if (key == "password") cfg.password = value;
     else if (key == "title") cfg.title = sanitizeTitle(value);
+    else if (key == "powerLabel") cfg.powerLabel = sanitizeTitle(value);
+    else if (key == "voltageLabel") cfg.voltageLabel = sanitizeTitle(value);
+    else if (key == "currentLabel") cfg.currentLabel = sanitizeTitle(value);
+    else if (key == "batteryLabel") cfg.batteryLabel = sanitizeTitle(value);
     else if (key == "showPower") cfg.showPower = value == "1";
     else if (key == "showVoltage") cfg.showVoltage = value == "1";
     else if (key == "showCurrent") cfg.showCurrent = value == "1";
@@ -123,6 +129,10 @@ bool saveConfig() {
   f.println("ssid=" + cfg.ssid);
   f.println("password=" + cfg.password);
   f.println("title=" + sanitizeTitle(cfg.title));
+  f.println("powerLabel=" + sanitizeTitle(cfg.powerLabel));
+  f.println("voltageLabel=" + sanitizeTitle(cfg.voltageLabel));
+  f.println("currentLabel=" + sanitizeTitle(cfg.currentLabel));
+  f.println("batteryLabel=" + sanitizeTitle(cfg.batteryLabel));
   f.println(String("showPower=") + (cfg.showPower ? "1" : "0"));
   f.println(String("showVoltage=") + (cfg.showVoltage ? "1" : "0"));
   f.println(String("showCurrent=") + (cfg.showCurrent ? "1" : "0"));
