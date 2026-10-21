@@ -17,6 +17,9 @@ struct WidgetConfig {
   String type;       // power, voltage, current, battery, wifiStatus
   String label;
   String text;      // Free text for text widgets; supports UTF-8 and line breaks.
+  uint8_t headingSize, contentSize;
+  uint8_t headingAlign, contentAlign;
+  uint8_t headingColor, contentColor;
   int x, y, w, h;
   bool enabled;
 };
