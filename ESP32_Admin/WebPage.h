@@ -28,7 +28,7 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 .screen{width:240px;height:320px;position:relative;overflow:hidden;margin:0 auto;background:#17212b;border:2px solid #64778a;border-radius:5px;color:#fff}
 .screen-title{position:absolute;left:8px;top:8px;font-size:16px;font-weight:bold;white-space:nowrap;max-width:224px;overflow:hidden}
 .screen-status{position:absolute;left:8px;top:32px;color:#73d6a0;font-size:10px}
-.demo{position:absolute;background:#263746;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden}
+.demo{position:absolute;background:#263746;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}.demo.selected{outline:2px solid #49b78b;outline-offset:1px}.resize-handle{position:absolute;right:0;bottom:0;width:13px;height:13px;background:#49b78b;border:1px solid #eaf0f6;border-radius:3px;cursor:nwse-resize;touch-action:none}.positions{display:none}
 .demo .name{font-size:10px;color:#aebdca;white-space:nowrap}
 .demo .value{font-size:17px;color:#ffd166;font-weight:bold;white-space:nowrap}
 #pPower{width:224px;height:58px}#pVoltage,#pCurrent{width:106px;height:58px}#pBattery{width:224px;height:58px}
@@ -55,7 +55,7 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 <label class="check"><input id="showBattery" type="checkbox"> Аккумулятор</label>
 </div>
 <h3>Расположение блоков (X / Y)</h3>
-<p class="hint">Координаты задаются в пикселях. Полноширинные блоки: X от 0 до 16. Половинные: X от 0 до 128. Y от 40 до 240.</p>
+<p class="hint">Перетаскивай блоки мышкой. Чтобы изменить размер, потяни за зелёный угол выбранного блока. Координаты и размеры сохраняются автоматически вместе с макетом.</p>
 <div class="positions">
 <div><label for="powerX">Мощность — X</label><input id="powerX" type="number" min="0" max="16"></div>
 <div><label for="powerY">Мощность — Y</label><input id="powerY" type="number" min="40" max="230"></div>
@@ -88,10 +88,10 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 <div class="screen" id="preview">
 <div class="screen-title" id="prevTitle">SOLAR PV</div>
 <div class="screen-status">DEMO DATA · Wi-Fi</div>
-<div class="demo" id="pPower"><div class="name">Мощность PV</div><div class="value">DEMO W</div></div>
-<div class="demo" id="pVoltage"><div class="name">Напряжение</div><div class="value">DEMO V</div></div>
-<div class="demo" id="pCurrent"><div class="name">Ток</div><div class="value">DEMO A</div></div>
-<div class="demo" id="pBattery"><div class="name">Аккумулятор</div><div class="value">DEMO %</div></div>
+<div class="demo" id="pPower"><div class="name">Мощность PV</div><div class="value">DEMO W</div><span class="resize-handle" title="Изменить размер"></span></div>
+<div class="demo" id="pVoltage"><div class="name">Напряжение</div><div class="value">DEMO V</div><span class="resize-handle" title="Изменить размер"></span></div>
+<div class="demo" id="pCurrent"><div class="name">Ток</div><div class="value">DEMO A</div><span class="resize-handle" title="Изменить размер"></span></div>
+<div class="demo" id="pBattery"><div class="name">Аккумулятор</div><div class="value">DEMO %</div><span class="resize-handle" title="Изменить размер"></span></div>
 <div class="screen-footer"><span id="prevNetwork">Wi-Fi: —</span><span>Стр. 1</span></div>
 </div>
 <p class="hint">Предпросмотр приблизительный. Итоговый вид отображается на физическом TFT.</p>
@@ -100,7 +100,8 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 </main>
 <script>
 const ids=['powerX','powerY','voltageX','voltageY','currentX','currentY','batteryX','batteryY'];
-const defaults={title:'SOLAR PV',fontScale:1,showPower:true,showVoltage:true,showCurrent:true,showBattery:true,powerX:8,powerY:55,voltageX:8,voltageY:125,currentX:125,currentY:125,batteryX:8,batteryY:205};
+const defaults={title:'SOLAR PV',fontScale:1,showPower:true,showVoltage:true,showCurrent:true,showBattery:true,powerX:8,powerY:55,voltageX:8,voltageY:125,currentX:125,currentY:125,batteryX:8,batteryY:205,powerW:224,powerH:58,voltageW:106,voltageH:58,currentW:106,currentH:58,batteryW:224,batteryH:58};
+const dims={power:{w:224,h:58},voltage:{w:106,h:58},current:{w:106,h:58},battery:{w:224,h:58}};
 function val(id){return document.getElementById(id).value}
 function checked(id){return document.getElementById(id).checked}
 function setVal(id,v){document.getElementById(id).value=v}
@@ -112,6 +113,7 @@ function updatePreview(){
   const node=document.getElementById(el);
   node.classList.toggle('hidden',!checked('show'+key[0].toUpperCase()+key.slice(1)));
   node.style.left=val(key+'X')+'px';node.style.top=val(key+'Y')+'px';
+  node.style.width=dims[key].w+'px';node.style.height=dims[key].h+'px';
   node.querySelector('.value').style.fontSize=(val('fontScale')==='2'?'21px':'17px');
  });
 }
@@ -119,6 +121,7 @@ function loadConfig(c){
  setVal('title',c.title);setVal('fontScale',c.fontScale);
  ['Power','Voltage','Current','Battery'].forEach(k=>document.getElementById('show'+k).checked=!!c['show'+k]);
  ids.forEach(id=>setVal(id,c[id]));
+ ['power','voltage','current','battery'].forEach(k=>{dims[k].w=Number(c[k+'W']||defaults[k+'W']);dims[k].h=Number(c[k+'H']||defaults[k+'H']);});
  setVal('ssid',c.ssid||'');setVal('password','');
  renderSavedNetworks(c.savedNetworks||[]);
  document.getElementById('pageStatus').textContent='Активна страница '+(c.tftPage===2?'2 · Wi-Fi':'1 · Показатели');
@@ -130,9 +133,41 @@ function collectDisplay(){
  const d={title:val('title'),fontScale:val('fontScale')};
  ['Power','Voltage','Current','Battery'].forEach(k=>d['show'+k]=checked('show'+k));
  ids.forEach(id=>d[id]=val(id));
+ ['power','voltage','current','battery'].forEach(k=>{d[k+'W']=dims[k].w;d[k+'H']=dims[k].h;});
  return d;
 }
 document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',updatePreview));
+
+// Drag and resize widgets directly on the TFT preview. All measurements use TFT pixels.
+const preview=document.getElementById('preview');
+const widgetKeys={pPower:'power',pVoltage:'voltage',pCurrent:'current',pBattery:'battery'};
+let pointerEdit=null;
+Object.keys(widgetKeys).forEach(id=>{
+ const node=document.getElementById(id), key=widgetKeys[id];
+ node.addEventListener('pointerdown',e=>{
+  if(e.button!==0)return;
+  const resizing=e.target.classList.contains('resize-handle');
+  document.querySelectorAll('.demo').forEach(n=>n.classList.remove('selected'));
+  node.classList.add('selected');
+  pointerEdit={id,key,resizing,startX:e.clientX,startY:e.clientY,x:Number(val(key+'X'))||0,y:Number(val(key+'Y'))||0,w:dims[key].w,h:dims[key].h};
+  node.setPointerCapture(e.pointerId);e.preventDefault();
+ });
+ node.addEventListener('pointermove',e=>{
+  if(!pointerEdit||pointerEdit.id!==id)return;
+  const rect=preview.getBoundingClientRect(),sx=240/rect.width,sy=320/rect.height;
+  const dx=Math.round((e.clientX-pointerEdit.startX)*sx),dy=Math.round((e.clientY-pointerEdit.startY)*sy);
+  if(pointerEdit.resizing){
+   dims[key].w=Math.max(40,Math.min(240-pointerEdit.x,pointerEdit.w+dx));
+   dims[key].h=Math.max(36,Math.min(290-pointerEdit.y,pointerEdit.h+dy));
+  }else{
+   setVal(key+'X',Math.max(0,Math.min(240-dims[key].w,pointerEdit.x+dx)));
+   setVal(key+'Y',Math.max(40,Math.min(290-dims[key].h,pointerEdit.y+dy)));
+  }
+  updatePreview();
+ });
+ const finish=()=>{pointerEdit=null;};
+ node.addEventListener('pointerup',finish);node.addEventListener('pointercancel',finish);
+});
 document.getElementById('saveDisplay').addEventListener('click',async()=>{
  const data=collectDisplay();const body=new URLSearchParams();
  Object.keys(data).forEach(k=>{if(typeof data[k]==='boolean'){if(data[k])body.set(k,'1')}else body.set(k,data[k])});
