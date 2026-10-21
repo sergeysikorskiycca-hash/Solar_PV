@@ -89,12 +89,41 @@ void initializeDefaultPages() {
   for (uint8_t p = 2; p < MAX_PAGES; p++) { cfg.pages[p].title = ""; cfg.pages[p].widgetCount = 0; }
 }
 
+bool loadPageKey(const String& key, const String& value) {
+  if (key == "pageCount") { cfg.pageCount = clampInt(value.toInt(), 1, MAX_PAGES); return true; }
+  if (key.startsWith("page")) {
+    int end = 4; while (end < key.length() && isDigit(key[end])) end++;
+    if (end == 4) return false;
+    int p = key.substring(4, end).toInt(); if (p < 0 || p >= MAX_PAGES) return true;
+    String suffix = key.substring(end);
+    if (suffix == "Title") cfg.pages[p].title = sanitizeTitle(value);
+    else if (suffix == "Count") cfg.pages[p].widgetCount = clampInt(value.toInt(), 0, MAX_WIDGETS_PER_PAGE);
+    else return false;
+    return true;
+  }
+  if (key.length() < 6 || key[0] != 'p' || !isDigit(key[1])) return false;
+  int p = key.substring(1, 2).toInt(); int wPos = key.indexOf('w', 2);
+  if (wPos < 0 || p >= MAX_PAGES) return false;
+  int wi = key.substring(wPos + 1, wPos + 2).toInt();
+  if (wi < 0 || wi >= MAX_WIDGETS_PER_PAGE) return true;
+  String suffix = key.substring(wPos + 2); WidgetConfig& w = cfg.pages[p].widgets[wi];
+  if (suffix == "Type") { if (isKnownWidgetType(value)) w.type = value; }
+  else if (suffix == "Label") w.label = sanitizeTitle(value);
+  else if (suffix == "X") w.x = clampInt(value.toInt(), 0, 239);
+  else if (suffix == "Y") w.y = clampInt(value.toInt(), 40, 289);
+  else if (suffix == "W") w.w = clampInt(value.toInt(), 40, 240);
+  else if (suffix == "H") w.h = clampInt(value.toInt(), 36, 250);
+  else if (suffix == "Enabled") w.enabled = value == "1";
+  else return false;
+  return true;
+}
 void loadConfig() {
   setDefaults();
   if (!fsReady) return;
   File f = LittleFS.open(CONFIG_PATH, "r");
   if (!f) return;
   for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) { savedNetworks[i].ssid = ""; savedNetworks[i].password = ""; }
+  bool genericPagesLoaded = false;
   while (f.available()) {
     String line = f.readStringUntil('\n');
     line.trim();
@@ -130,11 +159,24 @@ void loadConfig() {
     else if (key == "currentH") cfg.currentH = clampInt(value.toInt(), 36, 120);
     else if (key == "batteryW") cfg.batteryW = clampInt(value.toInt(), 40, 224);
     else if (key == "batteryH") cfg.batteryH = clampInt(value.toInt(), 36, 120);
-    else if (key == "tftPage") cfg.tftPage = value == "2" ? 2 : 1;
+    else if (key == "tftPage") cfg.tftPage = clampInt(value.toInt(), 1, MAX_PAGES);
+    else if (key == "pageCount" || key.startsWith("page") || (key.length() > 2 && key[0] == 'p' && isDigit(key[1]))) { if (loadPageKey(key, value)) genericPagesLoaded = true; }
     else if (key.startsWith("wifi") && key.endsWith("_ssid")) { int i = key.substring(4, key.length() - 5).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].ssid = value; }
     else if (key.startsWith("wifi") && key.endsWith("_password")) { int i = key.substring(4, key.length() - 9).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].password = value; }
   }
   f.close();
+  if (!genericPagesLoaded) initializeDefaultPages();
+  cfg.pageCount = clampInt(cfg.pageCount, 1, MAX_PAGES);
+  cfg.tftPage = clampInt(cfg.tftPage, 1, cfg.pageCount);
+  for (uint8_t p = 0; p < cfg.pageCount; p++) {
+    cfg.pages[p].widgetCount = clampInt(cfg.pages[p].widgetCount, 0, MAX_WIDGETS_PER_PAGE);
+    for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
+      WidgetConfig& w = cfg.pages[p].widgets[i];
+      if (!isKnownWidgetType(w.type)) w.type = "power";
+      w.w = clampInt(w.w, 40, 240); w.h = clampInt(w.h, 36, 250);
+      w.x = clampInt(w.x, 0, 240 - w.w); w.y = clampInt(w.y, 40, 290 - w.h);
+    }
+  }
   // Migrate the currently configured network from the older single-network config.
   if (cfg.ssid.length() && findSavedNetwork(cfg.ssid) < 0) addOrUpdateSavedNetwork(cfg.ssid, cfg.password);
 }
