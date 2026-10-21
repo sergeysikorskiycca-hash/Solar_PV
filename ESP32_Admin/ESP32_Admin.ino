@@ -121,7 +121,22 @@ String makeConfigJson() {
   }
   j += "\"networkStatus\":\"" + jsonEscape(net) + "\",";
   j += "\"networkLabel\":\"" + jsonEscape(label) + "\",";
-  j += "\"tftPage\":" + String(cfg.tftPage) + "}";
+  j += "\"tftPage\":" + String(cfg.tftPage) + ",";
+  j += "\"pageCount\":" + String(cfg.pageCount) + ",\"pages\":[";
+  for (uint8_t p = 0; p < cfg.pageCount; p++) {
+    if (p) j += ",";
+    const PageConfig& page = cfg.pages[p];
+    j += "{\"title\":\"" + jsonEscape(page.title) + "\",\"widgetCount\":" + String(page.widgetCount) + ",\"widgets\":[";
+    for (uint8_t i = 0; i < page.widgetCount; i++) {
+      if (i) j += ",";
+      const WidgetConfig& w = page.widgets[i];
+      j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",";
+      j += "\"x\":" + String(w.x) + ",\"y\":" + String(w.y) + ",\"w\":" + String(w.w) + ",\"h\":" + String(w.h) + ",";
+      j += "\"enabled\":" + String(w.enabled ? "true" : "false") + "}";
+    }
+    j += "]}";
+  }
+  j += "]}";
   return j;
 }
 
@@ -141,60 +156,53 @@ void handleApiConfig() {
 
 void handleSaveDisplay() {
   if (server.hasArg("title")) cfg.title = sanitizeTitle(server.arg("title"));
-  if (server.hasArg("powerLabel")) cfg.powerLabel = sanitizeTitle(server.arg("powerLabel"));
-  if (server.hasArg("voltageLabel")) cfg.voltageLabel = sanitizeTitle(server.arg("voltageLabel"));
-  if (server.hasArg("currentLabel")) cfg.currentLabel = sanitizeTitle(server.arg("currentLabel"));
-  if (server.hasArg("batteryLabel")) cfg.batteryLabel = sanitizeTitle(server.arg("batteryLabel"));
-  cfg.fontScale = server.arg("fontScale") == "2" ? 2 : 1;
-  cfg.showPower = server.hasArg("showPower");
-  cfg.showVoltage = server.hasArg("showVoltage");
-  cfg.showCurrent = server.hasArg("showCurrent");
-  cfg.showBattery = server.hasArg("showBattery");
-  if (server.hasArg("powerW")) cfg.powerW = clampInt(server.arg("powerW").toInt(), 40, 224);
-  if (server.hasArg("powerH")) cfg.powerH = clampInt(server.arg("powerH").toInt(), 36, 120);
-  if (server.hasArg("voltageW")) cfg.voltageW = clampInt(server.arg("voltageW").toInt(), 40, 224);
-  if (server.hasArg("voltageH")) cfg.voltageH = clampInt(server.arg("voltageH").toInt(), 36, 120);
-  if (server.hasArg("currentW")) cfg.currentW = clampInt(server.arg("currentW").toInt(), 40, 224);
-  if (server.hasArg("currentH")) cfg.currentH = clampInt(server.arg("currentH").toInt(), 36, 120);
-  if (server.hasArg("batteryW")) cfg.batteryW = clampInt(server.arg("batteryW").toInt(), 40, 224);
-  if (server.hasArg("batteryH")) cfg.batteryH = clampInt(server.arg("batteryH").toInt(), 36, 120);
-
-  cfg.powerX = clampInt(server.arg("powerX").toInt(), 0, 240 - cfg.powerW);
-  cfg.powerY = clampInt(server.arg("powerY").toInt(), 40, 290 - cfg.powerH);
-  cfg.voltageX = clampInt(server.arg("voltageX").toInt(), 0, 240 - cfg.voltageW);
-  cfg.voltageY = clampInt(server.arg("voltageY").toInt(), 40, 290 - cfg.voltageH);
-  cfg.currentX = clampInt(server.arg("currentX").toInt(), 0, 240 - cfg.currentW);
-  cfg.currentY = clampInt(server.arg("currentY").toInt(), 40, 290 - cfg.currentH);
-  cfg.batteryX = clampInt(server.arg("batteryX").toInt(), 0, 240 - cfg.batteryW);
-  cfg.batteryY = clampInt(server.arg("batteryY").toInt(), 40, 290 - cfg.batteryH);
-
-  bool ok = saveConfig();
-  renderTFT();
-  String message = ok ? "Настройки экрана сохранены и применены." :
-                        "Настройки применены, но не сохранены: файловая система недоступна.";
-  server.send(ok ? 200 : 500, "application/json; charset=utf-8",
-              String("{\"ok\":") + (ok ? "true" : "false") + ",\"message\":\"" + message + "\"}");
-}
-
-void handleSetPage() {
-  String requested = server.arg("page");
-  uint8_t page = requested == "2" ? 2 : 1;
-  Serial.print(F("Admin requested TFT page: "));
-  Serial.println(page);
-
-  cfg.tftPage = page;
-  if (!saveConfig()) {
-    server.send(500, "application/json; charset=utf-8",
-                "{\"ok\":false,\"message\":\"Не удалось сохранить страницу в LittleFS.\"}");
-    return;
+  if (server.hasArg("fontScale")) cfg.fontScale = server.arg("fontScale") == "2" ? 2 : 1;
+  if (server.hasArg("pageCount")) cfg.pageCount = clampInt(server.arg("pageCount").toInt(), 1, MAX_PAGES);
+  for (uint8_t p = 0; p < cfg.pageCount; p++) {
+    String pagePrefix = "page" + String(p);
+    if (server.hasArg(pagePrefix + "Title")) cfg.pages[p].title = sanitizeTitle(server.arg(pagePrefix + "Title"));
+    if (server.hasArg(pagePrefix + "Count")) cfg.pages[p].widgetCount = clampInt(server.arg(pagePrefix + "Count").toInt(), 0, MAX_WIDGETS_PER_PAGE);
+    for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
+      String prefix = "p" + String(p) + "w" + String(i);
+      WidgetConfig& w = cfg.pages[p].widgets[i];
+      if (server.hasArg(prefix + "Type") && isKnownWidgetType(server.arg(prefix + "Type"))) w.type = server.arg(prefix + "Type");
+      if (server.hasArg(prefix + "Label")) w.label = sanitizeTitle(server.arg(prefix + "Label"));
+      if (server.hasArg(prefix + "X")) w.x = server.arg(prefix + "X").toInt();
+      if (server.hasArg(prefix + "Y")) w.y = server.arg(prefix + "Y").toInt();
+      if (server.hasArg(prefix + "W")) w.w = server.arg(prefix + "W").toInt();
+      if (server.hasArg(prefix + "H")) w.h = server.arg(prefix + "H").toInt();
+      if (server.hasArg(prefix + "Enabled")) w.enabled = server.arg(prefix + "Enabled") == "1";
+      w.w = clampInt(w.w, 40, 240); w.h = clampInt(w.h, 36, 250);
+      w.x = clampInt(w.x, 0, 240 - w.w); w.y = clampInt(w.y, 40, 290 - w.h);
+    }
   }
-
-  server.send(200, "application/json; charset=utf-8",
-              String("{\"ok\":true,\"message\":\"Выбрана страница ") + String(page) + "\"}");
-  delay(20);
-  renderTFT();
+  for (uint8_t i = 0; i < cfg.pages[0].widgetCount; i++) {
+    WidgetConfig& w = cfg.pages[0].widgets[i];
+    if (w.type == "power") { cfg.powerLabel=w.label; cfg.showPower=w.enabled; cfg.powerX=w.x; cfg.powerY=w.y; cfg.powerW=w.w; cfg.powerH=w.h; }
+    else if (w.type == "voltage") { cfg.voltageLabel=w.label; cfg.showVoltage=w.enabled; cfg.voltageX=w.x; cfg.voltageY=w.y; cfg.voltageW=w.w; cfg.voltageH=w.h; }
+    else if (w.type == "current") { cfg.currentLabel=w.label; cfg.showCurrent=w.enabled; cfg.currentX=w.x; cfg.currentY=w.y; cfg.currentW=w.w; cfg.currentH=w.h; }
+    else if (w.type == "battery") { cfg.batteryLabel=w.label; cfg.showBattery=w.enabled; cfg.batteryX=w.x; cfg.batteryY=w.y; cfg.batteryW=w.w; cfg.batteryH=w.h; }
+  }
+  cfg.tftPage = clampInt(cfg.tftPage, 1, cfg.pageCount);
+  bool ok = saveConfig(); renderTFT();
+  String message = ok ? "Макет страниц сохранён и применён." : "Макет применён, но не сохранён: файловая система недоступна.";
+  server.send(ok ? 200 : 500, "application/json; charset=utf-8", String("{\"ok\":") + (ok ? "true" : "false") + ",\"message\":\"" + message + "\"}");
 }
-
+void handleSetPage() {
+  if (server.arg("action") == "create") {
+    if (cfg.pageCount >= MAX_PAGES) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Достигнут лимит страниц (4).\"}"); return; }
+    uint8_t index = cfg.pageCount++;
+    cfg.pages[index].title = "Страница " + String(index + 1); cfg.pages[index].widgetCount = 0;
+    if (!saveConfig()) { cfg.pageCount--; server.send(500, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Не удалось сохранить страницу.\"}"); return; }
+    server.send(200, "application/json; charset=utf-8", String("{\"ok\":true,\"pageCount\":") + String(cfg.pageCount) + ",\"page\":" + String(index + 1) + "}"); return;
+  }
+  int page = server.arg("page").toInt();
+  if (page < 1 || page > cfg.pageCount) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Такой страницы нет.\"}"); return; }
+  cfg.tftPage = page;
+  if (!saveConfig()) { server.send(500, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Не удалось сохранить страницу в LittleFS.\"}"); return; }
+  server.send(200, "application/json; charset=utf-8", String("{\"ok\":true,\"message\":\"На дисплее страница ") + String(page) + "\"}");
+  delay(20); renderTFT();
+}
 void handleScanWiFi() {
   // Keep the setup access point alive while scanning nearby 2.4 GHz networks.
   WiFi.mode(WIFI_AP_STA);
