@@ -337,9 +337,17 @@ void loop() {
     }
   }
 
-  // Check Wi-Fi status every 15 seconds, repaint only the footer when it changes.
+  // Refresh live Wi-Fi widgets periodically; otherwise update only the footer.
   if (millis() - lastStatusDraw >= 15000UL) {
     lastStatusDraw = millis();
-    drawTFTStatus();
+    bool hasDynamicWidget = false;
+    if (cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
+      PageConfig& page = cfg.pages[cfg.tftPage - 1];
+      for (uint8_t i = 0; i < page.widgetCount; i++) {
+        if (page.widgets[i].enabled && page.widgets[i].type == "wifiStatus") hasDynamicWidget = true;
+      }
+    }
+    if (hasDynamicWidget) renderTFT();
+    else drawTFTStatus();
   }
 }
