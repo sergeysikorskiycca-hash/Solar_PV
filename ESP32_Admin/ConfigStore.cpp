@@ -50,10 +50,10 @@ void setDefaults() {
   cfg.showCurrent = true;
   cfg.showBattery = true;
   cfg.fontScale = 1;
-  cfg.powerX = 8; cfg.powerY = 55;
-  cfg.voltageX = 8; cfg.voltageY = 125;
-  cfg.currentX = 125; cfg.currentY = 125;
-  cfg.batteryX = 8; cfg.batteryY = 205;
+  cfg.powerX = 8; cfg.powerY = 55; cfg.powerW = 224; cfg.powerH = 58;
+  cfg.voltageX = 8; cfg.voltageY = 125; cfg.voltageW = 106; cfg.voltageH = 58;
+  cfg.currentX = 125; cfg.currentY = 125; cfg.currentW = 106; cfg.currentH = 58;
+  cfg.batteryX = 8; cfg.batteryY = 205; cfg.batteryW = 224; cfg.batteryH = 58;
   cfg.tftPage = 1;
 }
 
@@ -86,6 +86,14 @@ void loadConfig() {
     else if (key == "currentY") cfg.currentY = clampInt(value.toInt(), 40, 240);
     else if (key == "batteryX") cfg.batteryX = clampInt(value.toInt(), 0, 16);
     else if (key == "batteryY") cfg.batteryY = clampInt(value.toInt(), 40, 240);
+    else if (key == "powerW") cfg.powerW = clampInt(value.toInt(), 40, 224);
+    else if (key == "powerH") cfg.powerH = clampInt(value.toInt(), 36, 120);
+    else if (key == "voltageW") cfg.voltageW = clampInt(value.toInt(), 40, 224);
+    else if (key == "voltageH") cfg.voltageH = clampInt(value.toInt(), 36, 120);
+    else if (key == "currentW") cfg.currentW = clampInt(value.toInt(), 40, 224);
+    else if (key == "currentH") cfg.currentH = clampInt(value.toInt(), 36, 120);
+    else if (key == "batteryW") cfg.batteryW = clampInt(value.toInt(), 40, 224);
+    else if (key == "batteryH") cfg.batteryH = clampInt(value.toInt(), 36, 120);
     else if (key == "tftPage") cfg.tftPage = value == "2" ? 2 : 1;
     else if (key.startsWith("wifi") && key.endsWith("_ssid")) { int i = key.substring(4, key.length() - 5).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].ssid = value; }
     else if (key.startsWith("wifi") && key.endsWith("_password")) { int i = key.substring(4, key.length() - 9).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].password = value; }
@@ -128,6 +136,10 @@ bool saveConfig() {
   f.println("currentY=" + String(cfg.currentY));
   f.println("batteryX=" + String(cfg.batteryX));
   f.println("batteryY=" + String(cfg.batteryY));
+  f.println("powerW=" + String(cfg.powerW)); f.println("powerH=" + String(cfg.powerH));
+  f.println("voltageW=" + String(cfg.voltageW)); f.println("voltageH=" + String(cfg.voltageH));
+  f.println("currentW=" + String(cfg.currentW)); f.println("currentH=" + String(cfg.currentH));
+  f.println("batteryW=" + String(cfg.batteryW)); f.println("batteryH=" + String(cfg.batteryH));
   f.println("tftPage=" + String(cfg.tftPage));
   for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) {
     f.println("wifi" + String(i) + "_ssid=" + savedNetworks[i].ssid);
