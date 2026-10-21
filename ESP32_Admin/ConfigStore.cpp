@@ -62,7 +62,33 @@ void setDefaults() {
 
 bool isKnownWidgetType(const String& type) {
   return type == "power" || type == "voltage" || type == "current" ||
-         type == "battery" || type == "wifiStatus";
+         type == "battery" || type == "wifiStatus" || type == "text";
+}
+
+static String encodeWidgetText(const String& input) {
+  String out;
+  out.reserve(input.length() + 8);
+  for (size_t i = 0; i < input.length(); i++) {
+    char c = input[i];
+    if (c == '\\') out += "\\\\";
+    else if (c == '\n') out += "\\n";
+    else if (c != '\r' && ((uint8_t)c >= 0x20 || c == '\t')) out += c;
+  }
+  return out;
+}
+
+static String decodeWidgetText(const String& input) {
+  String out;
+  out.reserve(input.length());
+  for (size_t i = 0; i < input.length(); i++) {
+    if (input[i] == '\\' && i + 1 < input.length()) {
+      char next = input[++i];
+      if (next == 'n') out += '\n';
+      else if (next == 't') out += '\t';
+      else out += next;
+    } else out += input[i];
+  }
+  return out;
 }
 
 void initializeDefaultPages() {
@@ -78,13 +104,13 @@ void initializeDefaultPages() {
   bool enabled[4] = {cfg.showPower, cfg.showVoltage, cfg.showCurrent, cfg.showBattery};
   for (uint8_t i = 0; i < 4; i++) {
     WidgetConfig& w = cfg.pages[0].widgets[i];
-    w.type = types[i]; w.label = labels[i]; w.x = xs[i]; w.y = ys[i];
+    w.type = types[i]; w.label = labels[i]; w.text = ""; w.x = xs[i]; w.y = ys[i];
     w.w = ws[i]; w.h = hs[i]; w.enabled = enabled[i];
   }
   cfg.pages[1].title = "Wi-Fi";
   cfg.pages[1].widgetCount = 1;
   WidgetConfig& wifi = cfg.pages[1].widgets[0];
-  wifi.type = "wifiStatus"; wifi.label = "Состояние Wi-Fi";
+  wifi.type = "wifiStatus"; wifi.label = "Состояние Wi-Fi"; wifi.text = "";
   wifi.x = 8; wifi.y = 55; wifi.w = 224; wifi.h = 220; wifi.enabled = true;
   for (uint8_t p = 2; p < MAX_PAGES; p++) { cfg.pages[p].title = ""; cfg.pages[p].widgetCount = 0; }
 }
@@ -109,6 +135,7 @@ bool loadPageKey(const String& key, const String& value) {
   String suffix = key.substring(wPos + 2); WidgetConfig& w = cfg.pages[p].widgets[wi];
   if (suffix == "Type") { if (isKnownWidgetType(value)) w.type = value; }
   else if (suffix == "Label") w.label = sanitizeTitle(value);
+  else if (suffix == "Text") w.text = decodeWidgetText(value);
   else if (suffix == "X") w.x = clampInt(value.toInt(), 0, 239);
   else if (suffix == "Y") w.y = clampInt(value.toInt(), 40, 289);
   else if (suffix == "W") w.w = clampInt(value.toInt(), 40, 240);
@@ -232,6 +259,7 @@ bool saveConfig() {
       String prefix = "p" + String(p) + "w" + String(i);
       f.println(prefix + "Type=" + w.type);
       f.println(prefix + "Label=" + sanitizeTitle(w.label));
+      f.println(prefix + "Text=" + encodeWidgetText(w.text));
       f.println(prefix + "X=" + String(w.x)); f.println(prefix + "Y=" + String(w.y));
       f.println(prefix + "W=" + String(w.w)); f.println(prefix + "H=" + String(w.h));
       f.println(prefix + "Enabled=" + String(w.enabled ? "1" : "0"));
