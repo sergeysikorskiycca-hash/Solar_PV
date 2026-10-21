@@ -19,10 +19,10 @@ struct AppConfig {
   bool showCurrent;
   bool showBattery;
   uint8_t fontScale;
-  int powerX, powerY;
-  int voltageX, voltageY;
-  int currentX, currentY;
-  int batteryX, batteryY;
+  int powerX, powerY, powerW, powerH;
+  int voltageX, voltageY, voltageW, voltageH;
+  int currentX, currentY, currentW, currentH;
+  int batteryX, batteryY, batteryW, batteryH;
   uint8_t tftPage;
 };
 
