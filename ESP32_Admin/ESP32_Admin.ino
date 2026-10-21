@@ -88,6 +88,10 @@ String makeConfigJson() {
   j += "\"voltageX\":" + String(cfg.voltageX) + ",\"voltageY\":" + String(cfg.voltageY) + ",";
   j += "\"currentX\":" + String(cfg.currentX) + ",\"currentY\":" + String(cfg.currentY) + ",";
   j += "\"batteryX\":" + String(cfg.batteryX) + ",\"batteryY\":" + String(cfg.batteryY) + ",";
+  j += "\"powerW\":" + String(cfg.powerW) + ",\"powerH\":" + String(cfg.powerH) + ",";
+  j += "\"voltageW\":" + String(cfg.voltageW) + ",\"voltageH\":" + String(cfg.voltageH) + ",";
+  j += "\"currentW\":" + String(cfg.currentW) + ",\"currentH\":" + String(cfg.currentH) + ",";
+  j += "\"batteryW\":" + String(cfg.batteryW) + ",\"batteryH\":" + String(cfg.batteryH) + ",";
   j += "\"ssid\":\"" + jsonEscape(cfg.ssid) + "\",";
   j += "\"savedNetworks\":[";
   bool firstSaved = true;
@@ -138,14 +142,23 @@ void handleSaveDisplay() {
   cfg.showVoltage = server.hasArg("showVoltage");
   cfg.showCurrent = server.hasArg("showCurrent");
   cfg.showBattery = server.hasArg("showBattery");
-  cfg.powerX = clampInt(server.arg("powerX").toInt(), 0, 16);
-  cfg.powerY = clampInt(server.arg("powerY").toInt(), 40, 230);
-  cfg.voltageX = clampInt(server.arg("voltageX").toInt(), 0, 128);
-  cfg.voltageY = clampInt(server.arg("voltageY").toInt(), 40, 230);
-  cfg.currentX = clampInt(server.arg("currentX").toInt(), 0, 128);
-  cfg.currentY = clampInt(server.arg("currentY").toInt(), 40, 230);
-  cfg.batteryX = clampInt(server.arg("batteryX").toInt(), 0, 16);
-  cfg.batteryY = clampInt(server.arg("batteryY").toInt(), 40, 230);
+  if (server.hasArg("powerW")) cfg.powerW = clampInt(server.arg("powerW").toInt(), 40, 224);
+  if (server.hasArg("powerH")) cfg.powerH = clampInt(server.arg("powerH").toInt(), 36, 120);
+  if (server.hasArg("voltageW")) cfg.voltageW = clampInt(server.arg("voltageW").toInt(), 40, 224);
+  if (server.hasArg("voltageH")) cfg.voltageH = clampInt(server.arg("voltageH").toInt(), 36, 120);
+  if (server.hasArg("currentW")) cfg.currentW = clampInt(server.arg("currentW").toInt(), 40, 224);
+  if (server.hasArg("currentH")) cfg.currentH = clampInt(server.arg("currentH").toInt(), 36, 120);
+  if (server.hasArg("batteryW")) cfg.batteryW = clampInt(server.arg("batteryW").toInt(), 40, 224);
+  if (server.hasArg("batteryH")) cfg.batteryH = clampInt(server.arg("batteryH").toInt(), 36, 120);
+
+  cfg.powerX = clampInt(server.arg("powerX").toInt(), 0, 240 - cfg.powerW);
+  cfg.powerY = clampInt(server.arg("powerY").toInt(), 40, 290 - cfg.powerH);
+  cfg.voltageX = clampInt(server.arg("voltageX").toInt(), 0, 240 - cfg.voltageW);
+  cfg.voltageY = clampInt(server.arg("voltageY").toInt(), 40, 290 - cfg.voltageH);
+  cfg.currentX = clampInt(server.arg("currentX").toInt(), 0, 240 - cfg.currentW);
+  cfg.currentY = clampInt(server.arg("currentY").toInt(), 40, 290 - cfg.currentH);
+  cfg.batteryX = clampInt(server.arg("batteryX").toInt(), 0, 240 - cfg.batteryW);
+  cfg.batteryY = clampInt(server.arg("batteryY").toInt(), 40, 290 - cfg.batteryH);
 
   bool ok = saveConfig();
   renderTFT();
