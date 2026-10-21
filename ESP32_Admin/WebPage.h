@@ -101,7 +101,7 @@ function renderCanvas(){
    node.style.left=w.x+'px';node.style.top=w.y+'px';node.style.width=w.w+'px';node.style.height=w.h+'px';
   });
   node.addEventListener('pointerup',()=>pointerEdit=null);node.addEventListener('pointercancel',()=>pointerEdit=null);
-  node.addEventListener('click',()=>{selectedWidget=i;renderCanvas()});c.appendChild(node);
+  node.addEventListener('click',e=>{if(e.target.closest('.name'))return;selectedWidget=i;renderCanvas()});c.appendChild(node);
  });
 }
 function renderAll(){renderTabs();renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
