@@ -173,7 +173,9 @@ void handleSaveDisplay() {
   cfg.pageCount = requestedCount;
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
     JsonObject sourcePage = sourcePages[p].as<JsonObject>();
-    cfg.pages[p].title = sanitizeTitle(String(sourcePage["title"] | ("Страница " + String(p + 1))));
+    String pageTitle = String(sourcePage["title"] | "");
+    if (!pageTitle.length()) pageTitle = "Страница " + String(p + 1);
+    cfg.pages[p].title = sanitizeTitle(pageTitle);
     JsonArray sourceWidgets = sourcePage["widgets"].as<JsonArray>();
     cfg.pages[p].widgetCount = clampInt(sourceWidgets.size(), 0, MAX_WIDGETS_PER_PAGE);
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
