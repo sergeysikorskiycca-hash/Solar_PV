@@ -9,10 +9,10 @@ void drawCyrillicText(const String& text, int x, int baselineY, uint16_t color, 
   u8g2Fonts.print(text);
 }
 
-void drawCard(const char* label, const char* value, int x, int y, int w, int h) {
+void drawCard(const String& label, const char* value, int x, int y, int w, int h) {
   tft.fillRoundRect(x, y, w, h, 5, 0x29C6);
   tft.drawRoundRect(x, y, w, h, 5, 0x5B6D);
-  drawCyrillicText(String(label), x + 6, y + 19, 0xBDF7, false);
+  drawCyrillicText(label, x + 6, y + 19, 0xBDF7, false);
   drawCyrillicText(String(value), x + 6, y + 43, 0xFEA0, cfg.fontScale == 2);
 }
 
@@ -64,10 +64,10 @@ void renderTFT() {
   drawCyrillicText(cfg.title, 8, 25, ST77XX_WHITE, true);
   drawCyrillicText("ДЕМО-ДАННЫЕ", 8, 43, 0x07E0, false);
 
-  if (cfg.showPower) drawCard("Мощность PV", "DEMO W", cfg.powerX, cfg.powerY, cfg.powerW, cfg.powerH);
-  if (cfg.showVoltage) drawCard("Напряжение", "DEMO V", cfg.voltageX, cfg.voltageY, cfg.voltageW, cfg.voltageH);
-  if (cfg.showCurrent) drawCard("Ток", "DEMO A", cfg.currentX, cfg.currentY, cfg.currentW, cfg.currentH);
-  if (cfg.showBattery) drawCard("Аккумулятор", "DEMO %", cfg.batteryX, cfg.batteryY, cfg.batteryW, cfg.batteryH);
+  if (cfg.showPower) drawCard(cfg.powerLabel, "DEMO W", cfg.powerX, cfg.powerY, cfg.powerW, cfg.powerH);
+  if (cfg.showVoltage) drawCard(cfg.voltageLabel, "DEMO V", cfg.voltageX, cfg.voltageY, cfg.voltageW, cfg.voltageH);
+  if (cfg.showCurrent) drawCard(cfg.currentLabel, "DEMO A", cfg.currentX, cfg.currentY, cfg.currentW, cfg.currentH);
+  if (cfg.showBattery) drawCard(cfg.batteryLabel, "DEMO %", cfg.batteryX, cfg.batteryY, cfg.batteryW, cfg.batteryH);
 
   tft.drawFastHLine(8, 294, 224, 0x5B6D);
   lastStatusText = "";
