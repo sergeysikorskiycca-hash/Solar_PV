@@ -16,7 +16,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.status{padding:9px;border-radius:8px;background:#243447;color:#bfead8;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
 .page-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.page-tab{flex:0 0 auto}.page-tab.active{background:#49b78b;color:#081b14}.page-tab.device{outline:2px solid #ffd166;outline-offset:1px}
 .screen{width:240px;height:320px;position:relative;overflow:hidden;margin:0 auto;background:#17212b;border:2px solid #64778a;border-radius:5px;color:#fff}
-.screen-title{position:absolute;left:8px;top:7px;font-size:16px;font-weight:bold;white-space:nowrap;max-width:224px;overflow:hidden}.screen-subtitle{position:absolute;left:8px;top:31px;color:#73d6a0;font-size:10px;white-space:nowrap}
+.screen-title{position:absolute;left:8px;top:7px;font-size:16px;font-weight:bold;white-space:nowrap;max-width:224px;overflow:hidden;text-overflow:ellipsis}
 .widget{position:absolute;background:#263746;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}.widget.selected{outline:2px solid #49b78b;outline-offset:1px}.widget .name{font-size:10px;color:#aebdca;white-space:nowrap;overflow:hidden;outline:none}.widget .name:focus{user-select:text;cursor:text;background:#17212b;border-radius:2px}.widget .value{font-size:17px;color:#ffd166;font-weight:bold;white-space:nowrap}.widget .wifi-lines{font-size:10px;line-height:1.8;color:#d4e1ee;white-space:normal;overflow-wrap:anywhere}
 .resize-handle{position:absolute;right:0;bottom:0;width:13px;height:13px;background:#49b78b;border:1px solid #eaf0f6;border-radius:3px;cursor:nwse-resize;touch-action:none}
 .screen-footer{position:absolute;bottom:5px;left:8px;right:8px;border-top:1px solid #52616d;padding-top:4px;font-size:9px;color:#aebdca;display:flex;justify-content:space-between}
@@ -34,7 +34,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <option value="power">Мощность PV</option><option value="voltage">Напряжение</option><option value="current">Ток</option><option value="battery">Аккумулятор</option><option value="wifiStatus">Состояние Wi-Fi</option></select>
 <div class="row" style="margin-top:8px"><button class="primary" id="addWidget">＋ Добавить на страницу</button><button id="deleteWidget">Удалить выбранный блок</button></div>
 <p class="hint">Щёлкни по подписи блока, чтобы отредактировать её прямо на холсте. Перетаскивай блок мышью, размер меняй за зелёный угол. Все страницы используют одну библиотеку типов блоков.</p>
-<h3>Оформление</h3><label for="title">Общий заголовок TFT</label><input id="title" type="text" maxlength="24" value="SOLAR PV">
+<h3>Оформление</h3><p class="hint">Верхний заголовок дисплея берётся из названия выбранной страницы.</p>
 <label for="fontScale">Размер значений</label><select id="fontScale"><option value="1">Обычный</option><option value="2">Крупный</option></select>
 <div class="toolbar" style="margin-top:12px"><button class="primary wide" id="saveDisplay">Сохранить все страницы и применить</button><button id="showOnTft">Показать выбранную страницу на TFT</button><button id="resetLayout">Восстановить исходный макет</button></div>
 <p class="hint">Значения телеметрии пока демонстрационные. Реальные датчики не подключаются этим редактором.</p></section>
@@ -44,7 +44,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <p class="hint">Для сохранённой сети оставь пароль пустым. Можно хранить до 8 сетей.</p><button class="primary" id="saveWifi" style="margin-top:8px;width:100%">Сохранить Wi-Fi и перезапустить</button></section>
 </div>
 <div class="preview-wrap"><section><h2>Предпросмотр холста</h2><div class="screen" id="preview">
-<div class="screen-title" id="prevTitle">SOLAR PV</div><div class="screen-subtitle" id="prevSubtitle">Показатели</div>
+<div class="screen-title" id="prevTitle">Показатели</div>
 <div class="screen-footer"><span id="prevNetwork">Wi-Fi: —</span><span id="prevPage">Стр. 1</span></div></div>
 <p class="hint">Предпросмотр повторяет координаты TFT. Выбранная для редактирования страница не обязана совпадать с физическим экраном.</p></section></div></main>
 <script>
@@ -71,8 +71,8 @@ function renderTabs(){
 }
 function renderCanvas(){
  const c=$('preview');c.querySelectorAll('.widget').forEach(n=>n.remove());
- $('prevTitle').textContent=$('title').value||'SOLAR PV';$('prevTitle').style.fontSize=$('fontScale').value==='2'?'18px':'16px';
- $('prevSubtitle').textContent=pages[editorPage].title;$('prevNetwork').textContent=networkLabel;$('prevPage').textContent='Стр. '+(editorPage+1);
+ $('prevTitle').textContent=pages[editorPage].title||('Страница '+(editorPage+1));$('prevTitle').style.fontSize=$('fontScale').value==='2'?'18px':'16px';
+ $('prevNetwork').textContent=networkLabel;$('prevPage').textContent='Стр. '+(editorPage+1);
  pages[editorPage].widgets.forEach((w,i)=>{
   if(!w.enabled)return;
   const node=document.createElement('div');node.className='widget'+(selectedWidget===i?' selected':'');node.dataset.index=i;
@@ -107,7 +107,7 @@ function renderCanvas(){
 }
 function renderAll(){renderTabs();$('pageTitle').value=pages[editorPage].title;renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
 function loadConfig(c){
- $('title').value=c.title||'SOLAR PV';$('fontScale').value=String(c.fontScale||1);$('netStatus').textContent=c.networkStatus||'Wi-Fi не подключён';
+ $('fontScale').value=String(c.fontScale||1);$('netStatus').textContent=c.networkStatus||'Wi-Fi не подключён';
  networkStatus=c.networkStatus||'';networkLabel=c.networkLabel||'Wi-Fi: —';savedNetworks=c.savedNetworks||[];
  if(Array.isArray(c.pages)&&c.pages.length){pages=c.pages.map(normalizePage)}else{pages=[];ensurePages()}
  devicePage=Math.max(0,Math.min((Number(c.tftPage)||1)-1,pages.length-1));
@@ -117,7 +117,7 @@ function loadConfig(c){
 }
 function updateDeviceStatus(){ $('deviceStatus').textContent='Физический дисплей: страница '+(devicePage+1)+' из '+pages.length+'. Редактор: страница '+(editorPage+1)+'.'; }
 function collectData(){
- return {title:$('title').value,fontScale:Number($('fontScale').value),pageCount:pages.length,pages:pages.map(p=>({title:p.title,widgets:p.widgets.map(w=>({type:w.type,label:w.label,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
+ return {title:'SOLAR PV',fontScale:Number($('fontScale').value),pageCount:pages.length,pages:pages.map(p=>({title:p.title,widgets:p.widgets.map(w=>({type:w.type,label:w.label,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
 }
 async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
@@ -126,7 +126,7 @@ async function refreshDeviceState(){
   networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;$('netStatus').textContent=networkStatus;$('preview').querySelectorAll('.wifi-lines').forEach(el=>el.textContent=networkStatus||'Состояние сети появится здесь');$('prevNetwork').textContent=networkLabel;updateDeviceStatus();
  }catch(e){}
 }
-$('title').addEventListener('input',renderCanvas);$('fontScale').addEventListener('change',renderCanvas);$('pageTitle').addEventListener('input',()=>{pages[editorPage].title=$('pageTitle').value.slice(0,54);renderTabs();renderCanvas()});
+$('fontScale').addEventListener('change',renderCanvas);$('pageTitle').addEventListener('input',()=>{pages[editorPage].title=$('pageTitle').value.slice(0,54);renderTabs();renderCanvas()});
 $('newPage').addEventListener('click',async()=>{
  if(pages.length>=MAX_PAGES)return;
  try{const r=await fetch('/api/page?action=create&t='+Date.now(),{cache:'no-store'});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Не удалось создать страницу');
