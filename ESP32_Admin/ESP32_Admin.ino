@@ -77,6 +77,20 @@ String jsonEscape(const String& s) {
 
 
 
+String jsonEscapeText(const String& s) {
+  String out;
+  out.reserve(s.length() + 8);
+  for (size_t i = 0; i < s.length(); i++) {
+    char c = s[i];
+    if (c == '"' || c == '\\') { out += '\\'; out += c; }
+    else if (c == '\n') out += "\\n";
+    else if (c == '\r') out += "\\r";
+    else if (c == '\t') out += "\\t";
+    else if ((uint8_t)c >= 0x20) out += c;
+  }
+  return out;
+}
+
 String makeConfigJson() {
   String j = "{";
   j += "\"title\":\"" + jsonEscape(cfg.title) + "\",";
@@ -131,7 +145,7 @@ String makeConfigJson() {
     for (uint8_t i = 0; i < page.widgetCount; i++) {
       if (i) j += ",";
       const WidgetConfig& w = page.widgets[i];
-      j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",";
+      j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",\"text\":\"" + jsonEscapeText(w.text) + "\",";
       j += "\"x\":" + String(w.x) + ",\"y\":" + String(w.y) + ",\"w\":" + String(w.w) + ",\"h\":" + String(w.h) + ",";
       j += "\"enabled\":" + String(w.enabled ? "true" : "false") + "}";
     }
@@ -184,6 +198,8 @@ void handleSaveDisplay() {
       String type = String(source["type"] | "power");
       if (isKnownWidgetType(type)) w.type = type;
       w.label = sanitizeTitle(String(source["label"] | "Блок"));
+      w.text = String(source["text"] | "");
+      if (w.text.length() > 240) w.text = w.text.substring(0, 240);
       w.w = clampInt(source["w"] | 106, 40, 240);
       w.h = clampInt(source["h"] | 58, 36, 250);
       w.x = clampInt(source["x"] | 8, 0, 240 - w.w);
