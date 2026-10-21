@@ -258,8 +258,16 @@ void setup() {
   Serial.println();
   Serial.println(F("Solar_PV ESP32 Admin MVP"));
 
-  fsReady = LittleFS.begin(false);  // Never auto-format: preserve existing data on mount errors.
-  if (!fsReady) Serial.println(F("ERROR: LittleFS mount failed; automatic format is disabled. Settings cannot be saved."));
+  // On a brand-new ESP32 the LittleFS partition is blank, so mounting without
+  // formatting fails. Try a normal mount first to preserve existing settings;
+  // only if that fails, format the LittleFS partition and mount it again.
+  fsReady = LittleFS.begin(false);
+  if (!fsReady) {
+    Serial.println(F("WARNING: LittleFS mount failed; attempting one-time filesystem format."));
+    fsReady = LittleFS.begin(true);
+    if (fsReady) Serial.println(F("LittleFS formatted and mounted successfully."));
+    else Serial.println(F("ERROR: LittleFS mount/format failed. Settings cannot be saved."));
+  }
 
   loadConfig();
   // Always start on the main TFT page after power-up or restart.
