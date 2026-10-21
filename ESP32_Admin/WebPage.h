@@ -17,7 +17,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 .page-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.page-tab{flex:0 0 auto}.page-tab.active{background:#49b78b;color:#081b14}.page-tab.device{outline:2px solid #ffd166;outline-offset:1px}
 .screen{width:240px;height:320px;position:relative;overflow:hidden;margin:0 auto;background:#17212b;border:2px solid #64778a;border-radius:5px;color:#fff}
 .screen-title{position:absolute;left:8px;top:7px;font-size:16px;font-weight:bold;white-space:nowrap;max-width:224px;overflow:hidden;text-overflow:ellipsis}
-.widget{position:absolute;background:#263746;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}.widget.selected{outline:2px solid #49b78b;outline-offset:1px}.widget .name{font-size:10px;color:#aebdca;white-space:nowrap;overflow:hidden;outline:none}.widget .name:focus{user-select:text;cursor:text;background:#17212b;border-radius:2px}.widget .value{font-size:17px;color:#ffd166;font-weight:bold;white-space:nowrap}.widget .wifi-lines{font-size:10px;line-height:1.8;color:#d4e1ee;white-space:normal;overflow-wrap:anywhere}.widget .free-text{font-size:11px;line-height:1.25;color:#f4f7fb;white-space:pre-wrap;overflow-wrap:anywhere;user-select:none}
+.widget{position:absolute;background:#263746;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}.widget.selected{outline:2px solid #49b78b;outline-offset:1px}.widget .name{font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;outline:none}.widget .name:focus{user-select:text;cursor:text;background:#17212b;border-radius:2px}.widget .value{font-size:15px;color:#ffd400;font-weight:bold;white-space:normal;overflow-wrap:anywhere}.widget .wifi-lines{font-size:12px;line-height:1.2;color:#fff;white-space:normal;overflow-wrap:anywhere}.widget .free-text{font-size:15px;line-height:1.15;color:#fff;white-space:pre-wrap;overflow-wrap:anywhere;user-select:none}
 .resize-handle{position:absolute;right:0;bottom:0;width:13px;height:13px;background:#49b78b;border:1px solid #eaf0f6;border-radius:3px;cursor:nwse-resize;touch-action:none}
 .screen-footer{position:absolute;bottom:5px;left:8px;right:8px;border-top:1px solid #52616d;padding-top:4px;font-size:9px;color:#aebdca;display:flex;justify-content:space-between}
 .preview-wrap{position:sticky;top:12px;align-self:start}.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px}.toolbar .wide{grid-column:1/-1}.hint{margin-top:8px}.wifi-scan{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
@@ -34,8 +34,12 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <option value="power">Мощность PV</option><option value="voltage">Напряжение</option><option value="current">Ток</option><option value="battery">Аккумулятор</option><option value="wifiStatus">Состояние Wi-Fi</option><option value="text">Текстовый блок</option></select>
 <div class="row" style="margin-top:8px"><button class="primary" id="addWidget">＋ Добавить на страницу</button><button id="deleteWidget">Удалить выбранный блок</button></div>
 <p class="hint">Щёлкни по подписи блока, чтобы изменить её. Перетаскивай блок мышью, размер меняй за зелёный угол.</p><label for="widgetText">Текст выбранного блока</label><textarea id="widgetText" rows="5" maxlength="240" placeholder="Введите комментарий, буквы, цифры и символы…" style="width:100%;padding:9px;border:1px solid #465c73;border-radius:7px;background:#101923;color:#fff;font:14px Arial,sans-serif;resize:vertical"></textarea><p class="hint">Поле активно для текстового блока. Поддерживаются переносы строк; максимум 240 символов.</p>
-<h3>Оформление</h3><p class="hint">Верхний заголовок дисплея берётся из названия выбранной страницы.</p>
-<label for="fontScale">Размер значений</label><select id="fontScale"><option value="1">Обычный</option><option value="2">Крупный</option></select>
+<h3>Оформление выбранного блока</h3>
+<label for="styleTarget">Настраивать</label><select id="styleTarget"><option value="heading">Заголовок блока</option><option value="content">Содержимое блока</option></select>
+<label for="styleSize">Размер текста</label><select id="styleSize"><option value="0">Маленький</option><option value="1">Обычный</option><option value="2">Крупный</option><option value="3">Огромный</option><option value="4">Максимальный</option></select>
+<label for="styleAlign">Выравнивание</label><select id="styleAlign"><option value="0">Слева</option><option value="1">По центру</option><option value="2">Справа</option></select>
+<label for="styleColor">Цвет текста</label><select id="styleColor"><option value="0">Белый</option><option value="1">Голубой</option><option value="2">Зелёный</option><option value="3">Жёлтый</option><option value="4">Красный</option><option value="5">Оранжевый</option></select>
+<p class="hint">Настройки относятся только к выбранному блоку и выбранной части — заголовку или содержимому. Палитра ограничена шестью контрастными цветами.</p>
 <div class="toolbar" style="margin-top:12px"><button class="primary wide" id="saveDisplay">Сохранить все страницы и применить</button><button id="showOnTft">Показать выбранную страницу на TFT</button><button id="resetLayout">Восстановить исходный макет</button></div>
 <p class="hint">Значения телеметрии пока демонстрационные. Реальные датчики не подключаются этим редактором.</p></section>
 <section><h2>Подключение к Wi-Fi</h2><div class="status" id="netStatus">Получение состояния устройства…</div>
@@ -61,7 +65,7 @@ let pages=[],editorPage=0,devicePage=0,selectedWidget=-1,followDevice=true,point
 let networkStatus='',networkLabel='Wi-Fi: —',savedNetworks=[];
 const $=id=>document.getElementById(id);
 function clone(x){return JSON.parse(JSON.stringify(x))}
-function normalizePage(p,i){return {title:p.title||('Страница '+(i+1)),widgets:(p.widgets||[]).slice(0,MAX_WIDGETS).map(w=>({type:typeLabels[w.type]?w.type:'power',label:w.label||typeLabels[w.type]||'Блок',text:String(w.text||''),x:Number(w.x)||0,y:Number(w.y)||40,w:Math.max(40,Number(w.w)||106),h:Math.max(36,Number(w.h)||58),enabled:w.enabled!==false}))}}
+function normalizePage(p,i){return {title:p.title||('Страница '+(i+1)),widgets:(p.widgets||[]).slice(0,MAX_WIDGETS).map(w=>({type:typeLabels[w.type]?w.type:'power',label:w.label||typeLabels[w.type]||'Блок',text:String(w.text||''),headingSize:Math.max(0,Math.min(4,Number(w.headingSize??1))),contentSize:Math.max(0,Math.min(4,Number(w.contentSize??2))),headingAlign:Math.max(0,Math.min(2,Number(w.headingAlign??0))),contentAlign:Math.max(0,Math.min(2,Number(w.contentAlign??0))),headingColor:Math.max(0,Math.min(5,Number(w.headingColor??0))),contentColor:Math.max(0,Math.min(5,Number(w.contentColor??(w.type==='wifiStatus'?0:3)))),x:Number(w.x)||0,y:Number(w.y)||40,w:Math.max(40,Number(w.w)||106),h:Math.max(36,Number(w.h)||58),enabled:w.enabled!==false}))}}
 function ensurePages(){if(!pages.length)pages=[{title:'Показатели',widgets:clone(defaults)},{title:'Wi-Fi',widgets:[{type:'wifiStatus',label:'Состояние Wi-Fi',x:8,y:55,w:224,h:220,enabled:true}]}];pages=pages.slice(0,MAX_PAGES).map(normalizePage)}
 function widgetValue(w){if(w.type==='wifiStatus')return '<div class="wifi-lines"></div>';return '<div class="value">'+(demoValues[w.type]||'DEMO')+'</div>'}
 function renderTabs(){
@@ -71,28 +75,31 @@ function renderTabs(){
 }
 function renderCanvas(){
  const c=$('preview');c.querySelectorAll('.widget').forEach(n=>n.remove());
- $('prevTitle').textContent=pages[editorPage].title||('Страница '+(editorPage+1));$('prevTitle').style.fontSize=$('fontScale').value==='2'?'18px':'16px';
+ $('prevTitle').textContent=pages[editorPage].title||('Страница '+(editorPage+1));$('prevTitle').style.fontSize='16px';const palette=['#FFFFFF','#00D5FF','#39E75F','#FFD400','#FF4D4D','#FF8C00'];const headingSizes=[9,11,13,16,19],contentSizes=[9,12,15,19,24];
  $('prevNetwork').textContent=networkLabel;$('prevPage').textContent='Стр. '+(editorPage+1);
  pages[editorPage].widgets.forEach((w,i)=>{
   if(!w.enabled)return;
   const node=document.createElement('div');node.className='widget'+(selectedWidget===i?' selected':'');node.dataset.index=i;
   node.style.left=w.x+'px';node.style.top=w.y+'px';node.style.width=w.w+'px';node.style.height=w.h+'px';
   const name=document.createElement('div');name.className='name';name.contentEditable='true';name.spellcheck=false;name.textContent=w.label;name.title='Щёлкните и измените подпись';
+  name.style.fontSize=headingSizes[w.headingSize]+'px';name.style.textAlign=['left','center','right'][w.headingAlign];name.style.color=palette[w.headingColor];
   name.addEventListener('pointerdown',e=>e.stopPropagation());
   name.addEventListener('input',()=>{w.label=name.textContent.slice(0,54);renderTabs()});
   name.addEventListener('blur',()=>{w.label=name.textContent.trim().slice(0,54)||typeLabels[w.type];name.textContent=w.label;renderTabs()});
   node.appendChild(name);
   if(w.type==='wifiStatus'){
    const lines=document.createElement('div');lines.className='wifi-lines';lines.textContent=networkStatus||'Состояние сети появится здесь';node.appendChild(lines);
+   lines.style.fontSize=contentSizes[w.contentSize]+'px';lines.style.textAlign=['left','center','right'][w.contentAlign];lines.style.color=palette[w.contentColor];
   }else if(w.type==='text'){
    const body=document.createElement('div');body.className='free-text';body.textContent=w.text||'Введите текст в поле ниже';node.appendChild(body);
+   body.style.fontSize=contentSizes[w.contentSize]+'px';body.style.textAlign=['left','center','right'][w.contentAlign];body.style.color=palette[w.contentColor];
   }else{
-   const value=document.createElement('div');value.className='value';value.textContent=demoValues[w.type]||'DEMO';value.style.fontSize=$('fontScale').value==='2'?'21px':'17px';node.appendChild(value);
+   const value=document.createElement('div');value.className='value';value.textContent=demoValues[w.type]||'DEMO';value.style.fontSize=contentSizes[w.contentSize]+'px';value.style.textAlign=['left','center','right'][w.contentAlign];value.style.color=palette[w.contentColor];node.appendChild(value);
   }
   const handle=document.createElement('span');handle.className='resize-handle';handle.title='Изменить размер';node.appendChild(handle);
   node.addEventListener('pointerdown',e=>{
    if(e.button!==0||e.target.isContentEditable)return;
-   selectedWidget=i;c.querySelectorAll('.widget').forEach(n=>n.classList.toggle('selected',n===node));
+   selectedWidget=i;c.querySelectorAll('.widget').forEach(n=>n.classList.toggle('selected',n===node));syncStyleControls();
    pointerEdit={index:i,resizing:e.target.classList.contains('resize-handle'),sx:e.clientX,sy:e.clientY,x:w.x,y:w.y,w:w.w,h:w.h};
    node.setPointerCapture(e.pointerId);e.preventDefault();
   });
@@ -104,12 +111,13 @@ function renderCanvas(){
    node.style.left=w.x+'px';node.style.top=w.y+'px';node.style.width=w.w+'px';node.style.height=w.h+'px';
   });
   node.addEventListener('pointerup',()=>pointerEdit=null);node.addEventListener('pointercancel',()=>pointerEdit=null);
-  node.addEventListener('click',e=>{if(e.target.closest('.name'))return;selectedWidget=i;renderCanvas()});c.appendChild(node);
+  node.addEventListener('click',e=>{if(e.target.closest('.name'))return;selectedWidget=i;renderAll()});c.appendChild(node);
  });
 }
-function renderAll(){renderTabs();$('pageTitle').value=pages[editorPage].title;renderCanvas();const p=pages[editorPage],w=p.widgets[selectedWidget];$('widgetText').disabled=!w||w.type!=='text';$('widgetText').value=w&&w.type==='text'?w.text:'';$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
+function syncStyleControls(){const p=pages[editorPage],w=p&&p.widgets[selectedWidget],target=$('styleTarget').value;const keys=[target+'Size',target+'Align',target+'Color'];$('styleSize').disabled=!w;$('styleAlign').disabled=!w;$('styleColor').disabled=!w;if(!w)return;$('styleSize').value=String(w[keys[0]]);$('styleAlign').value=String(w[keys[1]]);$('styleColor').value=String(w[keys[2]]);}
+function renderAll(){renderTabs();$('pageTitle').value=pages[editorPage].title;const p=pages[editorPage],w=p.widgets[selectedWidget];$('widgetText').disabled=!w||w.type!=='text';$('widgetText').value=w&&w.type==='text'?w.text:'';syncStyleControls();renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
 function loadConfig(c){
- $('fontScale').value=String(c.fontScale||1);$('netStatus').textContent=c.networkStatus||'Wi-Fi не подключён';
+ 
  networkStatus=c.networkStatus||'';networkLabel=c.networkLabel||'Wi-Fi: —';savedNetworks=c.savedNetworks||[];
  if(Array.isArray(c.pages)&&c.pages.length){pages=c.pages.map(normalizePage)}else{pages=[];ensurePages()}
  devicePage=Math.max(0,Math.min((Number(c.tftPage)||1)-1,pages.length-1));
@@ -119,7 +127,7 @@ function loadConfig(c){
 }
 function updateDeviceStatus(){ $('deviceStatus').textContent='Физический дисплей: страница '+(devicePage+1)+' из '+pages.length+'. Редактор: страница '+(editorPage+1)+'.'; }
 function collectData(){
- return {title:'SOLAR PV',fontScale:Number($('fontScale').value),pageCount:pages.length,pages:pages.map(p=>({title:p.title,widgets:p.widgets.map(w=>({type:w.type,label:w.label,text:w.text||'',x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
+ return {title:'SOLAR PV',fontScale:1,pageCount:pages.length,pages:pages.map(p=>({title:p.title,widgets:p.widgets.map(w=>({type:w.type,label:w.label,text:w.text||'',headingSize:w.headingSize,contentSize:w.contentSize,headingAlign:w.headingAlign,contentAlign:w.contentAlign,headingColor:w.headingColor,contentColor:w.contentColor,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
 }
 async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
@@ -128,7 +136,12 @@ async function refreshDeviceState(){
   networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;$('netStatus').textContent=networkStatus;$('preview').querySelectorAll('.wifi-lines').forEach(el=>el.textContent=networkStatus||'Состояние сети появится здесь');$('prevNetwork').textContent=networkLabel;updateDeviceStatus();
  }catch(e){}
 }
-$('fontScale').addEventListener('change',renderCanvas);$('pageTitle').addEventListener('input',()=>{pages[editorPage].title=$('pageTitle').value.slice(0,54);renderTabs();renderCanvas()});
+$('styleTarget').addEventListener('change',syncStyleControls);
+function applyStyleControl(which,value){const p=pages[editorPage],w=p&&p.widgets[selectedWidget];if(!w)return;const target=$('styleTarget').value;w[target+which]=Number(value);renderAll();}
+$('styleSize').addEventListener('change',()=>applyStyleControl('Size',$('styleSize').value));
+$('styleAlign').addEventListener('change',()=>applyStyleControl('Align',$('styleAlign').value));
+$('styleColor').addEventListener('change',()=>applyStyleControl('Color',$('styleColor').value));
+$('pageTitle').addEventListener('input',()=>{pages[editorPage].title=$('pageTitle').value.slice(0,54);renderTabs();renderCanvas()});
 $('newPage').addEventListener('click',async()=>{
  if(pages.length>=MAX_PAGES)return;
  try{const r=await fetch('/api/page?action=create&t='+Date.now(),{cache:'no-store'});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Не удалось создать страницу');
@@ -144,7 +157,7 @@ $('followDevice').addEventListener('click',()=>{followDevice=true;editorPage=Mat
 $('addWidget').addEventListener('click',()=>{
  const p=pages[editorPage];if(p.widgets.length>=MAX_WIDGETS){alert('На одной странице максимум '+MAX_WIDGETS+' блоков.');return}
  const type=$('widgetType').value;const n=p.widgets.length;
- p.widgets.push({type,label:typeLabels[type],text:'',x:8+(n%2)*117,y:55+Math.floor(n/2)*62,w:(type==='wifiStatus'||type==='text')?224:106,h:type==='wifiStatus'?120:(type==='text'?80:58),enabled:true});
+ p.widgets.push({type,label:typeLabels[type],text:'',headingSize:1,contentSize:type==='wifiStatus'?1:2,headingAlign:0,contentAlign:0,headingColor:0,contentColor:type==='wifiStatus'?0:3,x:8+(n%2)*117,y:55+Math.floor(n/2)*62,w:(type==='wifiStatus'||type==='text')?224:106,h:type==='wifiStatus'?120:(type==='text'?80:58),enabled:true});
  selectedWidget=p.widgets.length-1;renderAll();
 });
 $('deleteWidget').addEventListener('click',()=>{const p=pages[editorPage];if(selectedWidget<0||selectedWidget>=p.widgets.length){alert('Сначала выбери блок на холсте.');return}p.widgets.splice(selectedWidget,1);selectedWidget=-1;renderAll()});
