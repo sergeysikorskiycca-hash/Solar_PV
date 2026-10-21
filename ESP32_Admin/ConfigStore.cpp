@@ -57,6 +57,13 @@ void setDefaults() {
   cfg.currentX = 125; cfg.currentY = 125; cfg.currentW = 106; cfg.currentH = 58;
   cfg.batteryX = 8; cfg.batteryY = 205; cfg.batteryW = 224; cfg.batteryH = 58;
   cfg.tftPage = 1;
+  for (uint8_t p = 0; p < MAX_PAGES; p++) {
+    for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
+      WidgetConfig& w = cfg.pages[p].widgets[i];
+      w.headingSize = 1; w.contentSize = 2; w.headingAlign = 0; w.contentAlign = 0;
+      w.headingColor = 0; w.contentColor = 3;
+    }
+  }
   initializeDefaultPages();
 }
 
@@ -104,13 +111,13 @@ void initializeDefaultPages() {
   bool enabled[4] = {cfg.showPower, cfg.showVoltage, cfg.showCurrent, cfg.showBattery};
   for (uint8_t i = 0; i < 4; i++) {
     WidgetConfig& w = cfg.pages[0].widgets[i];
-    w.type = types[i]; w.label = labels[i]; w.text = ""; w.x = xs[i]; w.y = ys[i];
+    w.type = types[i]; w.label = labels[i]; w.text = ""; w.headingSize = 1; w.contentSize = 2; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.x = xs[i]; w.y = ys[i];
     w.w = ws[i]; w.h = hs[i]; w.enabled = enabled[i];
   }
   cfg.pages[1].title = "Wi-Fi";
   cfg.pages[1].widgetCount = 1;
   WidgetConfig& wifi = cfg.pages[1].widgets[0];
-  wifi.type = "wifiStatus"; wifi.label = "Состояние Wi-Fi"; wifi.text = "";
+  wifi.type = "wifiStatus"; wifi.label = "Состояние Wi-Fi"; wifi.text = ""; wifi.headingSize = 1; wifi.contentSize = 1; wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0;
   wifi.x = 8; wifi.y = 55; wifi.w = 224; wifi.h = 220; wifi.enabled = true;
   for (uint8_t p = 2; p < MAX_PAGES; p++) { cfg.pages[p].title = ""; cfg.pages[p].widgetCount = 0; }
 }
@@ -136,6 +143,12 @@ bool loadPageKey(const String& key, const String& value) {
   if (suffix == "Type") { if (isKnownWidgetType(value)) w.type = value; }
   else if (suffix == "Label") w.label = sanitizeTitle(value);
   else if (suffix == "Text") w.text = decodeWidgetText(value);
+  else if (suffix == "HeadingSize") w.headingSize = clampInt(value.toInt(), 0, 4);
+  else if (suffix == "ContentSize") w.contentSize = clampInt(value.toInt(), 0, 4);
+  else if (suffix == "HeadingAlign") w.headingAlign = clampInt(value.toInt(), 0, 2);
+  else if (suffix == "ContentAlign") w.contentAlign = clampInt(value.toInt(), 0, 2);
+  else if (suffix == "HeadingColor") w.headingColor = clampInt(value.toInt(), 0, 5);
+  else if (suffix == "ContentColor") w.contentColor = clampInt(value.toInt(), 0, 5);
   else if (suffix == "X") w.x = clampInt(value.toInt(), 0, 239);
   else if (suffix == "Y") w.y = clampInt(value.toInt(), 40, 289);
   else if (suffix == "W") w.w = clampInt(value.toInt(), 40, 240);
@@ -200,6 +213,9 @@ void loadConfig() {
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
       if (!isKnownWidgetType(w.type)) w.type = "power";
+      w.headingSize = clampInt(w.headingSize, 0, 4); w.contentSize = clampInt(w.contentSize, 0, 4);
+      w.headingAlign = clampInt(w.headingAlign, 0, 2); w.contentAlign = clampInt(w.contentAlign, 0, 2);
+      w.headingColor = clampInt(w.headingColor, 0, 5); w.contentColor = clampInt(w.contentColor, 0, 5);
       w.w = clampInt(w.w, 40, 240); w.h = clampInt(w.h, 36, 250);
       w.x = clampInt(w.x, 0, 240 - w.w); w.y = clampInt(w.y, 40, 290 - w.h);
     }
@@ -260,6 +276,9 @@ bool saveConfig() {
       f.println(prefix + "Type=" + w.type);
       f.println(prefix + "Label=" + sanitizeTitle(w.label));
       f.println(prefix + "Text=" + encodeWidgetText(w.text));
+      f.println(prefix + "HeadingSize=" + String(w.headingSize)); f.println(prefix + "ContentSize=" + String(w.contentSize));
+      f.println(prefix + "HeadingAlign=" + String(w.headingAlign)); f.println(prefix + "ContentAlign=" + String(w.contentAlign));
+      f.println(prefix + "HeadingColor=" + String(w.headingColor)); f.println(prefix + "ContentColor=" + String(w.contentColor));
       f.println(prefix + "X=" + String(w.x)); f.println(prefix + "Y=" + String(w.y));
       f.println(prefix + "W=" + String(w.w)); f.println(prefix + "H=" + String(w.h));
       f.println(prefix + "Enabled=" + String(w.enabled ? "1" : "0"));
