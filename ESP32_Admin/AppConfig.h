@@ -14,6 +14,7 @@ struct AppConfig {
   String ssid;
   String password;
   String title;
+  String powerLabel, voltageLabel, currentLabel, batteryLabel;
   bool showPower;
   bool showVoltage;
   bool showCurrent;
