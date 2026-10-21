@@ -149,7 +149,7 @@ $('deleteWidget').addEventListener('click',()=>{const p=pages[editorPage];if(sel
 async function saveAll(showMessage){
  const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(collectData())});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||('HTTP '+r.status));
  if(showMessage!==false)alert(j.message);const c=await (await fetch('/api/config?t='+Date.now(),{cache:'no-store'})).json();
- const oldEditor=editorPage;loadConfig(c);editorPage=Math.min(oldEditor,pages.length-1);followDevice=false;renderAll();return true;
+ const oldEditor=editorPage,wasFollowing=followDevice;loadConfig(c);followDevice=wasFollowing;editorPage=followDevice?devicePage:Math.min(oldEditor,pages.length-1);renderAll();return true;
 }
 $('saveDisplay').addEventListener('click',async()=>{try{await saveAll(true)}catch(e){alert('Не удалось сохранить: '+e.message)}});
 $('showOnTft').addEventListener('click',async()=>{
