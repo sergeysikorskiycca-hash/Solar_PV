@@ -26,6 +26,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <header><h1>Solar_PV — редактор экранов</h1><p>Универсальные страницы и повторно используемые блоки · TFT ST7789 240 × 320</p></header>
 <main><div>
 <section><h2>Страницы</h2><div class="page-tabs" id="pageTabs"></div>
+<label for="pageTitle">Название выбранной страницы</label><input id="pageTitle" type="text" maxlength="24" value="Показатели">
 <div class="row"><button class="primary" id="newPage">＋ Новая страница</button><button id="followDevice">К странице дисплея</button><button class="danger" id="deletePage">Удалить страницу</button></div>
 <p class="hint">Жёлтая рамка у вкладки показывает страницу, которая сейчас выведена на физический дисплей. Выбирать другую страницу для редактирования можно независимо.</p>
 <div class="status" id="deviceStatus">Получение состояния ESP32…</div></section>
@@ -104,7 +105,7 @@ function renderCanvas(){
   node.addEventListener('click',e=>{if(e.target.closest('.name'))return;selectedWidget=i;renderCanvas()});c.appendChild(node);
  });
 }
-function renderAll(){renderTabs();renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
+function renderAll(){renderTabs();$('pageTitle').value=pages[editorPage].title;renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
 function loadConfig(c){
  $('title').value=c.title||'SOLAR PV';$('fontScale').value=String(c.fontScale||1);$('netStatus').textContent=c.networkStatus||'Wi-Fi не подключён';
  networkStatus=c.networkStatus||'';networkLabel=c.networkLabel||'Wi-Fi: —';savedNetworks=c.savedNetworks||[];
@@ -128,7 +129,7 @@ async function refreshDeviceState(){
   networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;$('netStatus').textContent=networkStatus;updateDeviceStatus();
  }catch(e){}
 }
-$('title').addEventListener('input',renderCanvas);$('fontScale').addEventListener('change',renderCanvas);
+$('title').addEventListener('input',renderCanvas);$('fontScale').addEventListener('change',renderCanvas);$('pageTitle').addEventListener('input',()=>{pages[editorPage].title=$('pageTitle').value.slice(0,54);renderTabs();renderCanvas()});
 $('newPage').addEventListener('click',async()=>{
  if(pages.length>=MAX_PAGES)return;
  try{const r=await fetch('/api/page?action=create&t='+Date.now(),{cache:'no-store'});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Не удалось создать страницу');
