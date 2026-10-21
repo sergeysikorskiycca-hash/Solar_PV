@@ -47,6 +47,11 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 <input id="title" type="text" maxlength="18" value="SOLAR PV">
 <label for="fontScale">Размер текста</label>
 <select id="fontScale"><option value="1">Обычный</option><option value="2">Крупный</option></select>
+<h3>Названия блоков</h3>
+<label for="powerLabel">Мощность PV</label><input id="powerLabel" type="text" maxlength="24" value="Мощность PV">
+<label for="voltageLabel">Напряжение</label><input id="voltageLabel" type="text" maxlength="24" value="Напряжение">
+<label for="currentLabel">Ток</label><input id="currentLabel" type="text" maxlength="24" value="Ток">
+<label for="batteryLabel">Аккумулятор</label><input id="batteryLabel" type="text" maxlength="24" value="Аккумулятор">
 <h3>Отображаемые блоки</h3>
 <div class="checks">
 <label class="check"><input id="showPower" type="checkbox"> Мощность PV</label>
@@ -88,10 +93,10 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 <div class="screen" id="preview">
 <div class="screen-title" id="prevTitle">SOLAR PV</div>
 <div class="screen-status">DEMO DATA · Wi-Fi</div>
-<div class="demo" id="pPower"><div class="name">Мощность PV</div><div class="value">DEMO W</div><span class="resize-handle" title="Изменить размер"></span></div>
-<div class="demo" id="pVoltage"><div class="name">Напряжение</div><div class="value">DEMO V</div><span class="resize-handle" title="Изменить размер"></span></div>
-<div class="demo" id="pCurrent"><div class="name">Ток</div><div class="value">DEMO A</div><span class="resize-handle" title="Изменить размер"></span></div>
-<div class="demo" id="pBattery"><div class="name">Аккумулятор</div><div class="value">DEMO %</div><span class="resize-handle" title="Изменить размер"></span></div>
+<div class="demo" id="pPower"><div class="name" id="namePower">Мощность PV</div><div class="value">DEMO W</div><span class="resize-handle" title="Изменить размер"></span></div>
+<div class="demo" id="pVoltage"><div class="name" id="nameVoltage">Напряжение</div><div class="value">DEMO V</div><span class="resize-handle" title="Изменить размер"></span></div>
+<div class="demo" id="pCurrent"><div class="name" id="nameCurrent">Ток</div><div class="value">DEMO A</div><span class="resize-handle" title="Изменить размер"></span></div>
+<div class="demo" id="pBattery"><div class="name" id="nameBattery">Аккумулятор</div><div class="value">DEMO %</div><span class="resize-handle" title="Изменить размер"></span></div>
 <div class="screen-footer"><span id="prevNetwork">Wi-Fi: —</span><span>Стр. 1</span></div>
 </div>
 <p class="hint">Предпросмотр приблизительный. Итоговый вид отображается на физическом TFT.</p>
@@ -100,7 +105,8 @@ button{border:0;border-radius:8px;padding:11px 14px;font-size:15px;font-weight:b
 </main>
 <script>
 const ids=['powerX','powerY','voltageX','voltageY','currentX','currentY','batteryX','batteryY'];
-const defaults={title:'SOLAR PV',fontScale:1,showPower:true,showVoltage:true,showCurrent:true,showBattery:true,powerX:8,powerY:55,voltageX:8,voltageY:125,currentX:125,currentY:125,batteryX:8,batteryY:205,powerW:224,powerH:58,voltageW:106,voltageH:58,currentW:106,currentH:58,batteryW:224,batteryH:58};
+const labelIds=['powerLabel','voltageLabel','currentLabel','batteryLabel'];
+const defaults={title:'SOLAR PV',powerLabel:'Мощность PV',voltageLabel:'Напряжение',currentLabel:'Ток',batteryLabel:'Аккумулятор',fontScale:1,showPower:true,showVoltage:true,showCurrent:true,showBattery:true,powerX:8,powerY:55,voltageX:8,voltageY:125,currentX:125,currentY:125,batteryX:8,batteryY:205,powerW:224,powerH:58,voltageW:106,voltageH:58,currentW:106,currentH:58,batteryW:224,batteryH:58};
 const dims={power:{w:224,h:58},voltage:{w:106,h:58},current:{w:106,h:58},battery:{w:224,h:58}};
 function val(id){return document.getElementById(id).value}
 function checked(id){return document.getElementById(id).checked}
@@ -108,6 +114,10 @@ function setVal(id,v){document.getElementById(id).value=v}
 function updatePreview(){
  document.getElementById('prevTitle').textContent=val('title')||'SOLAR PV';
  document.getElementById('prevTitle').style.fontSize=(val('fontScale')==='2'?'19px':'16px');
+ document.getElementById('namePower').textContent=val('powerLabel')||'Мощность PV';
+ document.getElementById('nameVoltage').textContent=val('voltageLabel')||'Напряжение';
+ document.getElementById('nameCurrent').textContent=val('currentLabel')||'Ток';
+ document.getElementById('nameBattery').textContent=val('batteryLabel')||'Аккумулятор';
  const map=[['power','pPower'],['voltage','pVoltage'],['current','pCurrent'],['battery','pBattery']];
  map.forEach(([key,el])=>{
   const node=document.getElementById(el);
@@ -119,6 +129,7 @@ function updatePreview(){
 }
 function loadConfig(c){
  setVal('title',c.title);setVal('fontScale',c.fontScale);
+ labelIds.forEach(id=>setVal(id,c[id]||defaults[id]));
  ['Power','Voltage','Current','Battery'].forEach(k=>document.getElementById('show'+k).checked=!!c['show'+k]);
  ids.forEach(id=>setVal(id,c[id]));
  ['power','voltage','current','battery'].forEach(k=>{dims[k].w=Number(c[k+'W']||defaults[k+'W']);dims[k].h=Number(c[k+'H']||defaults[k+'H']);});
@@ -131,6 +142,7 @@ function loadConfig(c){
 }
 function collectDisplay(){
  const d={title:val('title'),fontScale:val('fontScale')};
+ labelIds.forEach(id=>d[id]=val(id));
  ['Power','Voltage','Current','Battery'].forEach(k=>d['show'+k]=checked('show'+k));
  ids.forEach(id=>d[id]=val(id));
  ['power','voltage','current','battery'].forEach(k=>{d[k+'W']=dims[k].w;d[k+'H']=dims[k].h;});
