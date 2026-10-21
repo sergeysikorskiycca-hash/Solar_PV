@@ -223,6 +223,20 @@ bool saveConfig() {
   f.println("currentW=" + String(cfg.currentW)); f.println("currentH=" + String(cfg.currentH));
   f.println("batteryW=" + String(cfg.batteryW)); f.println("batteryH=" + String(cfg.batteryH));
   f.println("tftPage=" + String(cfg.tftPage));
+  f.println("pageCount=" + String(cfg.pageCount));
+  for (uint8_t p = 0; p < MAX_PAGES; p++) {
+    f.println("page" + String(p) + "Title=" + sanitizeTitle(cfg.pages[p].title));
+    f.println("page" + String(p) + "Count=" + String(cfg.pages[p].widgetCount));
+    for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
+      const WidgetConfig& w = cfg.pages[p].widgets[i];
+      String prefix = "p" + String(p) + "w" + String(i);
+      f.println(prefix + "Type=" + w.type);
+      f.println(prefix + "Label=" + sanitizeTitle(w.label));
+      f.println(prefix + "X=" + String(w.x)); f.println(prefix + "Y=" + String(w.y));
+      f.println(prefix + "W=" + String(w.w)); f.println(prefix + "H=" + String(w.h));
+      f.println(prefix + "Enabled=" + String(w.enabled ? "1" : "0"));
+    }
+  }
   for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) {
     f.println("wifi" + String(i) + "_ssid=" + savedNetworks[i].ssid);
     f.println("wifi" + String(i) + "_password=" + savedNetworks[i].password);
