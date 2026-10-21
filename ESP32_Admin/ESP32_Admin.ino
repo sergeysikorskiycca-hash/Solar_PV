@@ -9,6 +9,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <LittleFS.h>
+#include <ArduinoJson.h>
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
@@ -155,25 +156,37 @@ void handleApiConfig() {
 }
 
 void handleSaveDisplay() {
-  if (server.hasArg("title")) cfg.title = sanitizeTitle(server.arg("title"));
-  if (server.hasArg("fontScale")) cfg.fontScale = server.arg("fontScale") == "2" ? 2 : 1;
-  if (server.hasArg("pageCount")) cfg.pageCount = clampInt(server.arg("pageCount").toInt(), 1, MAX_PAGES);
+  DynamicJsonDocument doc(16384);
+  DeserializationError error = deserializeJson(doc, server.arg("plain"));
+  if (error) {
+    server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректный JSON макета.\"}");
+    return;
+  }
+  if (doc.containsKey("title")) cfg.title = sanitizeTitle(String(doc["title"] | "SOLAR PV"));
+  if (doc.containsKey("fontScale")) cfg.fontScale = (doc["fontScale"] | 1) == 2 ? 2 : 1;
+  JsonArray sourcePages = doc["pages"].as<JsonArray>();
+  uint8_t requestedCount = clampInt(doc["pageCount"] | sourcePages.size(), 1, MAX_PAGES);
+  if (sourcePages.isNull() || sourcePages.size() < requestedCount) {
+    server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"В конфигурации не хватает страниц.\"}");
+    return;
+  }
+  cfg.pageCount = requestedCount;
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
-    String pagePrefix = "page" + String(p);
-    if (server.hasArg(pagePrefix + "Title")) cfg.pages[p].title = sanitizeTitle(server.arg(pagePrefix + "Title"));
-    if (server.hasArg(pagePrefix + "Count")) cfg.pages[p].widgetCount = clampInt(server.arg(pagePrefix + "Count").toInt(), 0, MAX_WIDGETS_PER_PAGE);
+    JsonObject sourcePage = sourcePages[p].as<JsonObject>();
+    cfg.pages[p].title = sanitizeTitle(String(sourcePage["title"] | ("Страница " + String(p + 1))));
+    JsonArray sourceWidgets = sourcePage["widgets"].as<JsonArray>();
+    cfg.pages[p].widgetCount = clampInt(sourceWidgets.size(), 0, MAX_WIDGETS_PER_PAGE);
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
-      String prefix = "p" + String(p) + "w" + String(i);
+      JsonObject source = sourceWidgets[i].as<JsonObject>();
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      if (server.hasArg(prefix + "Type") && isKnownWidgetType(server.arg(prefix + "Type"))) w.type = server.arg(prefix + "Type");
-      if (server.hasArg(prefix + "Label")) w.label = sanitizeTitle(server.arg(prefix + "Label"));
-      if (server.hasArg(prefix + "X")) w.x = server.arg(prefix + "X").toInt();
-      if (server.hasArg(prefix + "Y")) w.y = server.arg(prefix + "Y").toInt();
-      if (server.hasArg(prefix + "W")) w.w = server.arg(prefix + "W").toInt();
-      if (server.hasArg(prefix + "H")) w.h = server.arg(prefix + "H").toInt();
-      if (server.hasArg(prefix + "Enabled")) w.enabled = server.arg(prefix + "Enabled") == "1";
-      w.w = clampInt(w.w, 40, 240); w.h = clampInt(w.h, 36, 250);
-      w.x = clampInt(w.x, 0, 240 - w.w); w.y = clampInt(w.y, 40, 290 - w.h);
+      String type = String(source["type"] | "power");
+      if (isKnownWidgetType(type)) w.type = type;
+      w.label = sanitizeTitle(String(source["label"] | "Блок"));
+      w.w = clampInt(source["w"] | 106, 40, 240);
+      w.h = clampInt(source["h"] | 58, 36, 250);
+      w.x = clampInt(source["x"] | 8, 0, 240 - w.w);
+      w.y = clampInt(source["y"] | 55, 40, 290 - w.h);
+      w.enabled = source["enabled"] | true;
     }
   }
   for (uint8_t i = 0; i < cfg.pages[0].widgetCount; i++) {
