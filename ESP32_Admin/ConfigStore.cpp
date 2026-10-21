@@ -101,7 +101,7 @@ bool loadPageKey(const String& key, const String& value) {
     else return false;
     return true;
   }
-  if (key.length() < 6 || key[0] != 'p' || !isDigit(key[1])) return false;
+  if (key.length() < 5 || key[0] != 'p' || !isDigit(key[1])) return false;
   int p = key.substring(1, 2).toInt(); int wPos = key.indexOf('w', 2);
   if (wPos < 0 || p >= MAX_PAGES) return false;
   int wi = key.substring(wPos + 1, wPos + 2).toInt();
