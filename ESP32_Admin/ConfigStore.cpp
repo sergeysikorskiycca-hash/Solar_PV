@@ -57,6 +57,36 @@ void setDefaults() {
   cfg.currentX = 125; cfg.currentY = 125; cfg.currentW = 106; cfg.currentH = 58;
   cfg.batteryX = 8; cfg.batteryY = 205; cfg.batteryW = 224; cfg.batteryH = 58;
   cfg.tftPage = 1;
+  initializeDefaultPages();
+}
+
+bool isKnownWidgetType(const String& type) {
+  return type == "power" || type == "voltage" || type == "current" ||
+         type == "battery" || type == "wifiStatus";
+}
+
+void initializeDefaultPages() {
+  cfg.pageCount = 2;
+  cfg.pages[0].title = "Показатели";
+  cfg.pages[0].widgetCount = 4;
+  const char* types[4] = {"power", "voltage", "current", "battery"};
+  String labels[4] = {cfg.powerLabel, cfg.voltageLabel, cfg.currentLabel, cfg.batteryLabel};
+  int xs[4] = {cfg.powerX, cfg.voltageX, cfg.currentX, cfg.batteryX};
+  int ys[4] = {cfg.powerY, cfg.voltageY, cfg.currentY, cfg.batteryY};
+  int ws[4] = {cfg.powerW, cfg.voltageW, cfg.currentW, cfg.batteryW};
+  int hs[4] = {cfg.powerH, cfg.voltageH, cfg.currentH, cfg.batteryH};
+  bool enabled[4] = {cfg.showPower, cfg.showVoltage, cfg.showCurrent, cfg.showBattery};
+  for (uint8_t i = 0; i < 4; i++) {
+    WidgetConfig& w = cfg.pages[0].widgets[i];
+    w.type = types[i]; w.label = labels[i]; w.x = xs[i]; w.y = ys[i];
+    w.w = ws[i]; w.h = hs[i]; w.enabled = enabled[i];
+  }
+  cfg.pages[1].title = "Wi-Fi";
+  cfg.pages[1].widgetCount = 1;
+  WidgetConfig& wifi = cfg.pages[1].widgets[0];
+  wifi.type = "wifiStatus"; wifi.label = "Состояние Wi-Fi";
+  wifi.x = 8; wifi.y = 55; wifi.w = 224; wifi.h = 220; wifi.enabled = true;
+  for (uint8_t p = 2; p < MAX_PAGES; p++) { cfg.pages[p].title = ""; cfg.pages[p].widgetCount = 0; }
 }
 
 void loadConfig() {
