@@ -89,16 +89,16 @@ function renderCanvas(){
   const handle=document.createElement('span');handle.className='resize-handle';handle.title='Изменить размер';node.appendChild(handle);
   node.addEventListener('pointerdown',e=>{
    if(e.button!==0||e.target.isContentEditable)return;
-   selectedWidget=i;renderCanvas();const actual=c.querySelector('.widget.selected');if(!actual)return;
+   selectedWidget=i;c.querySelectorAll('.widget').forEach(n=>n.classList.toggle('selected',n===node));
    pointerEdit={index:i,resizing:e.target.classList.contains('resize-handle'),sx:e.clientX,sy:e.clientY,x:w.x,y:w.y,w:w.w,h:w.h};
-   actual.setPointerCapture(e.pointerId);e.preventDefault();
+   node.setPointerCapture(e.pointerId);e.preventDefault();
   });
   node.addEventListener('pointermove',e=>{
    if(!pointerEdit||pointerEdit.index!==i)return;
    const rect=c.getBoundingClientRect(),dx=Math.round((e.clientX-pointerEdit.sx)*240/rect.width),dy=Math.round((e.clientY-pointerEdit.sy)*320/rect.height);
    if(pointerEdit.resizing){w.w=Math.max(40,Math.min(240-pointerEdit.x,pointerEdit.w+dx));w.h=Math.max(36,Math.min(290-pointerEdit.y,pointerEdit.h+dy))}
    else{w.x=Math.max(0,Math.min(240-w.w,pointerEdit.x+dx));w.y=Math.max(40,Math.min(290-w.h,pointerEdit.y+dy))}
-   renderCanvas();
+   node.style.left=w.x+'px';node.style.top=w.y+'px';node.style.width=w.w+'px';node.style.height=w.h+'px';
   });
   node.addEventListener('pointerup',()=>pointerEdit=null);node.addEventListener('pointercancel',()=>pointerEdit=null);
   node.addEventListener('click',()=>{selectedWidget=i;renderCanvas()});c.appendChild(node);
