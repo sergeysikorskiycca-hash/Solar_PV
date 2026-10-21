@@ -16,6 +16,7 @@ struct SavedNetwork {
 struct WidgetConfig {
   String type;       // power, voltage, current, battery, wifiStatus
   String label;
+  String text;      // Free text for text widgets; supports UTF-8 and line breaks.
   int x, y, w, h;
   bool enabled;
 };
