@@ -79,6 +79,10 @@ String jsonEscape(const String& s) {
 String makeConfigJson() {
   String j = "{";
   j += "\"title\":\"" + jsonEscape(cfg.title) + "\",";
+  j += "\"powerLabel\":\"" + jsonEscape(cfg.powerLabel) + "\",";
+  j += "\"voltageLabel\":\"" + jsonEscape(cfg.voltageLabel) + "\",";
+  j += "\"currentLabel\":\"" + jsonEscape(cfg.currentLabel) + "\",";
+  j += "\"batteryLabel\":\"" + jsonEscape(cfg.batteryLabel) + "\",";
   j += "\"fontScale\":" + String(cfg.fontScale) + ",";
   j += "\"showPower\":" + String(cfg.showPower ? "true" : "false") + ",";
   j += "\"showVoltage\":" + String(cfg.showVoltage ? "true" : "false") + ",";
@@ -137,6 +141,10 @@ void handleApiConfig() {
 
 void handleSaveDisplay() {
   if (server.hasArg("title")) cfg.title = sanitizeTitle(server.arg("title"));
+  if (server.hasArg("powerLabel")) cfg.powerLabel = sanitizeTitle(server.arg("powerLabel"));
+  if (server.hasArg("voltageLabel")) cfg.voltageLabel = sanitizeTitle(server.arg("voltageLabel"));
+  if (server.hasArg("currentLabel")) cfg.currentLabel = sanitizeTitle(server.arg("currentLabel"));
+  if (server.hasArg("batteryLabel")) cfg.batteryLabel = sanitizeTitle(server.arg("batteryLabel"));
   cfg.fontScale = server.arg("fontScale") == "2" ? 2 : 1;
   cfg.showPower = server.hasArg("showPower");
   cfg.showVoltage = server.hasArg("showVoltage");
