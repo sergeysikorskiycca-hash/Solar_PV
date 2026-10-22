@@ -4,7 +4,7 @@
 // Shared configuration model for the ESP32 admin firmware.
 static constexpr uint8_t MAX_SAVED_NETWORKS = 8;
 static constexpr uint8_t MAX_PAGES = 4;
-static constexpr uint8_t MAX_WIDGETS_PER_PAGE = 8;
+static constexpr uint8_t MAX_WIDGETS_PER_PAGE = 12;
 static constexpr char CONFIG_PATH[] = "/solarpv.cfg";
 
 struct SavedNetwork {
@@ -18,6 +18,8 @@ struct WidgetConfig {
   String label;
   String text;      // Free text for text widgets; supports UTF-8 and line breaks.
   uint8_t headingSize, contentSize;
+  uint8_t stringCount; // Number of PV strings shown by a strings widget.
+  bool locked; // Prevents accidental position and size changes in the web editor.
   uint8_t headingAlign, contentAlign;
   uint8_t headingColor, contentColor;
   uint8_t backgroundColor; // 0 = near-black; 1..5 = dark background presets
