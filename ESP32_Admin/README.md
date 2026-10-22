@@ -18,6 +18,7 @@ The ESP32 port is being refactored on `esp32-admin-refactor`; TFT GPIO defaults 
 - Configuration stored in LittleFS, including display layout settings.
 - ST7789 240x320 display, Cyrillic fonts, reusable page layouts, and partial footer updates.
 - Device boots to TFT page 1.
+- Optional NEC IR remote support on GPIO27; LEFT/BACK and RIGHT/FORWARD navigate pages, TITLE/BEGINNING returns to page 1, END selects the last page, DISPLAY cycles pages, and number keys 1–4 select pages directly when present.
 - Existing HTML preview and plain-text Wi-Fi password entry.
 
 ## Reusable page and widget model
@@ -69,6 +70,10 @@ Use a module only where it reduces coupling; avoid creating extra abstractions w
 4. Compile and fix all errors before uploading.
 5. Test AP access, router access, scanning, save/reboot, saved-network reuse, both TFT pages, Cyrillic text, and no-flicker footer updates.
 6. Record compile memory statistics and compare them with the old ESP8266 build, noting that the old numbers are not measurements of the current sketch.
+
+## IR remote
+
+Install the `IRremoteESP8266` library from Arduino Library Manager before compiling. The ESP32 receiver signal output is configured as GPIO27 in `IR_Remote.h`; connect receiver GND to GND and power it from 3V3 only if supported by the receiver module. Confirm the module pinout before wiring. The existing NEC key codes are carried over from the prior remote project. Menu/widget actions for the remaining keys are not implemented yet. Flash is not written for each page change.
 
 ## Current status and items not yet verified
 
