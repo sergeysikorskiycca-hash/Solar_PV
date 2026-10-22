@@ -318,6 +318,132 @@ void handleNotFound() {
   server.send(302, "text/plain", "");
 }
 
+
+enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT };
+static RemoteTextMode rtMode = RT_CLOSED;
+static uint8_t rtPick = 0;
+static int8_t rtWidget = -1;
+static String rtBuffer, rtLastChar;
+static size_t rtCursor = 0, rtLastStart = 0;
+static uint32_t rtLastKey = 0;
+static unsigned long rtLastAt = 0;
+static bool rtRussian = false, rtUpper = true;
+
+static size_t rtBytes(const String& s, size_t p) {
+  if (p >= s.length()) return 0;
+  uint8_t c=(uint8_t)s[p];
+  return c<0x80?1:((c&0xE0)==0xC0?2:((c&0xF0)==0xE0?3:((c&0xF8)==0xF0?4:1)));
+}
+static size_t rtPrev(const String& s,size_t p) {
+  if(!p)return 0; p--;
+  while(p>0&&(((uint8_t)s[p]&0xC0)==0x80))p--;
+  return p;
+}
+static String rtChar(const String& s,size_t p){return s.substring(p,p+rtBytes(s,p));}
+static int rtCount(){
+  if(cfg.tftPage<1||cfg.tftPage>cfg.pageCount)return 0;
+  int n=0; PageConfig& p=cfg.pages[cfg.tftPage-1];
+  for(uint8_t i=0;i<p.widgetCount;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text")n++;
+  return n;
+}
+static int rtIndex(uint8_t wanted){
+  if(cfg.tftPage<1||cfg.tftPage>cfg.pageCount)return -1;
+  PageConfig& p=cfg.pages[cfg.tftPage-1]; uint8_t n=0;
+  for(uint8_t i=0;i<p.widgetCount;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text"){
+    if(n++==wanted)return i;
+  }
+  return -1;
+}
+static void rtDrawPicker(){
+  tft.fillScreen(ST77XX_BLACK); drawCyrillicText("ТЕКСТОВЫЙ БЛОК",8,25,ST77XX_WHITE,true);
+  drawCyrillicText("UP/DOWN выбор, OK ввод",8,48,0x07FF,false);
+  PageConfig& p=cfg.pages[cfg.tftPage-1]; int y=82; uint8_t n=0;
+  for(uint8_t i=0;i<p.widgetCount&&n<7;i++){WidgetConfig& w=p.widgets[i];if(!w.enabled||w.type!="text")continue;
+    if(n==rtPick)tft.fillRoundRect(5,y-16,230,28,4,0x03EF);
+    drawCyrillicText((n==rtPick?"> ":"  ")+w.label.substring(0,27),10,y+2,ST77XX_WHITE,false);y+=30;n++;
+  }
+  drawCyrillicText("MENU: выход",8,307,0xBDF7,false);
+}
+static void rtDrawEditor(){
+  tft.fillScreen(ST77XX_BLACK); PageConfig& p=cfg.pages[cfg.tftPage-1]; WidgetConfig& w=p.widgets[rtWidget];
+  drawCyrillicText("РЕДАКТОР ТЕКСТА",8,23,ST77XX_WHITE,true);
+  drawCyrillicText(w.label.substring(0,28),8,44,0x07FF,false);
+  tft.drawRoundRect(5,54,230,160,5,0x5B6D);
+  String view=rtBuffer; if(view.length()>150)view=view.substring(view.length()-150);
+  String line="";int y=76;
+  for(size_t pos=0;pos<view.length()&&y<197;){String g=rtChar(view,pos);if(g=="\n"||u8g2Fonts.getUTF8Width((line+g).c_str())>210){drawCyrillicText(line,11,y,ST77XX_WHITE,false);line="";y+=18;if(g=="\n"){pos++;continue;}}else line+=g;pos+=g.length();}
+  if(y<197&&line.length())drawCyrillicText(line,11,y,ST77XX_WHITE,false);
+  drawCyrillicText(String("Режим: ")+(rtRussian?"РУ":"EN")+(rtUpper?" A":" a"),8,236,ST77XX_YELLOW,false);
+  drawCyrillicText("2-9: буквы; 0: пробел/знаки",8,258,0xBDF7,false);
+  drawCyrillicText("AUDIO: RU/EN  SETUP: A/a",8,279,0xBDF7,false);
+  drawCyrillicText("LEFT/RIGHT курсор; BACK удалить",8,300,0xBDF7,false);
+  drawCyrillicText("OK сохранить; MENU отмена",8,318,0xBDF7,false);
+}
+static void rtOpen(){
+  if(!rtCount()){tft.fillScreen(ST77XX_BLACK);drawCyrillicText("Нет текстовых блоков",8,35,ST77XX_WHITE,true);drawCyrillicText("Добавь блок в веб-админке",8,62,0xBDF7,false);delay(900);renderTFT();return;}
+  rtMode=RT_PICKER;rtPick=0;rtDrawPicker();
+}
+static void rtEdit(){
+  rtWidget=rtIndex(rtPick);if(rtWidget<0){rtMode=RT_CLOSED;renderTFT();return;}
+  rtBuffer=cfg.pages[cfg.tftPage-1].widgets[rtWidget].text;if(rtBuffer.length()>240)rtBuffer=rtBuffer.substring(0,240);
+  rtCursor=rtBuffer.length();rtMode=RT_EDIT;rtLastKey=0;rtLastChar="";rtDrawEditor();
+}
+static String rtGroup(uint32_t k){
+  if(k==IR_CODE_2)return rtRussian?(rtUpper?"АБВГДЕЁЖЗ":"абвгдеёжз"):(rtUpper?"ABC":"abc");
+  if(k==IR_CODE_3)return rtRussian?(rtUpper?"ИЙКЛМНОПР":"ийклмнопр"):(rtUpper?"DEF":"def");
+  if(k==IR_CODE_4)return rtRussian?(rtUpper?"СТУФХЦЧШЩ":"стуфхцчшщ"):(rtUpper?"GHI":"ghi");
+  if(k==IR_CODE_5)return rtRussian?(rtUpper?"ЪЫЬЭЮЯ":"ъыьэюя"):(rtUpper?"JKL":"jkl");
+  if(k==IR_CODE_6)return rtUpper?"MNO":"mno";
+  if(k==IR_CODE_7)return rtUpper?"PQRS":"pqrs";
+  if(k==IR_CODE_8)return rtUpper?"TUV":"tuv";
+  if(k==IR_CODE_9)return rtUpper?"WXYZ":"wxyz";
+  if(k==IR_CODE_0)return "0 .,!?@#$%&*-_+=";
+  if(k==IR_CODE_1)return "1:;/()[]";
+  return "";
+}
+static void rtInsert(String ch,uint32_t key){
+  if(!ch.length())return;
+  bool replace=(key==rtLastKey&&millis()-rtLastAt<950&&rtLastChar.length());
+  if(replace){rtBuffer.remove(rtLastStart,rtLastChar.length());rtCursor=rtLastStart;}
+  else rtLastStart=rtCursor;
+  if(rtBuffer.length()+ch.length()>240)return;
+  rtBuffer=rtBuffer.substring(0,rtCursor)+ch+rtBuffer.substring(rtCursor);rtCursor+=ch.length();
+  rtLastKey=key;rtLastAt=millis();rtLastChar=ch;rtDrawEditor();
+}
+static void rtSave(){
+  if(rtWidget>=0&&cfg.tftPage>=1&&cfg.tftPage<=cfg.pageCount){
+    cfg.pages[cfg.tftPage-1].widgets[rtWidget].text=rtBuffer;
+    bool ok=saveConfig();Serial.println(ok?F("IR text block saved."):F("ERROR: text block save failed."));
+  }
+  rtMode=RT_CLOSED;renderTFT();
+}
+static void rtHandle(uint32_t k){
+  if(rtMode==RT_PICKER){
+    uint8_t n=rtCount();if(!n){rtMode=RT_CLOSED;renderTFT();return;}
+    if(k==IR_CODE_UP){rtPick=rtPick?rtPick-1:n-1;rtDrawPicker();}
+    else if(k==IR_CODE_DOWN){rtPick=(rtPick+1)%n;rtDrawPicker();}
+    else if(k==IR_CODE_OK)rtEdit();
+    else if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtMode=RT_CLOSED;renderTFT();}
+    return;
+  }
+  if(rtMode!=RT_EDIT)return;
+  if(k==IR_CODE_OK){rtSave();return;}
+  if(k==IR_CODE_MENU){rtMode=RT_CLOSED;renderTFT();return;}
+  if(k==IR_CODE_AUDIO){rtRussian=!rtRussian;rtLastKey=0;rtDrawEditor();return;}
+  if(k==IR_CODE_SETUP){rtUpper=!rtUpper;rtLastKey=0;rtDrawEditor();return;}
+  if(k==IR_CODE_LEFT){rtCursor=rtPrev(rtBuffer,rtCursor);rtLastKey=0;rtDrawEditor();return;}
+  if(k==IR_CODE_RIGHT){if(rtCursor<rtBuffer.length())rtCursor+=rtBytes(rtBuffer,rtCursor);rtLastKey=0;rtDrawEditor();return;}
+  if(k==IR_CODE_BACK){if(rtCursor){size_t q=rtPrev(rtBuffer,rtCursor);rtBuffer.remove(q,rtCursor-q);rtCursor=q;}rtLastKey=0;rtLastChar="";rtDrawEditor();return;}
+  if(k==IR_CODE_DOWN){rtInsert("\n",0);return;}
+  String g=rtGroup(k);if(!g.length())return;
+  if(k==rtLastKey&&millis()-rtLastAt<950&&rtLastChar.length()){
+    size_t pos=0;bool found=false;
+    while(pos<g.length()){String c=rtChar(g,pos);if(c==rtLastChar){pos+=c.length();found=true;break;}pos+=c.length();}
+    if(!found||pos>=g.length())pos=0;
+    rtInsert(rtChar(g,pos),k);
+  }else rtInsert(rtChar(g,0),k);
+}
+
 // Change the physical TFT page without writing flash on every button press.
 static void showTFTPage(uint8_t page) {
   if (cfg.pageCount == 0) return;
@@ -332,30 +458,18 @@ static void showTFTPage(uint8_t page) {
 static void handleIRRemote() {
   const uint32_t code = IR_RemoteUpdate();
   if (code == 0) return;
-
-  if (code == IR_CODE_LEFT || code == IR_CODE_BACK) {
-    showTFTPage(cfg.tftPage > 1 ? cfg.tftPage - 1 : cfg.pageCount);
-  } else if (code == IR_CODE_RIGHT || code == IR_CODE_FORWARD) {
-    showTFTPage(cfg.tftPage < cfg.pageCount ? cfg.tftPage + 1 : 1);
-  } else if (code == IR_CODE_TITLE || code == IR_CODE_BEGINNING) {
-    showTFTPage(1);
-  } else if (code == IR_CODE_END) {
-    showTFTPage(cfg.pageCount);
-  } else if (code == IR_CODE_DISPLAY) {
-    showTFTPage(cfg.tftPage < cfg.pageCount ? cfg.tftPage + 1 : 1);
-  } else if (code == IR_CODE_1) {
-    showTFTPage(1);
-  } else if (code == IR_CODE_2) {
-    showTFTPage(2);
-  } else if (code == IR_CODE_3) {
-    showTFTPage(3);
-  } else if (code == IR_CODE_4) {
-    showTFTPage(4);
-  } else {
-    // Other buttons are reserved for future menu/widget controls.
-    Serial.printf("IR remote: received code 0x%08lX (no action assigned yet)\n",
-                  static_cast<unsigned long>(code));
-  }
+  if (rtMode != RT_CLOSED) { rtHandle(code); return; }
+  if (code == IR_CODE_MENU) rtOpen();
+  else if (code == IR_CODE_LEFT || code == IR_CODE_BACK) showTFTPage(cfg.tftPage > 1 ? cfg.tftPage - 1 : cfg.pageCount);
+  else if (code == IR_CODE_RIGHT || code == IR_CODE_FORWARD) showTFTPage(cfg.tftPage < cfg.pageCount ? cfg.tftPage + 1 : 1);
+  else if (code == IR_CODE_TITLE || code == IR_CODE_BEGINNING) showTFTPage(1);
+  else if (code == IR_CODE_END) showTFTPage(cfg.pageCount);
+  else if (code == IR_CODE_DISPLAY) showTFTPage(cfg.tftPage < cfg.pageCount ? cfg.tftPage + 1 : 1);
+  else if (code == IR_CODE_1) showTFTPage(1);
+  else if (code == IR_CODE_2) showTFTPage(2);
+  else if (code == IR_CODE_3) showTFTPage(3);
+  else if (code == IR_CODE_4) showTFTPage(4);
+  else Serial.printf("IR remote: received code 0x%08lX (no action assigned yet)\n", static_cast<unsigned long>(code));
 }
 
 void setup() {
