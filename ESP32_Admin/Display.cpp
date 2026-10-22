@@ -3,13 +3,13 @@
 #include <WiFi.h>
 
 static const uint16_t WIDGET_COLORS[6] = { ST77XX_WHITE, 0x07FF, 0x07E0, 0xFFE0, 0xF800, 0xFD20 };
-static const uint8_t FONT_HEIGHTS[5] = {13, 14, 13, 15, 20};
+static const uint8_t FONT_HEIGHTS[5] = {13, 14, 16, 15, 20};
 
 static void setWidgetFont(uint8_t size) {
   switch (size) {
     case 0: u8g2Fonts.setFont(u8g2_font_6x13_t_cyrillic); break;
     case 1: u8g2Fonts.setFont(u8g2_font_7x13_t_cyrillic); break;
-    case 2: u8g2Fonts.setFont(u8g2_font_8x13_t_cyrillic); break;
+    case 2: u8g2Fonts.setFont(u8g2_font_unifont_t_cyrillic); break;
     case 3: u8g2Fonts.setFont(u8g2_font_9x15_t_cyrillic); break;
     default: u8g2Fonts.setFont(u8g2_font_10x20_t_cyrillic); break;
   }
