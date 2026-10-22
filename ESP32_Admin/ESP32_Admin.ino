@@ -369,7 +369,10 @@ static void rtDrawEditor(){
   drawCyrillicText("РЕДАКТОР ТЕКСТА",8,23,ST77XX_WHITE,true);
   drawCyrillicText(w.label.substring(0,28),8,44,0x07FF,false);
   tft.drawRoundRect(5,54,230,160,5,0x5B6D);
-  String view=rtBuffer; if(view.length()>150)view=view.substring(view.length()-150);
+  // Render a visible caret at the current cursor position.
+  size_t start=rtCursor>100?rtPrev(rtBuffer,rtCursor-80):0;
+  String view=rtBuffer.substring(start,rtCursor)+"_"+rtBuffer.substring(rtCursor);
+  if(view.length()>150)view=view.substring(0,150);
   String line="";int y=76;
   for(size_t pos=0;pos<view.length()&&y<197;){String g=rtChar(view,pos);if(g=="\n"||u8g2Fonts.getUTF8Width((line+g).c_str())>210){drawCyrillicText(line,11,y,ST77XX_WHITE,false);line="";y+=18;if(g=="\n"){pos++;continue;}}else line+=g;pos+=g.length();}
   if(y<197&&line.length())drawCyrillicText(line,11,y,ST77XX_WHITE,false);
