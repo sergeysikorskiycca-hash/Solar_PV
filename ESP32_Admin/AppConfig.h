@@ -12,7 +12,7 @@ struct SavedNetwork {
   String password;
 };
 
-// Widget types are data, not page-specific drawing code.
+// Widget types are data, not page-specific drawing code (including multi-string layouts).
 struct WidgetConfig {
   String type;       // power, voltage, current, battery, wifiStatus
   String label;
