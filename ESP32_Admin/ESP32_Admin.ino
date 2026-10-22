@@ -22,6 +22,7 @@
 #include "WifiManager.h"
 #include "WebAdmin.h"
 #include "WebPage.h"
+#include "IR_Remote.h"
 
 static const char* AP_SSID = "SolarPV-Setup";
 static const char* AP_PASS = "SolarPV8266";
@@ -317,6 +318,46 @@ void handleNotFound() {
   server.send(302, "text/plain", "");
 }
 
+// Change the physical TFT page without writing flash on every button press.
+static void showTFTPage(uint8_t page) {
+  if (cfg.pageCount == 0) return;
+  if (page < 1) page = 1;
+  if (page > cfg.pageCount) page = cfg.pageCount;
+  if (cfg.tftPage == page) return;
+  cfg.tftPage = page;
+  renderTFT();
+  Serial.printf("IR remote: TFT page %u/%u\\n", cfg.tftPage, cfg.pageCount);
+}
+
+static void handleIRRemote() {
+  const uint32_t code = IR_RemoteUpdate();
+  if (code == 0) return;
+
+  if (code == IR_CODE_LEFT || code == IR_CODE_BACK) {
+    showTFTPage(cfg.tftPage > 1 ? cfg.tftPage - 1 : cfg.pageCount);
+  } else if (code == IR_CODE_RIGHT || code == IR_CODE_FORWARD) {
+    showTFTPage(cfg.tftPage < cfg.pageCount ? cfg.tftPage + 1 : 1);
+  } else if (code == IR_CODE_TITLE || code == IR_CODE_BEGINNING) {
+    showTFTPage(1);
+  } else if (code == IR_CODE_END) {
+    showTFTPage(cfg.pageCount);
+  } else if (code == IR_CODE_DISPLAY) {
+    showTFTPage(cfg.tftPage < cfg.pageCount ? cfg.tftPage + 1 : 1);
+  } else if (code == IR_CODE_1) {
+    showTFTPage(1);
+  } else if (code == IR_CODE_2) {
+    showTFTPage(2);
+  } else if (code == IR_CODE_3) {
+    showTFTPage(3);
+  } else if (code == IR_CODE_4) {
+    showTFTPage(4);
+  } else {
+    // Other buttons are reserved for future menu/widget controls.
+    Serial.printf("IR remote: received code 0x%08lX (no action assigned yet)\\n",
+                  static_cast<unsigned long>(code));
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -353,9 +394,12 @@ void setup() {
   connectWiFiAtBoot();
   setupWebServer();
   renderTFT();
+  IR_RemoteBegin();
+  Serial.println(F("IR remote ready on GPIO27 (NEC)."));
 }
 
 void loop() {
+  handleIRRemote();
   if (webStarted) server.handleClient();
 
   if (restartAt != 0 && (long)(millis() - restartAt) >= 0) {
