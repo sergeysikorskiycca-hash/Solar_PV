@@ -146,7 +146,7 @@ String makeConfigJson() {
       if (i) j += ",";
       const WidgetConfig& w = page.widgets[i];
       j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",\"text\":\"" + jsonEscapeText(w.text) + "\",";
-      j += "\"headingSize\":" + String(w.headingSize) + ",\"contentSize\":" + String(w.contentSize) + ",\"headingAlign\":" + String(w.headingAlign) + ",\"contentAlign\":" + String(w.contentAlign) + ",\"headingColor\":" + String(w.headingColor) + ",\"contentColor\":" + String(w.contentColor) + ",";
+      j += "\"headingSize\":" + String(w.headingSize) + ",\"contentSize\":" + String(w.contentSize) + ",\"headingAlign\":" + String(w.headingAlign) + ",\"contentAlign\":" + String(w.contentAlign) + ",\"headingColor\":" + String(w.headingColor) + ",\"contentColor\":" + String(w.contentColor) + ",\"backgroundColor\":" + String(w.backgroundColor) + ",";
       j += "\"x\":" + String(w.x) + ",\"y\":" + String(w.y) + ",\"w\":" + String(w.w) + ",\"h\":" + String(w.h) + ",";
       j += "\"enabled\":" + String(w.enabled ? "true" : "false") + "}";
     }
@@ -203,7 +203,7 @@ void handleSaveDisplay() {
       if (w.text.length() > 240) w.text = w.text.substring(0, 240);
       w.headingSize = clampInt(source["headingSize"] | 1, 0, 4); w.contentSize = clampInt(source["contentSize"] | 2, 0, 4);
       w.headingAlign = clampInt(source["headingAlign"] | 0, 0, 2); w.contentAlign = clampInt(source["contentAlign"] | 0, 0, 2);
-      w.headingColor = clampInt(source["headingColor"] | 0, 0, 5); w.contentColor = clampInt(source["contentColor"] | 3, 0, 5);
+      w.headingColor = clampInt(source["headingColor"] | 0, 0, 5); w.contentColor = clampInt(source["contentColor"] | 3, 0, 5); w.backgroundColor = clampInt(source["backgroundColor"] | 0, 0, 5);
       w.w = clampInt(source["w"] | 106, 40, 240);
       w.h = clampInt(source["h"] | 58, 36, 250);
       w.x = clampInt(source["x"] | 8, 0, 240 - w.w);

@@ -17,7 +17,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 .page-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.page-tab{flex:0 0 auto}.page-tab.active{background:#49b78b;color:#081b14}.page-tab.device{outline:2px solid #ffd166;outline-offset:1px}
 .screen{width:240px;height:320px;position:relative;overflow:hidden;margin:0 auto;background:#17212b;border:2px solid #64778a;border-radius:5px;color:#fff}
 .screen-title{position:absolute;left:8px;top:7px;font-size:16px;font-weight:bold;white-space:nowrap;max-width:224px;overflow:hidden;text-overflow:ellipsis}
-.widget{position:absolute;background:#263746;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}.widget.selected{outline:2px solid #49b78b;outline-offset:1px}.widget .name{font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;outline:none}.widget .name:focus{user-select:text;cursor:text;background:#17212b;border-radius:2px}.widget .value{font-size:15px;color:#ffd400;font-weight:bold;white-space:normal;overflow-wrap:anywhere}.widget .wifi-lines{font-size:12px;line-height:1.2;color:#fff;white-space:normal;overflow-wrap:anywhere}.widget .free-text{font-size:15px;line-height:1.15;color:#fff;white-space:pre-wrap;overflow-wrap:anywhere;user-select:none}
+.widget{position:absolute;background:#101820;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}.widget.selected{outline:2px solid #49b78b;outline-offset:1px}.widget .name{font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;outline:none}.widget .name:focus{user-select:text;cursor:text;background:#17212b;border-radius:2px}.widget .value{font-size:15px;color:#ffd400;font-weight:bold;white-space:normal;overflow-wrap:anywhere}.widget .wifi-lines{font-size:12px;line-height:1.2;color:#fff;white-space:normal;overflow-wrap:anywhere}.widget .free-text{font-size:15px;line-height:1.15;color:#fff;white-space:pre-wrap;overflow-wrap:anywhere;user-select:none}
 .resize-handle{position:absolute;right:0;bottom:0;width:13px;height:13px;background:#49b78b;border:1px solid #eaf0f6;border-radius:3px;cursor:nwse-resize;touch-action:none}
 .screen-footer{position:absolute;bottom:5px;left:8px;right:8px;border-top:1px solid #52616d;padding-top:4px;font-size:9px;color:#aebdca;display:flex;justify-content:space-between}
 .preview-wrap{position:sticky;top:12px;align-self:start}.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px}.toolbar .wide{grid-column:1/-1}.hint{margin-top:8px}.wifi-scan{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
@@ -39,6 +39,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <label for="styleSize">Размер текста</label><select id="styleSize"><option value="0">Маленький</option><option value="1">Обычный</option><option value="2">Крупный</option><option value="3">Огромный</option><option value="4">Максимальный</option></select>
 <label for="styleAlign">Выравнивание</label><select id="styleAlign"><option value="0">Слева</option><option value="1">По центру</option><option value="2">Справа</option></select>
 <label for="styleColor">Цвет текста</label><select id="styleColor"><option value="0">Белый</option><option value="1">Голубой</option><option value="2">Зелёный</option><option value="3">Жёлтый</option><option value="4">Красный</option><option value="5">Оранжевый</option></select>
+<label for="backgroundColor">Фон блока</label><select id="backgroundColor"><option value="0">Почти чёрный</option><option value="1">Тёмно-синий</option><option value="2">Тёмно-зелёный</option><option value="3">Тёмно-фиолетовый</option><option value="4">Тёмно-красный</option><option value="5">Графитовый</option></select>
 <p class="hint">Настройки относятся только к выбранному блоку и выбранной части — заголовку или содержимому. Палитра ограничена шестью контрастными цветами.</p>
 <div class="toolbar" style="margin-top:12px"><button class="primary wide" id="saveDisplay">Сохранить все страницы и применить</button><button id="showOnTft">Показать выбранную страницу на TFT</button><button id="resetLayout">Восстановить исходный макет</button></div>
 <p class="hint">Значения телеметрии пока демонстрационные. Реальные датчики не подключаются этим редактором.</p></section>
@@ -59,13 +60,14 @@ const defaults=[
  {type:'current',label:'Ток',x:125,y:125,w:106,h:58,enabled:true},
  {type:'battery',label:'Аккумулятор',x:8,y:205,w:224,h:58,enabled:true}
 ];
+const backgroundPalette=['#101820','#001B2E','#073326','#302044','#481D20','#30343B'];
 const typeLabels={power:'Мощность PV',voltage:'Напряжение',current:'Ток',battery:'Аккумулятор',wifiStatus:'Состояние Wi-Fi',text:'Текст'};
 const demoValues={power:'DEMO W',voltage:'DEMO V',current:'DEMO A',battery:'DEMO %'};
 let pages=[],editorPage=0,devicePage=0,selectedWidget=-1,followDevice=true,pointerEdit=null;
 let networkStatus='',networkLabel='Wi-Fi: —',savedNetworks=[];
 const $=id=>document.getElementById(id);
 function clone(x){return JSON.parse(JSON.stringify(x))}
-function normalizePage(p,i){return {title:p.title||('Страница '+(i+1)),widgets:(p.widgets||[]).slice(0,MAX_WIDGETS).map(w=>({type:typeLabels[w.type]?w.type:'power',label:w.label||typeLabels[w.type]||'Блок',text:String(w.text||''),headingSize:Math.max(0,Math.min(4,Number(w.headingSize??1))),contentSize:Math.max(0,Math.min(4,Number(w.contentSize??2))),headingAlign:Math.max(0,Math.min(2,Number(w.headingAlign??0))),contentAlign:Math.max(0,Math.min(2,Number(w.contentAlign??0))),headingColor:Math.max(0,Math.min(5,Number(w.headingColor??0))),contentColor:Math.max(0,Math.min(5,Number(w.contentColor??(w.type==='wifiStatus'?0:3)))),x:Number(w.x)||0,y:Number(w.y)||40,w:Math.max(40,Number(w.w)||106),h:Math.max(36,Number(w.h)||58),enabled:w.enabled!==false}))}}
+function normalizePage(p,i){return {title:p.title||('Страница '+(i+1)),widgets:(p.widgets||[]).slice(0,MAX_WIDGETS).map(w=>({type:typeLabels[w.type]?w.type:'power',label:w.label||typeLabels[w.type]||'Блок',text:String(w.text||''),headingSize:Math.max(0,Math.min(4,Number(w.headingSize??1))),contentSize:Math.max(0,Math.min(4,Number(w.contentSize??2))),headingAlign:Math.max(0,Math.min(2,Number(w.headingAlign??0))),contentAlign:Math.max(0,Math.min(2,Number(w.contentAlign??0))),headingColor:Math.max(0,Math.min(5,Number(w.headingColor??0))),contentColor:Math.max(0,Math.min(5,Number(w.contentColor??(w.type==='wifiStatus'?0:3)))),backgroundColor:Math.max(0,Math.min(5,Number(w.backgroundColor??0))),x:Number(w.x)||0,y:Number(w.y)||40,w:Math.max(40,Number(w.w)||106),h:Math.max(36,Number(w.h)||58),enabled:w.enabled!==false}))}}
 function ensurePages(){if(!pages.length)pages=[{title:'Показатели',widgets:clone(defaults)},{title:'Wi-Fi',widgets:[{type:'wifiStatus',label:'Состояние Wi-Fi',x:8,y:55,w:224,h:220,enabled:true}]}];pages=pages.slice(0,MAX_PAGES).map(normalizePage)}
 function widgetValue(w){if(w.type==='wifiStatus')return '<div class="wifi-lines"></div>';return '<div class="value">'+(demoValues[w.type]||'DEMO')+'</div>'}
 function renderTabs(){
@@ -80,7 +82,7 @@ function renderCanvas(){
  pages[editorPage].widgets.forEach((w,i)=>{
   if(!w.enabled)return;
   const node=document.createElement('div');node.className='widget'+(selectedWidget===i?' selected':'');node.dataset.index=i;
-  node.style.left=w.x+'px';node.style.top=w.y+'px';node.style.width=w.w+'px';node.style.height=w.h+'px';
+  node.style.left=w.x+'px';node.style.top=w.y+'px';node.style.width=w.w+'px';node.style.height=w.h+'px';node.style.backgroundColor=backgroundPalette[w.backgroundColor??0];
   const name=document.createElement('div');name.className='name';name.contentEditable='true';name.spellcheck=false;name.textContent=w.label;name.title='Щёлкните и измените подпись';
   name.style.fontSize=headingSizes[w.headingSize]+'px';name.style.textAlign=['left','center','right'][w.headingAlign];name.style.color=palette[w.headingColor];
   name.addEventListener('pointerdown',e=>e.stopPropagation());
@@ -114,7 +116,7 @@ function renderCanvas(){
   node.addEventListener('click',e=>{if(e.target.closest('.name'))return;selectedWidget=i;renderAll()});c.appendChild(node);
  });
 }
-function syncStyleControls(){const p=pages[editorPage],w=p&&p.widgets[selectedWidget],target=$('styleTarget').value;const keys=[target+'Size',target+'Align',target+'Color'];$('styleSize').disabled=!w;$('styleAlign').disabled=!w;$('styleColor').disabled=!w;if(!w)return;$('styleSize').value=String(w[keys[0]]);$('styleAlign').value=String(w[keys[1]]);$('styleColor').value=String(w[keys[2]]);}
+function syncStyleControls(){const p=pages[editorPage],w=p&&p.widgets[selectedWidget],target=$('styleTarget').value;const keys=[target+'Size',target+'Align',target+'Color'];$('styleSize').disabled=!w;$('styleAlign').disabled=!w;$('styleColor').disabled=!w;$('backgroundColor').disabled=!w;if(!w)return;$('styleSize').value=String(w[keys[0]]);$('styleAlign').value=String(w[keys[1]]);$('styleColor').value=String(w[keys[2]]);$('backgroundColor').value=String(w.backgroundColor??0);}
 function renderAll(){renderTabs();$('pageTitle').value=pages[editorPage].title;const p=pages[editorPage],w=p.widgets[selectedWidget];$('widgetText').disabled=!w||w.type!=='text';$('widgetText').value=w&&w.type==='text'?w.text:'';syncStyleControls();renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
 function loadConfig(c){
  $('netStatus').textContent=c.networkStatus||'Wi-Fi не подключён';
@@ -127,7 +129,7 @@ function loadConfig(c){
 }
 function updateDeviceStatus(){ $('deviceStatus').textContent='Физический дисплей: страница '+(devicePage+1)+' из '+pages.length+'. Редактор: страница '+(editorPage+1)+'.'; }
 function collectData(){
- return {title:'SOLAR PV',fontScale:1,pageCount:pages.length,pages:pages.map(p=>({title:p.title,widgets:p.widgets.map(w=>({type:w.type,label:w.label,text:w.text||'',headingSize:w.headingSize,contentSize:w.contentSize,headingAlign:w.headingAlign,contentAlign:w.contentAlign,headingColor:w.headingColor,contentColor:w.contentColor,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
+ return {title:'SOLAR PV',fontScale:1,pageCount:pages.length,pages:pages.map(p=>({title:p.title,widgets:p.widgets.map(w=>({type:w.type,label:w.label,text:w.text||'',headingSize:w.headingSize,contentSize:w.contentSize,headingAlign:w.headingAlign,contentAlign:w.contentAlign,headingColor:w.headingColor,contentColor:w.contentColor,backgroundColor:w.backgroundColor??0,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
 }
 async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
@@ -141,6 +143,7 @@ function applyStyleControl(which,value){const p=pages[editorPage],w=p&&p.widgets
 $('styleSize').addEventListener('change',()=>applyStyleControl('Size',$('styleSize').value));
 $('styleAlign').addEventListener('change',()=>applyStyleControl('Align',$('styleAlign').value));
 $('styleColor').addEventListener('change',()=>applyStyleControl('Color',$('styleColor').value));
+$('backgroundColor').addEventListener('change',()=>{const w=pages[editorPage].widgets[selectedWidget];if(!w)return;w.backgroundColor=Number($('backgroundColor').value);renderAll()});
 $('pageTitle').addEventListener('input',()=>{pages[editorPage].title=$('pageTitle').value.slice(0,54);renderTabs();renderCanvas()});
 $('newPage').addEventListener('click',async()=>{
  if(pages.length>=MAX_PAGES)return;
@@ -157,7 +160,7 @@ $('followDevice').addEventListener('click',()=>{followDevice=true;editorPage=Mat
 $('addWidget').addEventListener('click',()=>{
  const p=pages[editorPage];if(p.widgets.length>=MAX_WIDGETS){alert('На одной странице максимум '+MAX_WIDGETS+' блоков.');return}
  const type=$('widgetType').value;const n=p.widgets.length;
- p.widgets.push({type,label:typeLabels[type],text:'',headingSize:1,contentSize:type==='wifiStatus'?1:2,headingAlign:0,contentAlign:0,headingColor:0,contentColor:type==='wifiStatus'?0:3,x:8+(n%2)*117,y:55+Math.floor(n/2)*62,w:(type==='wifiStatus'||type==='text')?224:106,h:type==='wifiStatus'?120:(type==='text'?80:58),enabled:true});
+ p.widgets.push({type,label:typeLabels[type],text:'',headingSize:1,contentSize:type==='wifiStatus'?1:2,headingAlign:0,contentAlign:0,headingColor:0,contentColor:type==='wifiStatus'?0:3,backgroundColor:0,x:8+(n%2)*117,y:55+Math.floor(n/2)*62,w:(type==='wifiStatus'||type==='text')?224:106,h:type==='wifiStatus'?120:(type==='text'?80:58),enabled:true});
  selectedWidget=p.widgets.length-1;renderAll();
 });
 $('deleteWidget').addEventListener('click',()=>{const p=pages[editorPage];if(selectedWidget<0||selectedWidget>=p.widgets.length){alert('Сначала выбери блок на холсте.');return}p.widgets.splice(selectedWidget,1);selectedWidget=-1;renderAll()});

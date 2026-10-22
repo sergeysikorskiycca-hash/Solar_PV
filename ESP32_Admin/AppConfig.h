@@ -20,6 +20,7 @@ struct WidgetConfig {
   uint8_t headingSize, contentSize;
   uint8_t headingAlign, contentAlign;
   uint8_t headingColor, contentColor;
+  uint8_t backgroundColor; // 0 = near-black; 1..5 = dark background presets
   int x, y, w, h;
   bool enabled;
 };
