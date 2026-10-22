@@ -2,8 +2,8 @@
   Solar_PV — ESP32 Admin MVP
   Target: ESP32 Dev Module, Arduino-ESP32 core 3.x
   TFT: ST7789 240x320, Adafruit_GFX + Adafruit_ST7789
-  First stage only: TFT, Wi-Fi setup, browser admin, LittleFS settings.
-  No sensors, RTC, OLED, or IR support in this stage.
+  Current stage: TFT, Wi-Fi setup, browser admin, LittleFS settings, NEC IR remote.
+  Sensors, gateway telemetry, and RTC are not integrated yet.
 */
 
 #include <WiFi.h>
