@@ -22,8 +22,8 @@ The ESP32 port is being refactored on `esp32-admin-refactor`; TFT GPIO defaults 
 
 ## Reusable page and widget model
 
-- The editor supports up to 4 independently configured pages and up to 8 widgets on each page (bounded for predictable RAM use).
-- All pages use the same widget renderer. Available types: PV power, voltage, current, battery, and Wi-Fi status.
+- The editor supports up to 4 independently configured pages and up to 12 widgets on each page (bounded for predictable RAM use).
+- All pages use the same widget renderer. Available types: PV power, voltage, current, battery, Wi-Fi status, free text, and configurable multi-string layout. Widgets can be locked against accidental moving/resizing. Multi-string values remain placeholders until a telemetry source is connected.
 - The Wi-Fi status widget is no longer hard-wired to page 2; it can be added to any page.
 - Page and widget layouts are transferred through a structured JSON API and saved in LittleFS. Existing `/solarpv.cfg` files without page records are migrated to the original two-page layout.
 - The browser follows the physical TFT page until the user chooses another page to edit. The physical page is polled independently, and the editor has an explicit action to show its selected page on the TFT.
