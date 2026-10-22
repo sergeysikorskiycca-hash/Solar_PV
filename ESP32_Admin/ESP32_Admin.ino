@@ -84,7 +84,7 @@ String jsonEscapeText(const String& s) {
   for (size_t i = 0; i < s.length(); i++) {
     char c = s[i];
     if (c == '"' || c == '\\') { out += '\\'; out += c; }
-    else if (c == '\n') out += "\\n";
+    else if (c == '\n') out += "\n";
     else if (c == '\r') out += "\\r";
     else if (c == '\t') out += "\\t";
     else if ((uint8_t)c >= 0x20) out += c;
@@ -326,7 +326,7 @@ static void showTFTPage(uint8_t page) {
   if (cfg.tftPage == page) return;
   cfg.tftPage = page;
   renderTFT();
-  Serial.printf("IR remote: TFT page %u/%u\\n", cfg.tftPage, cfg.pageCount);
+  Serial.printf("IR remote: TFT page %u/%u\n", cfg.tftPage, cfg.pageCount);
 }
 
 static void handleIRRemote() {
@@ -353,7 +353,7 @@ static void handleIRRemote() {
     showTFTPage(4);
   } else {
     // Other buttons are reserved for future menu/widget controls.
-    Serial.printf("IR remote: received code 0x%08lX (no action assigned yet)\\n",
+    Serial.printf("IR remote: received code 0x%08lX (no action assigned yet)\n",
                   static_cast<unsigned long>(code));
   }
 }
