@@ -82,6 +82,16 @@ void drawWidget(const WidgetConfig& widget) {
     int avail=y+h-4-contentBaseline, lineHeight=FONT_HEIGHTS[cs]+3;
     drawWrappedText(widget,widget.text,contentBaseline,avail>0?avail/lineHeight+1:0); return;
   }
+  if(widget.type=="strings") {
+    // The layout supports multiple strings now; values remain placeholders until telemetry is connected.
+    int lineY = contentBaseline, lineHeight = FONT_HEIGHTS[cs] + 4;
+    uint8_t count = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
+    for (uint8_t i = 0; i < count && lineY <= y + h - 4; i++) {
+      drawAlignedText("Стринг " + String(i + 1) + ": -- В", x, lineY, w, cs, widget.contentAlign, widget.contentColor);
+      lineY += lineHeight;
+    }
+    return;
+  }
   if(widget.type=="wifiStatus") {
     int lineY=contentBaseline, lineHeight=FONT_HEIGHTS[cs]+5;
     auto drawLine=[&](const String& value){if(lineY<=y+h-4)drawAlignedText(value,x,lineY,w,cs,widget.contentAlign,widget.contentColor);lineY+=lineHeight;};
