@@ -9,6 +9,7 @@ static void setWidgetFont(uint8_t size) {
   switch (size) {
     case 0: u8g2Fonts.setFont(u8g2_font_6x13_t_cyrillic); break;
     case 1: u8g2Fonts.setFont(u8g2_font_7x13_t_cyrillic); break;
+    // Use the same Cyrillic-capable Unifont face as the page heading for the standard widget text.
     case 2: u8g2Fonts.setFont(u8g2_font_unifont_t_cyrillic); break;
     case 3: u8g2Fonts.setFont(u8g2_font_9x15_t_cyrillic); break;
     default: u8g2Fonts.setFont(u8g2_font_10x20_t_cyrillic); break;
