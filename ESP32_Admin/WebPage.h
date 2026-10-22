@@ -106,7 +106,7 @@ function renderCanvas(){
   const handle=document.createElement('span');handle.className='resize-handle';handle.title='Изменить размер';node.appendChild(handle);
   node.addEventListener('pointerdown',e=>{
    if(e.button!==0||e.target.isContentEditable||e.target.closest('.lock-toggle'))return;
-   if(w.locked){selectedWidget=i;e.preventDefault();return;}
+   if(w.locked){selectedWidget=i;c.querySelectorAll('.widget').forEach(n=>n.classList.toggle('selected',n===node));syncStyleControls();e.preventDefault();return;}
    selectedWidget=i;c.querySelectorAll('.widget').forEach(n=>n.classList.toggle('selected',n===node));syncStyleControls();
    pointerEdit={index:i,resizing:e.target.classList.contains('resize-handle'),sx:e.clientX,sy:e.clientY,x:w.x,y:w.y,w:w.w,h:w.h};
    node.setPointerCapture(e.pointerId);e.preventDefault();
@@ -166,7 +166,8 @@ $('followDevice').addEventListener('click',()=>{followDevice=true;editorPage=Mat
 $('addWidget').addEventListener('click',()=>{
  const p=pages[editorPage];if(p.widgets.length>=MAX_WIDGETS){alert('На одной странице максимум '+MAX_WIDGETS+' блоков.');return}
  const type=$('widgetType').value;const n=p.widgets.length;
- p.widgets.push({type,label:typeLabels[type],text:'',headingSize:1,contentSize:type==='wifiStatus'?1:2,stringCount:2,locked:false,headingAlign:0,contentAlign:0,headingColor:0,contentColor:type==='wifiStatus'?0:3,backgroundColor:0,x:8+(n%2)*117,y:55+Math.floor(n/2)*62,w:(type==='wifiStatus'||type==='text'||type==='strings')?224:106,h:type==='wifiStatus'?120:(type==='text'?80:(type==='strings'?110:58)),enabled:true});
+ const wide=type==='wifiStatus'||type==='text'||type==='strings';
+ p.widgets.push({type,label:typeLabels[type],text:'',headingSize:1,contentSize:type==='wifiStatus'?1:2,stringCount:2,locked:false,headingAlign:0,contentAlign:0,headingColor:0,contentColor:type==='wifiStatus'?0:3,backgroundColor:0,x:wide?8:8+(n%3)*76,y:wide?55+(n%3)*50:55+Math.floor(n/3)*58,w:wide?224:72,h:type==='wifiStatus'?120:(type==='text'?80:(type==='strings'?110:58)),enabled:true});
  selectedWidget=p.widgets.length-1;renderAll();
 });
 $('deleteWidget').addEventListener('click',()=>{const p=pages[editorPage];if(selectedWidget<0||selectedWidget>=p.widgets.length){alert('Сначала выбери блок на холсте.');return}p.widgets.splice(selectedWidget,1);selectedWidget=-1;renderAll()});
