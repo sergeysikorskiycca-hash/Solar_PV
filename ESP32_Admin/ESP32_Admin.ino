@@ -7,6 +7,7 @@
 */
 
 #include <WiFi.h>
+#include <Wire.h>
 #include <WebServer.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
@@ -31,6 +32,16 @@ U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 WebServer server(80);
 
 bool apActive = false;
+
+// ESP8266 gateway telemetry arrives as a checked I2C frame.
+bool gatewayOnline = false;
+bool gatewayTimeValid = false;
+uint32_t gatewayLastPacketMs = 0;
+uint16_t gatewayYear = 0;
+uint8_t gatewayMonth = 0, gatewayDay = 0, gatewayHour = 0, gatewayMinute = 0, gatewaySecond = 0;
+int16_t gatewaySensors[4] = {0, 0, 0, 0};
+uint8_t gatewaySensorValidMask = 0;
+static uint32_t lastIndicatorDraw = 0;
 bool webStarted = false;
 unsigned long disconnectedSince = 0;
 unsigned long restartAt = 0;
@@ -320,6 +331,90 @@ void handleNotFound() {
 
 
 enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU };
+
+// Wire protocol shared with ESP8266_Gateway. The ESP8266 is the I2C master;
+// ESP32 is the slave at 0x42. All multi-byte fields are little-endian.
+static const uint8_t GATEWAY_I2C_ADDRESS = 0x42;
+static const uint8_t GATEWAY_FRAME_MAGIC = 0xA7;
+static const uint8_t GATEWAY_FRAME_VERSION = 1;
+static const uint8_t GATEWAY_ACK_MAGIC = 0x5A;
+#pragma pack(push, 1)
+struct GatewayPacket {
+  uint8_t magic;
+  uint8_t version;
+  uint8_t sequence;
+  uint8_t flags;             // bit 0: RTC time valid
+  uint16_t year;
+  uint8_t month, day, hour, minute, second;
+  int16_t sensor[4];         // reserved telemetry slots; units defined per sensor
+  uint8_t sensorValidMask;   // bits 0..3 indicate valid sensor slots
+  uint8_t crc;
+};
+#pragma pack(pop)
+static_assert(sizeof(GatewayPacket) == 21, "GatewayPacket size mismatch");
+static volatile uint8_t gatewayRxRaw[sizeof(GatewayPacket)];
+static volatile uint8_t gatewayRxLength = 0;
+static volatile bool gatewayRxPending = false;
+static volatile uint8_t gatewayAckSequence = 0;
+static volatile uint8_t gatewayAckStatus = 1;
+
+static uint8_t gatewayCrc8(const uint8_t* data, size_t length) {
+  uint8_t crc = 0;
+  for (size_t i = 0; i < length; ++i) {
+    crc ^= data[i];
+    for (uint8_t b = 0; b < 8; ++b) crc = (crc & 0x80) ? (uint8_t)((crc << 1) ^ 0x07) : (uint8_t)(crc << 1);
+  }
+  return crc;
+}
+static void gatewayOnReceive(int count) {
+  uint8_t n = 0;
+  while (Wire.available()) {
+    uint8_t b = (uint8_t)Wire.read();
+    if (n < sizeof(gatewayRxRaw)) gatewayRxRaw[n++] = b;
+  }
+  gatewayRxLength = n;
+  gatewayRxPending = true;
+}
+static void gatewayOnRequest() {
+  uint8_t response[3] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus };
+  Wire.write(response, sizeof(response));
+}
+static void processGatewayPacket() {
+  uint8_t raw[sizeof(GatewayPacket)];
+  uint8_t length = 0;
+  noInterrupts();
+  bool pending = gatewayRxPending;
+  if (pending) {
+    length = gatewayRxLength;
+    for (size_t i = 0; i < sizeof(raw); ++i) raw[i] = gatewayRxRaw[i];
+    gatewayRxPending = false;
+  }
+  interrupts();
+  if (pending) {
+    GatewayPacket packet;
+    bool valid = length == sizeof(packet);
+    if (valid) {
+      memcpy(&packet, raw, sizeof(packet));
+      valid = packet.magic == GATEWAY_FRAME_MAGIC && packet.version == GATEWAY_FRAME_VERSION &&
+              gatewayCrc8(raw, sizeof(packet) - 1) == packet.crc;
+    }
+    if (valid) {
+      gatewayAckSequence = packet.sequence;
+      gatewayAckStatus = 0;
+      gatewayLastPacketMs = millis();
+      gatewayTimeValid = (packet.flags & 0x01) != 0;
+      gatewayYear = packet.year; gatewayMonth = packet.month; gatewayDay = packet.day;
+      gatewayHour = packet.hour; gatewayMinute = packet.minute; gatewaySecond = packet.second;
+      gatewaySensorValidMask = packet.sensorValidMask;
+      for (uint8_t i = 0; i < 4; ++i) gatewaySensors[i] = packet.sensor[i];
+      gatewayOnline = true;
+    } else {
+      gatewayAckStatus = 1;
+      if (length >= 3) gatewayAckSequence = raw[2];
+    }
+  }
+  if (gatewayLastPacketMs == 0 || millis() - gatewayLastPacketMs > 500UL) gatewayOnline = false;
+}
 static RemoteTextMode rtMode = RT_CLOSED;
 static uint8_t rtPick = 0;
 static int8_t rtWidget = -1;
@@ -378,8 +473,16 @@ static String rtKeyAt(uint8_t row, uint8_t col) {
     String key = rtChar(s, pos);
     return key == " " ? String("") : key;
   }
-  static const char* actions[10] = {".",",","!","?","SP","DEL","NL","RU","Aa","SAVE"};
-  return actions[col];
+  static const char* textActions[10] = {"123","SP","DEL","NL","RU","Aa",".",",","?","SAVE"};
+  static const char* symbolActions[10] = {"ABC","SP","DEL","NL","RU","Aa",".",",","?","SAVE"};
+  return rtSymbolsPage ? symbolActions[col] : textActions[col];
+}
+static void rtMoveSelection(int rowDelta, int colDelta) {
+  for (uint8_t tries = 0; tries < 60; ++tries) {
+    rtKeyRow = (uint8_t)((rtKeyRow + 6 + rowDelta) % 6);
+    rtKeyCol = (uint8_t)((rtKeyCol + 10 + colDelta) % 10);
+    if (rtKeyAt(rtKeyRow, rtKeyCol).length()) return;
+  }
 }
 static void rtDrawPicker(){
   tft.fillScreen(ST77XX_BLACK); drawCyrillicText("ТЕКСТОВЫЙ БЛОК",8,25,ST77XX_WHITE,true);
@@ -396,7 +499,6 @@ static void rtDrawEditor(){
   PageConfig& p=cfg.pages[cfg.tftPage-1];
   if (rtWifiPassword) drawCyrillicText("ПАРОЛЬ WI-FI",5,13,0x07FF,false);
   else { WidgetConfig& w=p.widgets[rtWidget]; drawCyrillicText(w.label.substring(0,30),5,13,0x07FF,false); }
-  drawCyrillicText(rtSymbolsPage ? "123" : "ABC",205,13,0x07FF,false);
 
   // A compact preview of the text being edited, with a caret at the insertion point.
   String preview=rtBuffer;
@@ -417,10 +519,11 @@ static void rtDrawEditor(){
   for(uint8_t row=0;row<6;row++){
     for(uint8_t col=0;col<10;col++){
       int x=x0+col*cellW, yk=y0+row*cellH;
+      String key=rtKeyAt(row,col);
+      if (!key.length()) continue; // Do not draw empty keyboard cells.
       bool selected=(row==rtKeyRow&&col==rtKeyCol);
       if(selected)tft.fillRoundRect(x,yk,cellW-1,cellH-2,3,0x03EF);
       else tft.drawRoundRect(x,yk,cellW-1,cellH-2,3,0x4208);
-      String key=rtKeyAt(row,col);
       int tw=u8g2Fonts.getUTF8Width(key.c_str());
       int tx=x+(cellW-tw)/2;
       if(tx<x+1)tx=x+1;
@@ -526,13 +629,14 @@ static void rtHandle(uint32_t k){
   if(k==IR_CODE_MENU){rtMode=RT_CLOSED;rtWifiPassword=false;renderTFT();return;}
   if(k==IR_CODE_SEARCH){rtSymbolsPage=!rtSymbolsPage;rtKeyRow=0;rtKeyCol=0;rtDrawEditor();return;}
   if(k==IR_CODE_0){rtInsert("0");return;} if(k==IR_CODE_1){rtInsert("1");return;} if(k==IR_CODE_2){rtInsert("2");return;} if(k==IR_CODE_3){rtInsert("3");return;} if(k==IR_CODE_4){rtInsert("4");return;} if(k==IR_CODE_5){rtInsert("5");return;} if(k==IR_CODE_6){rtInsert("6");return;} if(k==IR_CODE_7){rtInsert("7");return;} if(k==IR_CODE_8){rtInsert("8");return;} if(k==IR_CODE_9){rtInsert("9");return;}
-  if(k==IR_CODE_UP){rtKeyRow=rtKeyRow?rtKeyRow-1:5;rtDrawEditor();return;}
-  if(k==IR_CODE_DOWN){rtKeyRow=(rtKeyRow+1)%6;rtDrawEditor();return;}
-  if(k==IR_CODE_LEFT){rtKeyCol=rtKeyCol?rtKeyCol-1:9;rtDrawEditor();return;}
-  if(k==IR_CODE_RIGHT){rtKeyCol=(rtKeyCol+1)%10;rtDrawEditor();return;}
+  if(k==IR_CODE_UP){rtMoveSelection(-1,0);rtDrawEditor();return;}
+  if(k==IR_CODE_DOWN){rtMoveSelection(1,0);rtDrawEditor();return;}
+  if(k==IR_CODE_LEFT){rtMoveSelection(0,-1);rtDrawEditor();return;}
+  if(k==IR_CODE_RIGHT){rtMoveSelection(0,1);rtDrawEditor();return;}
   if(k==IR_CODE_OK){
     String key=rtKeyAt(rtKeyRow,rtKeyCol);
-    if(key=="SP")rtInsert(" ");
+    if(key=="123"||key=="ABC"){rtSymbolsPage=!rtSymbolsPage;rtKeyRow=0;rtKeyCol=0;rtDrawEditor();}
+    else if(key=="SP")rtInsert(" ");
     else if(key=="DEL"){if(rtCursor){size_t q=rtPrev(rtBuffer,rtCursor);rtBuffer.remove(q,rtCursor-q);rtCursor=q;rtDrawEditor();}}
     else if(key=="NL")rtInsert("\n");
     else if(key=="RU"){rtRussian=!rtRussian;rtDrawEditor();}
@@ -606,6 +710,12 @@ void setup() {
   drawCyrillicText("СОЛАР PV", 8, 28, ST77XX_WHITE, true);
   drawCyrillicText("Запуск админки...", 8, 48, 0xBDF7, false);
 
+  // Start the ESP32 as the I2C slave before Wi-Fi and the web server.
+  Wire.onReceive(gatewayOnReceive);
+  Wire.onRequest(gatewayOnRequest);
+  if (Wire.begin(GATEWAY_I2C_ADDRESS, 21, 22, 100000)) Serial.println(F("I2C gateway slave ready at 0x42 (SDA=21, SCL=22)."));
+  else Serial.println(F("ERROR: I2C gateway slave initialization failed."));
+
   WiFi.persistent(false);
   WiFi.setAutoReconnect(true);
   connectWiFiAtBoot();
@@ -617,6 +727,11 @@ void setup() {
 
 void loop() {
   handleIRRemote();
+  processGatewayPacket();
+  if (rtMode == RT_CLOSED && millis() - lastIndicatorDraw >= 250UL) {
+    lastIndicatorDraw = millis();
+    drawTFTIndicators();
+  }
   if (webStarted) server.handleClient();
 
   if (restartAt != 0 && (long)(millis() - restartAt) >= 0) {
