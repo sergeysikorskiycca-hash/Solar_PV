@@ -2,12 +2,13 @@
   Solar_PV — ESP32 Admin MVP
   Target: ESP32 Dev Module, Arduino-ESP32 core 3.x
   TFT: ST7789 240x320, Adafruit_GFX + Adafruit_ST7789
-  Current stage: TFT, Wi-Fi setup, browser admin, LittleFS settings, NEC IR remote.
-  Sensors, gateway telemetry, and RTC are not integrated yet.
+  Current stage: TFT, Wi-Fi setup, browser admin, LittleFS settings, NEC IR remote,
+  and checked I2C telemetry from the ESP8266 gateway (RTC + reserved sensor slots).
 */
 
 #include <WiFi.h>
 #include <Wire.h>
+#include <string.h>
 #include <WebServer.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
@@ -42,6 +43,7 @@ uint8_t gatewayMonth = 0, gatewayDay = 0, gatewayHour = 0, gatewayMinute = 0, ga
 int16_t gatewaySensors[4] = {0, 0, 0, 0};
 uint8_t gatewaySensorValidMask = 0;
 static uint32_t lastIndicatorDraw = 0;
+static uint32_t lastGatewayLogMs = 0;
 bool webStarted = false;
 unsigned long disconnectedSince = 0;
 unsigned long restartAt = 0;
@@ -430,6 +432,12 @@ static void processGatewayPacket() {
       gatewaySensorValidMask = packet.sensorValidMask;
       for (uint8_t i = 0; i < 4; ++i) gatewaySensors[i] = packet.sensor[i];
       gatewayOnline = true;
+      if (gatewayTimeValid && millis() - lastGatewayLogMs >= 1000UL) {
+        lastGatewayLogMs = millis();
+        Serial.printf("Gateway RTC: %04u-%02u-%02u %02u:%02u:%02u | sensor mask=0x%02X\\n",
+                      gatewayYear, gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond,
+                      gatewaySensorValidMask);
+      }
     } else {
       gatewayAckStatus = 1;
       if (length >= 3) gatewayAckSequence = raw[2];
