@@ -95,7 +95,7 @@ function renderCanvas(){
    const lines=document.createElement('div');lines.className='wifi-lines';lines.textContent=networkStatus||'Состояние сети появится здесь';node.appendChild(lines);
    lines.style.fontSize=contentSizes[w.contentSize]+'px';lines.style.textAlign=['left','center','right'][w.contentAlign];lines.style.color=palette[w.contentColor];
   }else if(w.type==='clock'){
-   const value=document.createElement('div');value.className='value';value.textContent='12:34:56\\n22.10.2026';value.style.whiteSpace='pre-line';value.style.fontSize=contentSizes[w.contentSize]+'px';value.style.textAlign=['left','center','right'][w.contentAlign];value.style.color=palette[w.contentColor];node.appendChild(value);
+   const value=document.createElement('div');value.className='value';value.textContent='12:34:56\n22.10.2026';value.style.whiteSpace='pre-line';value.style.fontSize=contentSizes[w.contentSize]+'px';value.style.textAlign=['left','center','right'][w.contentAlign];value.style.color=palette[w.contentColor];node.appendChild(value);
   }else if(w.type==='strings'){
    const lines=document.createElement('div');lines.className='strings-lines';lines.textContent=Array.from({length:w.stringCount||2},(_,n)=>'Стринг '+(n+1)+': -- В').join('\n');node.appendChild(lines);
    lines.style.fontSize=contentSizes[w.contentSize]+'px';lines.style.lineHeight='1.2';lines.style.whiteSpace='pre-line';lines.style.textAlign=['left','center','right'][w.contentAlign];lines.style.color=palette[w.contentColor];
