@@ -319,7 +319,7 @@ void handleNotFound() {
 }
 
 
-enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT };
+enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU };
 static RemoteTextMode rtMode = RT_CLOSED;
 static uint8_t rtPick = 0;
 static int8_t rtWidget = -1;
@@ -328,6 +328,11 @@ static size_t rtCursor = 0;
 static bool rtRussian = true, rtUpper = true;
 static uint8_t rtKeyRow = 1, rtKeyCol = 0;
 static bool rtSymbolsPage = false;
+static bool rtWifiPassword = false;
+static String rtWifiNetworks[20];
+static bool rtWifiSecure[20];
+static uint8_t rtWifiCount = 0, rtWifiPick = 0;
+static String rtWifiSelectedSSID;
 
 static size_t rtBytes(const String& s, size_t p) {
   if (p >= s.length()) return 0;
@@ -388,8 +393,9 @@ static void rtDrawPicker(){
 }
 static void rtDrawEditor(){
   tft.fillScreen(ST77XX_BLACK);
-  PageConfig& p=cfg.pages[cfg.tftPage-1]; WidgetConfig& w=p.widgets[rtWidget];
-  drawCyrillicText(w.label.substring(0,30),5,13,0x07FF,false);
+  PageConfig& p=cfg.pages[cfg.tftPage-1];
+  if (rtWifiPassword) drawCyrillicText("ПАРОЛЬ WI-FI",5,13,0x07FF,false);
+  else { WidgetConfig& w=p.widgets[rtWidget]; drawCyrillicText(w.label.substring(0,30),5,13,0x07FF,false); }
   drawCyrillicText(rtSymbolsPage ? "123 / SEARCH: ABC" : "ABC / SEARCH: 123",150,13,0x07FF,false);
 
   // A compact preview of the text being edited, with a caret at the insertion point.
@@ -420,6 +426,62 @@ static void rtDrawEditor(){
     }
   }
 }
+
+static void rtWifiDrawMenu(const String& message = "") {
+  tft.fillScreen(ST77XX_BLACK);
+  drawCyrillicText("УПРАВЛЕНИЕ WI-FI",5,20,0x07FF,true);
+  if(message.length()) drawCyrillicText(message.substring(0,31),5,43,ST77XX_WHITE,false);
+  else if(WiFi.status()==WL_CONNECTED) drawCyrillicText("Подключено: "+WiFi.SSID().substring(0,20),5,43,ST77XX_WHITE,false);
+  else drawCyrillicText("Нет подключения к роутеру",5,43,ST77XX_WHITE,false);
+  drawCyrillicText("SEARCH: поиск сетей",5,65,0xBDF7,false);
+  if(!rtWifiCount) drawCyrillicText("Нажми SEARCH для поиска",5,100,0xBDF7,false);
+  int first=rtWifiPick>5?rtWifiPick-5:0;
+  for(uint8_t row=0;row<6&&first+row<rtWifiCount;row++){
+    uint8_t idx=first+row; int y=99+row*31;
+    if(idx==rtWifiPick)tft.fillRoundRect(3,y-15,234,27,3,0x03EF);
+    String name=rtWifiNetworks[idx]; if(name.length()>23)name=name.substring(0,23);
+    drawCyrillicText(String(idx==rtWifiPick?"> ":"  ")+name+(rtWifiSecure[idx]?" *":""),7,y+2,ST77XX_WHITE,false);
+  }
+  drawCyrillicText("OK: выбрать BACK: выход",5,307,0xBDF7,false);
+}
+static void rtWifiScan() {
+  if(!apActive) startAccessPoint();
+  WiFi.mode(WIFI_AP_STA);
+  drawCyrillicText("Поиск сетей Wi-Fi...",5,87,ST77XX_WHITE,false);
+  int count=WiFi.scanNetworks(false,true); rtWifiCount=0;
+  if(count>=0) for(int i=0;i<count&&rtWifiCount<20;i++){
+    String ssid=WiFi.SSID(i); if(!ssid.length())continue;
+    bool duplicate=false; for(uint8_t j=0;j<rtWifiCount;j++)if(rtWifiNetworks[j]==ssid)duplicate=true;
+    if(duplicate)continue;
+    rtWifiNetworks[rtWifiCount]=ssid;
+    rtWifiSecure[rtWifiCount]=(WiFi.encryptionType(i)!=WIFI_AUTH_OPEN);
+    rtWifiCount++;
+  }
+  WiFi.scanDelete(); rtWifiPick=0;
+  rtWifiDrawMenu(rtWifiCount?("Найдено сетей: "+String(rtWifiCount)):"Сети не найдены");
+}
+static void rtWifiConnect(const String& ssid,const String& password) {
+  if(!ssid.length()){rtWifiDrawMenu("Пустое имя сети");return;}
+  if(!addOrUpdateSavedNetwork(ssid,password)){rtWifiDrawMenu("Память сетей заполнена");return;}
+  cfg.ssid=ssid; cfg.password=password;
+  if(!saveConfig()){rtWifiDrawMenu("Ошибка сохранения");return;}
+  WiFi.mode(WIFI_AP_STA); WiFi.setAutoReconnect(true);
+  WiFi.begin(cfg.ssid.c_str(),cfg.password.c_str());
+  rtMode=RT_WIFI_MENU; rtWifiDrawMenu("Подключение запущено...");
+  Serial.printf("IR Wi-Fi: connecting to SSID '%s'\\n",ssid.c_str());
+}
+static void rtOpenWifi() {
+  rtMode=RT_WIFI_MENU; rtWifiCount=0; rtWifiPick=0; rtWifiDrawMenu();
+}
+static void rtWifiChoose() {
+  if(rtWifiPick>=rtWifiCount)return;
+  rtWifiSelectedSSID=rtWifiNetworks[rtWifiPick];
+  int saved=findSavedNetwork(rtWifiSelectedSSID);
+  if(saved>=0){rtWifiConnect(rtWifiSelectedSSID,savedNetworks[saved].password);return;}
+  if(!rtWifiSecure[rtWifiPick]){rtWifiConnect(rtWifiSelectedSSID,"");return;}
+  rtBuffer="";rtCursor=0;rtWifiPassword=true;rtSymbolsPage=false;rtKeyRow=0;rtKeyCol=0;rtMode=RT_EDIT;rtDrawEditor();
+}
+
 static void rtOpen(){
   if(!rtCount()){tft.fillScreen(ST77XX_BLACK);drawCyrillicText("Нет текстовых блоков",8,35,ST77XX_WHITE,true);drawCyrillicText("Добавь блок в веб-админке",8,62,0xBDF7,false);delay(900);renderTFT();return;}
   rtMode=RT_PICKER;rtPick=0;rtDrawPicker();
