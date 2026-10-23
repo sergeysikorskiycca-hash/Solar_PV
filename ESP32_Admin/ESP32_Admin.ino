@@ -327,6 +327,7 @@ static String rtBuffer;
 static size_t rtCursor = 0;
 static bool rtRussian = true, rtUpper = true;
 static uint8_t rtKeyRow = 1, rtKeyCol = 0;
+static bool rtSymbolsPage = false;
 
 static size_t rtBytes(const String& s, size_t p) {
   if (p >= s.length()) return 0;
@@ -354,19 +355,23 @@ static int rtIndex(uint8_t wanted){
   return -1;
 }
 static String rtKeyAt(uint8_t row, uint8_t col) {
-  if (row == 0) return String("0123456789").substring(col, col + 1);
-  if (row >= 1 && row <= 4) {
-    static const char* enUpper[4] = {"ABCDEFGHIJ","KLMNOPQRST","UVWXYZ.,!?","@#$%&*-_+="};
-    static const char* enLower[4] = {"abcdefghij","klmnopqrst","uvwxyz.,!?","@#$%&*-_+="};
-    static const char* ruUpper[4] = {"АБВГДЕЁЖЗИ","ЙКЛМНОПРСТ","УФХЦЧШЩЪЫЬ","ЭЮЯ.,!?-_:;"};
-    static const char* ruLower[4] = {"абвгдеёжзи","йклмнопрст","уфхцчшщъыь","эюя.,!?-_:;"};
+  if (row < 5) {
+    if (rtSymbolsPage) {
+      static const char* symbols[5] = {"0123456789","!@#$%^&*()","-_=+[]{}<>",".,;:'\\\"~","/?\\\\|%&^"};
+      return String(symbols[row]).substring(col, col + 1);
+    }
+    if (row == 4) return String(".,!?-_:;@#").substring(col, col + 1);
+    static const char* enUpper[4] = {"ABCDEFGHIJ","KLMNOPQRST","UVWXYZ    ","          "};
+    static const char* enLower[4] = {"abcdefghij","klmnopqrst","uvwxyz    ","          "};
+    static const char* ruUpper[4] = {"АБВГДЕЁЖЗИ","ЙКЛМНОПРСТ","УФХЦЧШЩЪЫЬ","ЭЮЯ       "};
+    static const char* ruLower[4] = {"абвгдеёжзи","йклмнопрст","уфхцчшщъыь","эюя       "};
     String s;
-    uint8_t index = row - 1;
-    if (rtRussian) s = rtUpper ? ruUpper[index] : ruLower[index];
-    else s = rtUpper ? enUpper[index] : enLower[index];
+    if (rtRussian) s = rtUpper ? ruUpper[row] : ruLower[row];
+    else s = rtUpper ? enUpper[row] : enLower[row];
     size_t pos = 0;
     for (uint8_t n = 0; n < col && pos < s.length(); n++) pos += rtBytes(s, pos);
-    return rtChar(s, pos);
+    String key = rtChar(s, pos);
+    return key == " " ? String("") : key;
   }
   static const char* actions[10] = {".",",","!","?","SP","DEL","NL","RU","Aa","SAVE"};
   return actions[col];
