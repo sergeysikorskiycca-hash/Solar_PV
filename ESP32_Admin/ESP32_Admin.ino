@@ -127,7 +127,11 @@ String makeConfigJson() {
   j += "\"voltageW\":" + String(cfg.voltageW) + ",\"voltageH\":" + String(cfg.voltageH) + ",";
   j += "\"currentW\":" + String(cfg.currentW) + ",\"currentH\":" + String(cfg.currentH) + ",";
   j += "\"batteryW\":" + String(cfg.batteryW) + ",\"batteryH\":" + String(cfg.batteryH) + ",";
-  j += "\"ssid\":\"" + jsonEscape(cfg.ssid) + "\",";
+  j += "\"clock\":{\"valid\":" + String(gatewayTimeValid ? "true" : "false") + ",\"date\":\"";
+  if (gatewayTimeValid) { char d[11]; snprintf(d, sizeof(d), "%04u-%02u-%02u", (unsigned)gatewayYear, (unsigned)gatewayMonth, (unsigned)gatewayDay); j += d; }
+  j += "\",\"time\":\"";
+  if (gatewayTimeValid) { char t[9]; snprintf(t, sizeof(t), "%02u:%02u:%02u", (unsigned)gatewayHour, (unsigned)gatewayMinute, (unsigned)gatewaySecond); j += t; }
+  j += "\"},\"ssid\":\"" + jsonEscape(cfg.ssid) + "\",";
   j += "\"savedNetworks\":[";
   bool firstSaved = true;
   for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) {
@@ -157,11 +161,11 @@ String makeConfigJson() {
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
     if (p) j += ",";
     const PageConfig& page = cfg.pages[p];
-    j += "{\"title\":\"" + jsonEscape(page.title) + "\",\"widgetCount\":" + String(page.widgetCount) + ",\"widgets\":[";
+    j += "{\"title\":\"" + jsonEscape(page.title) + "\",\"showTitle\":" + String(page.showTitle ? "true" : "false") + ",\"widgetCount\":" + String(page.widgetCount) + ",\"widgets\":[";
     for (uint8_t i = 0; i < page.widgetCount; i++) {
       if (i) j += ",";
       const WidgetConfig& w = page.widgets[i];
-      j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",\"text\":\"" + jsonEscapeText(w.text) + "\",";
+      j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",\"text\":\"" + jsonEscapeText(w.text) + "\",\"showHeading\":" + String(w.showHeading ? "true" : "false") + ",";
       j += "\"headingSize\":" + String(w.headingSize) + ",\"contentSize\":" + String(w.contentSize) + ",\"stringCount\":" + String(w.stringCount ? w.stringCount : 2) + ",\"locked\":" + String(w.locked ? "true" : "false") + ",\"headingAlign\":" + String(w.headingAlign) + ",\"contentAlign\":" + String(w.contentAlign) + ",\"headingColor\":" + String(w.headingColor) + ",\"contentColor\":" + String(w.contentColor) + ",\"backgroundColor\":" + String(w.backgroundColor) + ",";
       j += "\"x\":" + String(w.x) + ",\"y\":" + String(w.y) + ",\"w\":" + String(w.w) + ",\"h\":" + String(w.h) + ",";
       j += "\"enabled\":" + String(w.enabled ? "true" : "false") + "}";
@@ -207,6 +211,7 @@ void handleSaveDisplay() {
     String pageTitle = String(sourcePage["title"] | "");
     if (!pageTitle.length()) pageTitle = "Страница " + String(p + 1);
     cfg.pages[p].title = sanitizeTitle(pageTitle);
+    cfg.pages[p].showTitle = sourcePage["showTitle"] | true;
     JsonArray sourceWidgets = sourcePage["widgets"].as<JsonArray>();
     cfg.pages[p].widgetCount = clampInt(sourceWidgets.size(), 0, MAX_WIDGETS_PER_PAGE);
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
@@ -218,7 +223,7 @@ void handleSaveDisplay() {
       w.text = String(source["text"] | "");
       if (w.text.length() > 240) w.text = w.text.substring(0, 240);
       w.headingSize = clampInt(source["headingSize"] | 1, 0, 4); w.contentSize = clampInt(source["contentSize"] | 2, 0, 4);
-      w.stringCount = clampInt(source["stringCount"] | 2, 1, 6); w.locked = source["locked"] | false;
+      w.stringCount = clampInt(source["stringCount"] | 2, 1, 6); w.locked = source["locked"] | false; w.showHeading = source["showHeading"] | true;
       w.headingAlign = clampInt(source["headingAlign"] | 0, 0, 2); w.contentAlign = clampInt(source["contentAlign"] | 0, 0, 2);
       w.headingColor = clampInt(source["headingColor"] | 0, 0, 5); w.contentColor = clampInt(source["contentColor"] | 3, 0, 5); w.backgroundColor = clampInt(source["backgroundColor"] | 0, 0, 5);
       w.w = clampInt(source["w"] | 106, 40, 240);
@@ -328,6 +333,18 @@ void handleSaveWiFi() {
   restartAt = millis() + 1200;
 }
 
+void handleSetClock() {
+  DynamicJsonDocument doc(512);
+  if (deserializeJson(doc, server.arg("plain"))) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректные данные времени.\"}"); return; }
+  String date = String(doc["date"] | ""); String time = String(doc["time"] | "");
+  if (date.length() != 10 || time.length() < 5) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Укажи дату и время.\"}"); return; }
+  int year=date.substring(0,4).toInt(), month=date.substring(5,7).toInt(), day=date.substring(8,10).toInt();
+  int hour=time.substring(0,2).toInt(), minute=time.substring(3,5).toInt(), second=time.length() >= 8 ? time.substring(6,8).toInt() : 0;
+  if (year < 2000 || year > 2099 || month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Дата или время вне допустимого диапазона.\"}"); return; }
+  noInterrupts(); clockCommandYear=year; clockCommandMonth=month; clockCommandDay=day; clockCommandHour=hour; clockCommandMinute=minute; clockCommandSecond=second; clockCommandSequence++; clockCommandType=1; clockCommandPending=true; interrupts();
+  server.send(200, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Команда установки времени отправлена шлюзу. Дождись обновления RTC.\"}");
+}
+
 void handleNotFound() {
   server.sendHeader("Location", "/", true);
   server.send(302, "text/plain", "");
@@ -362,6 +379,11 @@ static volatile uint8_t gatewayRxLength = 0;
 static volatile bool gatewayRxPending = false;
 static volatile uint8_t gatewayAckSequence = 0;
 static volatile uint8_t gatewayAckStatus = 1;
+static volatile uint8_t clockCommandSequence = 0;
+static volatile uint8_t clockCommandType = 0;
+static volatile uint16_t clockCommandYear = 2026;
+static volatile uint8_t clockCommandMonth = 1, clockCommandDay = 1, clockCommandHour = 0, clockCommandMinute = 0, clockCommandSecond = 0;
+static volatile bool clockCommandPending = false;
 
 static uint8_t gatewayCrc8(const uint8_t* data, size_t length) {
   uint8_t crc = 0;
@@ -403,7 +425,11 @@ static void gatewayOnReceive(int count) {
   gatewayAckStatus = valid ? 0 : 1;
 }
 static void gatewayOnRequest() {
-  uint8_t response[3] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus };
+  // ACK plus one-shot RTC command. The gateway de-duplicates by command sequence.
+  uint8_t response[11] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus,
+    (uint8_t)(clockCommandPending ? clockCommandType : 0),
+    (uint8_t)(clockCommandYear & 0xFF), (uint8_t)(clockCommandYear >> 8),
+    clockCommandMonth, clockCommandDay, clockCommandHour, clockCommandMinute, clockCommandSecond };
   Wire.write(response, sizeof(response));
 }
 static void processGatewayPacket() {
@@ -796,6 +822,12 @@ void loop() {
       if (disconnectedSince == 0) disconnectedSince = millis();
       if (!apActive && millis() - disconnectedSince >= 30000UL) startAccessPoint();
     }
+  }
+
+  static uint8_t lastClockSecond = 255;
+  if (rtMode == RT_CLOSED && gatewayTimeValid && gatewaySecond != lastClockSecond && cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
+    lastClockSecond = gatewaySecond; PageConfig& cp = cfg.pages[cfg.tftPage - 1];
+    for (uint8_t i = 0; i < cp.widgetCount; ++i) if (cp.widgets[i].enabled && cp.widgets[i].type == "clock") { renderTFT(); break; }
   }
 
   // Refresh live Wi-Fi widgets periodically; otherwise update only the footer.
