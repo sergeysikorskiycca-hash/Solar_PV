@@ -12,4 +12,5 @@ void drawCyrillicText(const String& text, int x, int baselineY, uint16_t color, 
 void drawCard(const String& label, const String& value, int x, int y, int w, int h);
 String getTFTStatusText();
 void drawTFTStatus(bool force = false);
+void drawTFTIndicators();
 void renderTFT();
