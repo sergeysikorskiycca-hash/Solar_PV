@@ -94,6 +94,8 @@ function renderCanvas(){
   if(w.type==='wifiStatus'){
    const lines=document.createElement('div');lines.className='wifi-lines';lines.textContent=networkStatus||'Состояние сети появится здесь';node.appendChild(lines);
    lines.style.fontSize=contentSizes[w.contentSize]+'px';lines.style.textAlign=['left','center','right'][w.contentAlign];lines.style.color=palette[w.contentColor];
+  }else if(w.type==='clock'){
+   const value=document.createElement('div');value.className='value';value.textContent='12:34:56\\n22.10.2026';value.style.whiteSpace='pre-line';value.style.fontSize=contentSizes[w.contentSize]+'px';value.style.textAlign=['left','center','right'][w.contentAlign];value.style.color=palette[w.contentColor];node.appendChild(value);
   }else if(w.type==='strings'){
    const lines=document.createElement('div');lines.className='strings-lines';lines.textContent=Array.from({length:w.stringCount||2},(_,n)=>'Стринг '+(n+1)+': -- В').join('\n');node.appendChild(lines);
    lines.style.fontSize=contentSizes[w.contentSize]+'px';lines.style.lineHeight='1.2';lines.style.whiteSpace='pre-line';lines.style.textAlign=['left','center','right'][w.contentAlign];lines.style.color=palette[w.contentColor];
@@ -142,6 +144,7 @@ async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
   const p=Math.max(0,Math.min((Number(c.tftPage)||1)-1,Math.max(0,pages.length-1)));
   if(p!==devicePage){devicePage=p;if(followDevice)editorPage=Math.min(devicePage,pages.length-1);renderAll()}
+  if(c.clock){if(document.activeElement!==$('clockDate'))$('clockDate').value=c.clock.date||'';if(document.activeElement!==$('clockTime'))$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
   networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;$('netStatus').textContent=networkStatus;$('preview').querySelectorAll('.wifi-lines').forEach(el=>el.textContent=networkStatus||'Состояние сети появится здесь');$('prevNetwork').textContent=networkLabel;updateDeviceStatus();
  }catch(e){}
 }
