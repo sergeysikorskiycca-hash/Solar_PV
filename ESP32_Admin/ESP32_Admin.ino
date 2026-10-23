@@ -481,7 +481,7 @@ static void rtWifiChoose() {
   int saved=findSavedNetwork(rtWifiSelectedSSID);
   if(saved>=0){rtWifiConnect(rtWifiSelectedSSID,savedNetworks[saved].password);return;}
   if(!rtWifiSecure[rtWifiPick]){rtWifiConnect(rtWifiSelectedSSID,"");return;}
-  rtBuffer="";rtCursor=0;rtWifiPassword=true;rtSymbolsPage=false;rtKeyRow=0;rtKeyCol=0;rtMode=RT_EDIT;rtDrawEditor();
+  rtBuffer="";rtCursor=0;rtWifiPassword=true;rtRussian=false;rtUpper=true;rtSymbolsPage=false;rtKeyRow=0;rtKeyCol=0;rtMode=RT_EDIT;rtDrawEditor();
 }
 
 static void rtOpen(){
