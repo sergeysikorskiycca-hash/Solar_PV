@@ -50,6 +50,7 @@ struct SensorSlot {
   float power;
   float shuntVoltage;
   uint32_t packetNumber;
+  uint32_t lastSeenMs;
   bool valid;
 };
 
@@ -150,13 +151,14 @@ static void onSensorData(uint8_t* mac, uint8_t* data, uint8_t len) {
   slot.power = incoming.power;
   slot.shuntVoltage = incoming.shuntVoltage;
   slot.packetNumber = incoming.packetNumber;
+  slot.lastSeenMs = millis();
   slot.valid = true;
 }
 
 static int8_t chooseSensor() {
   for (uint8_t i = 0; i < MAX_SENSORS; ++i) {
     nextSensorIndex = (uint8_t)((nextSensorIndex + 1) % MAX_SENSORS);
-    if (sensorSlots[nextSensorIndex].valid) return (int8_t)nextSensorIndex;
+    if (sensorSlots[nextSensorIndex].valid && millis() - sensorSlots[nextSensorIndex].lastSeenMs <= 3000UL) return (int8_t)nextSensorIndex;
   }
   return -1;
 }
@@ -264,7 +266,7 @@ void loop() {
                   (unsigned)packet.hour, (unsigned)packet.minute, (unsigned)packet.second,
                   espNowReady ? "READY" : "FAILED");
     int8_t sensorIndex = -1;
-    for (uint8_t i = 0; i < MAX_SENSORS; ++i) if (sensorSlots[i].valid) { sensorIndex = (int8_t)i; break; }
+    for (uint8_t i = 0; i < MAX_SENSORS; ++i) if (sensorSlots[i].valid && millis() - sensorSlots[i].lastSeenMs <= 3000UL) { sensorIndex = (int8_t)i; break; }
     if (sensorIndex >= 0) {
       const SensorSlot& slot = sensorSlots[(uint8_t)sensorIndex];
       Serial.printf("Sensor %u (%s): %.2f V, %.3f A, %.1f W, shunt %.3f mV, packet %lu\n",
