@@ -450,7 +450,7 @@ static void processGatewayPacket() {
           Serial.print(F("Gateway RTC: unavailable"));
         }
         if (gatewaySensorValid) {
-          Serial.printf(" | sensor %u: %.2f V, %.3f A, %.1f W, shunt %.3f mV, packet %u\\n",
+          Serial.printf(" | sensor %u: %.2f V, %.3f A, %.1f W, shunt %.3f mV, packet %u\n",
                         (unsigned)gatewaySensorId, gatewayVoltage, gatewayCurrent, gatewayPower,
                         gatewayShuntVoltage, (unsigned)gatewaySensorPacketNumber);
         } else {
