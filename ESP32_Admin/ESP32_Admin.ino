@@ -399,7 +399,9 @@ static void rtDrawEditor(){
   drawCyrillicText(rtSymbolsPage ? "123 / SEARCH: ABC" : "ABC / SEARCH: 123",150,13,0x07FF,false);
 
   // A compact preview of the text being edited, with a caret at the insertion point.
-  String view=rtBuffer.substring(0,rtCursor)+"_"+rtBuffer.substring(rtCursor);
+  String preview=rtBuffer;
+  if(rtWifiPassword){preview="";for(size_t i=0;i<rtBuffer.length();i++)preview+="*";}
+  String view=preview.substring(0,rtCursor)+"_"+preview.substring(rtCursor);
   String line=""; int y=31; uint8_t lines=0;
   for(size_t pos=0;pos<view.length()&&lines<4;){
     String g=rtChar(view,pos);
@@ -496,6 +498,7 @@ static void rtInsert(String ch){
   rtBuffer=rtBuffer.substring(0,rtCursor)+ch+rtBuffer.substring(rtCursor);rtCursor+=ch.length();rtDrawEditor();
 }
 static void rtSave(){
+  if(rtWifiPassword){rtWifiConnect(rtWifiSelectedSSID,rtBuffer);rtWifiPassword=false;return;}
   if(rtWidget>=0&&cfg.tftPage>=1&&cfg.tftPage<=cfg.pageCount){
     cfg.pages[cfg.tftPage-1].widgets[rtWidget].text=rtBuffer;
     bool ok=saveConfig();Serial.println(ok?F("IR text block saved."):F("ERROR: text block save failed."));
@@ -511,8 +514,16 @@ static void rtHandle(uint32_t k){
     else if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtMode=RT_CLOSED;renderTFT();}
     return;
   }
+  if(rtMode==RT_WIFI_MENU){
+    if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtMode=RT_CLOSED;renderTFT();return;}
+    if(k==IR_CODE_SEARCH){rtWifiScan();return;}
+    if(k==IR_CODE_UP&&rtWifiCount){rtWifiPick=rtWifiPick?rtWifiPick-1:rtWifiCount-1;rtWifiDrawMenu();return;}
+    if(k==IR_CODE_DOWN&&rtWifiCount){rtWifiPick=(rtWifiPick+1)%rtWifiCount;rtWifiDrawMenu();return;}
+    if(k==IR_CODE_OK){rtWifiChoose();return;}
+    return;
+  }
   if(rtMode!=RT_EDIT)return;
-  if(k==IR_CODE_MENU){rtMode=RT_CLOSED;renderTFT();return;}
+  if(k==IR_CODE_MENU){rtMode=RT_CLOSED;rtWifiPassword=false;renderTFT();return;}
   if(k==IR_CODE_SEARCH){rtSymbolsPage=!rtSymbolsPage;rtKeyRow=0;rtKeyCol=0;rtDrawEditor();return;}
   if(k==IR_CODE_0){rtInsert("0");return;} if(k==IR_CODE_1){rtInsert("1");return;} if(k==IR_CODE_2){rtInsert("2");return;} if(k==IR_CODE_3){rtInsert("3");return;} if(k==IR_CODE_4){rtInsert("4");return;} if(k==IR_CODE_5){rtInsert("5");return;} if(k==IR_CODE_6){rtInsert("6");return;} if(k==IR_CODE_7){rtInsert("7");return;} if(k==IR_CODE_8){rtInsert("8");return;} if(k==IR_CODE_9){rtInsert("9");return;}
   if(k==IR_CODE_UP){rtKeyRow=rtKeyRow?rtKeyRow-1:5;rtDrawEditor();return;}
@@ -550,7 +561,8 @@ static void handleIRRemote() {
   const uint32_t code = IR_RemoteUpdate();
   if (code == 0) return;
   if (rtMode != RT_CLOSED) { rtHandle(code); return; }
-  if (code == IR_CODE_MENU) rtOpen();
+  if (code == IR_CODE_SETUP) rtOpenWifi();
+  else if (code == IR_CODE_MENU) rtOpen();
   else if (code == IR_CODE_LEFT || code == IR_CODE_BACK) showTFTPage(cfg.tftPage > 1 ? cfg.tftPage - 1 : cfg.pageCount);
   else if (code == IR_CODE_RIGHT || code == IR_CODE_FORWARD) showTFTPage(cfg.tftPage < cfg.pageCount ? cfg.tftPage + 1 : 1);
   else if (code == IR_CODE_TITLE || code == IR_CODE_BEGINNING) showTFTPage(1);
