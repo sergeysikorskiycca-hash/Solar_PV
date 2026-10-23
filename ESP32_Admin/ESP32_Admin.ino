@@ -33,6 +33,11 @@ U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 WebServer server(80);
 
 bool apActive = false;
+static volatile uint8_t clockCommandSequence = 0;
+static volatile uint8_t clockCommandType = 0;
+static volatile uint16_t clockCommandYear = 2026;
+static volatile uint8_t clockCommandMonth = 1, clockCommandDay = 1, clockCommandHour = 0, clockCommandMinute = 0, clockCommandSecond = 0;
+static volatile bool clockCommandPending = false;
 
 // ESP8266 gateway telemetry arrives as a checked I2C frame.
 bool gatewayOnline = false;
@@ -379,11 +384,7 @@ static volatile uint8_t gatewayRxLength = 0;
 static volatile bool gatewayRxPending = false;
 static volatile uint8_t gatewayAckSequence = 0;
 static volatile uint8_t gatewayAckStatus = 1;
-static volatile uint8_t clockCommandSequence = 0;
-static volatile uint8_t clockCommandType = 0;
-static volatile uint16_t clockCommandYear = 2026;
-static volatile uint8_t clockCommandMonth = 1, clockCommandDay = 1, clockCommandHour = 0, clockCommandMinute = 0, clockCommandSecond = 0;
-static volatile bool clockCommandPending = false;
+
 
 static uint8_t gatewayCrc8(const uint8_t* data, size_t length) {
   uint8_t crc = 0;
@@ -523,11 +524,11 @@ static int rtTextCount(){
   for(uint8_t i=0;i<p.widgetCount;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text")n++;
   return n;
 }
-static int rtCount(){ return rtTextCount() + 1; }
+static int rtCount(){ return (rtTextCount() > 6 ? 6 : rtTextCount()) + 1; }
 static int rtIndex(uint8_t wanted){
   if(cfg.tftPage<1||cfg.tftPage>cfg.pageCount)return -1;
   PageConfig& p=cfg.pages[cfg.tftPage-1]; uint8_t n=0;
-  for(uint8_t i=0;i<p.widgetCount;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text"){
+  for(uint8_t i=0;i<p.widgetCount&&n<6;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text"){
     if(n++==wanted)return i;
   }
   if(wanted==n)return -2;
@@ -542,12 +543,12 @@ static String rtKeyAt(uint8_t row, uint8_t col) {
     static const char* enUpper[4] = {"ABCDEFGHIJ","KLMNOPQRST","UVWXYZ    ","          "};
     static const char* enLower[4] = {"abcdefghij","klmnopqrst","uvwxyz    ","          "};
     static const char* ruUpper[4] = {"АБВГДЕЁЖЗИ","ЙКЛМНОПРСТ","УФХЦЧШЩЪЫЬ","ЭЮЯ       "};
-    static const char* ruLower[4] = {"абвгдеёжзи","йклмноп рст","уфхцчшщъыь","эюя       "};
+    static const char* ruLower[4] = {"абвгдеёжзи","йклмопрст","уфхцчшщъыь","эюя       "};
     String keys = rtRussian ? (rtUpper ? String(ruUpper[row]) : String(ruLower[row])) : (rtUpper ? String(enUpper[row]) : String(enLower[row]));
     size_t pos=0; for(uint8_t n=0;n<col&&pos<keys.length();n++)pos+=rtBytes(keys,pos);
     String key=rtChar(keys,pos); return key==" " ? String("") : key;
   }
-  if (row == 4) {
+  if ((row == 4 && !rtSymbolsPage) || (row == 5 && rtSymbolsPage)) {
     static const char* textActions[10] = {"123","SP","DEL","NL","RU","Aa","","","","SAVE"};
     static const char* symbolActions[10] = {"ABC","SP","DEL","NL","RU","Aa","","","","SAVE"};
     return rtSymbolsPage ? symbolActions[col] : textActions[col];
