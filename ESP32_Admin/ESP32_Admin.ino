@@ -432,6 +432,7 @@ static void gatewayOnRequest() {
     (uint8_t)(clockCommandYear & 0xFF), (uint8_t)(clockCommandYear >> 8),
     clockCommandMonth, clockCommandDay, clockCommandHour, clockCommandMinute, clockCommandSecond };
   Wire.write(response, sizeof(response));
+  if (clockCommandPending) clockCommandPending = false;
 }
 static void processGatewayPacket() {
   uint8_t raw[sizeof(GatewayPacket)];
@@ -543,7 +544,7 @@ static String rtKeyAt(uint8_t row, uint8_t col) {
     static const char* enUpper[4] = {"ABCDEFGHIJ","KLMNOPQRST","UVWXYZ    ","          "};
     static const char* enLower[4] = {"abcdefghij","klmnopqrst","uvwxyz    ","          "};
     static const char* ruUpper[4] = {"АБВГДЕЁЖЗИ","ЙКЛМНОПРСТ","УФХЦЧШЩЪЫЬ","ЭЮЯ       "};
-    static const char* ruLower[4] = {"абвгдеёжзи","йклмопрст","уфхцчшщъыь","эюя       "};
+    static const char* ruLower[4] = {"абвгдеёжзи","йклмнопрст","уфхцчшщъыь","эюя       "};
     String keys = rtRussian ? (rtUpper ? String(ruUpper[row]) : String(ruLower[row])) : (rtUpper ? String(enUpper[row]) : String(enLower[row]));
     size_t pos=0; for(uint8_t n=0;n<col&&pos<keys.length();n++)pos+=rtBytes(keys,pos);
     String key=rtChar(keys,pos); return key==" " ? String("") : key;
@@ -694,7 +695,7 @@ static void rtDrawClockEditor(){
   drawCyrillicText("УСТАНОВКА ЧАСОВ",5,22,0x07FF,true);
   char date[16], time[16]; snprintf(date,sizeof(date),"%02u.%02u.%04u",(unsigned)rtClockDay,(unsigned)rtClockMonth,(unsigned)rtClockYear);
   snprintf(time,sizeof(time),"%02u:%02u:%02u",(unsigned)rtClockHour,(unsigned)rtClockMinute,(unsigned)rtClockSecond);
-  drawCyrillicText(date,25,80,rtClockField<=2?ST77XX_YELLOW:ST77XX_WHITE,true);
+  drawCyrillicText(date,25,80,rtClockField<=2?0xFFE0:ST77XX_WHITE,true);
   drawCyrillicText(time,25,120,rtClockField>=3?ST77XX_YELLOW:ST77XX_WHITE,true);
   int xPos[6]={25,55,105,25,65,105}; int yPos[6]={80,80,80,120,120,120}; int width[6]={22,22,48,22,22,22};
   tft.drawRoundRect(xPos[rtClockField]-3,yPos[rtClockField]-17,width[rtClockField],24,3,0x07FF);
