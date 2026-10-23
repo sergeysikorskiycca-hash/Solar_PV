@@ -323,10 +323,8 @@ enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT };
 static RemoteTextMode rtMode = RT_CLOSED;
 static uint8_t rtPick = 0;
 static int8_t rtWidget = -1;
-static String rtBuffer, rtLastChar;
-static size_t rtCursor = 0, rtLastStart = 0;
-static uint32_t rtLastKey = 0;
-static unsigned long rtLastAt = 0;
+static String rtBuffer;
+static size_t rtCursor = 0;
 static bool rtRussian = true, rtUpper = true;
 static uint8_t rtKeyRow = 1, rtKeyCol = 0;
 
