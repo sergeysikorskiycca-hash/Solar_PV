@@ -103,12 +103,45 @@ void drawWidget(const WidgetConfig& widget) {
   if(widget.type=="power")value="DEMO W";else if(widget.type=="voltage")value="DEMO V";else if(widget.type=="current")value="DEMO A";else if(widget.type=="battery")value="DEMO %";
   drawAlignedText(value,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
 }
+extern bool gatewayOnline;
+
+void drawTFTIndicators() {
+  // Reserve the top-right corner for independent Wi-Fi and gateway status.
+  tft.fillRect(186, 0, 54, 23, ST77XX_BLACK);
+  const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+  const uint16_t wifiColor = wifiConnected ? 0x07E0 : 0xF800;
+  int bars = 0;
+  if (wifiConnected) {
+    int rssi = WiFi.RSSI();
+    bars = rssi >= -55 ? 4 : (rssi >= -67 ? 3 : (rssi >= -78 ? 2 : 1));
+  }
+  for (int i = 0; i < 4; ++i) {
+    int h = 4 + i * 3;
+    uint16_t c = (wifiConnected && i < bars) || !wifiConnected ? wifiColor : 0x4208;
+    tft.fillRect(188 + i * 4, 19 - h, 3, h, c);
+  }
+
+  const uint16_t linkColor = gatewayOnline ? 0x07E0 : 0xF800;
+  tft.drawRoundRect(207, 5, 10, 12, 2, linkColor);
+  tft.drawRoundRect(225, 5, 10, 12, 2, linkColor);
+  tft.drawLine(217, 11, 225, 11, linkColor);
+  tft.drawLine(219, 8, 223, 8, linkColor);
+  tft.drawLine(219, 14, 223, 14, linkColor);
+}
+
 void renderTFT() {
   // The TFT is reserved for the configured page widgets; network status belongs
   // in the dedicated Wi-Fi status widget, not in a permanent footer.
   tft.fillScreen(ST77XX_BLACK); tft.setTextWrap(false);
   uint8_t pageIndex=cfg.tftPage>0?cfg.tftPage-1:0; if(pageIndex>=cfg.pageCount)pageIndex=0;
-  drawCyrillicText(cfg.pages[pageIndex].title,8,25,ST77XX_WHITE,true);
+  String pageTitle = cfg.pages[pageIndex].title;
+  while (pageTitle.length() > 0 && u8g2Fonts.getUTF8Width(pageTitle.c_str()) > 172) {
+    int cut = pageTitle.length() - 1;
+    while (cut > 0 && (((uint8_t)pageTitle[cut] & 0xC0) == 0x80)) --cut;
+    pageTitle.remove(cut);
+  }
+  drawCyrillicText(pageTitle,8,25,ST77XX_WHITE,true);
   PageConfig& page=cfg.pages[pageIndex]; for(uint8_t i=0;i<page.widgetCount;i++)drawWidget(page.widgets[i]);
+  drawTFTIndicators();
   lastStatusText="";
 }
