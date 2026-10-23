@@ -104,9 +104,11 @@ void drawWidget(const WidgetConfig& widget) {
   drawAlignedText(value,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
 }
 void renderTFT() {
+  // The TFT is reserved for the configured page widgets; network status belongs
+  // in the dedicated Wi-Fi status widget, not in a permanent footer.
   tft.fillScreen(ST77XX_BLACK); tft.setTextWrap(false);
   uint8_t pageIndex=cfg.tftPage>0?cfg.tftPage-1:0; if(pageIndex>=cfg.pageCount)pageIndex=0;
   drawCyrillicText(cfg.pages[pageIndex].title,8,25,ST77XX_WHITE,true);
   PageConfig& page=cfg.pages[pageIndex]; for(uint8_t i=0;i<page.widgetCount;i++)drawWidget(page.widgets[i]);
-  tft.drawFastHLine(8,294,224,0x5B6D); lastStatusText=""; drawTFTStatus(true);
+  lastStatusText="";
 }
