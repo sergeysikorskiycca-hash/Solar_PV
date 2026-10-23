@@ -3,7 +3,7 @@
   Target: ESP32 Dev Module, Arduino-ESP32 core 3.x
   TFT: ST7789 240x320, Adafruit_GFX + Adafruit_ST7789
   Current stage: TFT, Wi-Fi setup, browser admin, LittleFS settings, NEC IR remote,
-  and checked I2C telemetry from the ESP8266 gateway (RTC + reserved sensor slots).
+  and checked I2C telemetry from the ESP8266 gateway (DS3231 + ESP-NOW sensor samples).
 */
 
 #include <WiFi.h>
