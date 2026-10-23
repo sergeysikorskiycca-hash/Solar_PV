@@ -351,7 +351,7 @@ void handleNotFound() {
 }
 
 
-enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU };
+enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU, RT_CLOCK };
 
 // Wire protocol shared with ESP8266_Gateway. The ESP8266 is the I2C master;
 // ESP32 is the slave at 0x42. All multi-byte fields are little-endian.
@@ -503,6 +503,8 @@ static String rtWifiNetworks[20];
 static bool rtWifiSecure[20];
 static uint8_t rtWifiCount = 0, rtWifiPick = 0;
 static String rtWifiSelectedSSID;
+static uint16_t rtClockYear=2026;
+static uint8_t rtClockMonth=1, rtClockDay=1, rtClockHour=0, rtClockMinute=0, rtClockSecond=0, rtClockField=0;
 
 static size_t rtBytes(const String& s, size_t p) {
   if (p >= s.length()) return 0;
@@ -515,42 +517,42 @@ static size_t rtPrev(const String& s,size_t p) {
   return p;
 }
 static String rtChar(const String& s,size_t p){return s.substring(p,p+rtBytes(s,p));}
-static int rtCount(){
+static int rtTextCount(){
   if(cfg.tftPage<1||cfg.tftPage>cfg.pageCount)return 0;
   int n=0; PageConfig& p=cfg.pages[cfg.tftPage-1];
   for(uint8_t i=0;i<p.widgetCount;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text")n++;
   return n;
 }
+static int rtCount(){ return rtTextCount() + 1; }
 static int rtIndex(uint8_t wanted){
   if(cfg.tftPage<1||cfg.tftPage>cfg.pageCount)return -1;
   PageConfig& p=cfg.pages[cfg.tftPage-1]; uint8_t n=0;
   for(uint8_t i=0;i<p.widgetCount;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text"){
     if(n++==wanted)return i;
   }
+  if(wanted==n)return -2;
   return -1;
 }
 static String rtKeyAt(uint8_t row, uint8_t col) {
-  if (row < 5) {
-    if (rtSymbolsPage) {
-      static const char* symbols[5] = {"0123456789","!@#$%^&*()","-_=+[]{}<>",".,;:'\\\"~","/?\\\\|%&^"};
-      return String(symbols[row]).substring(col, col + 1);
-    }
-    if (row == 4) return String(".,!?-_:;@#").substring(col, col + 1);
+  if (rtSymbolsPage && row < 5) {
+    static const char* symbols[5] = {"0123456789","!@#$%^&*()","-_=+[]{}<>", ".,;:'\\\"~", "/?\\\\|%&^"};
+    return String(symbols[row]).substring(col, col + 1);
+  }
+  if (row < 4) {
     static const char* enUpper[4] = {"ABCDEFGHIJ","KLMNOPQRST","UVWXYZ    ","          "};
     static const char* enLower[4] = {"abcdefghij","klmnopqrst","uvwxyz    ","          "};
     static const char* ruUpper[4] = {"АБВГДЕЁЖЗИ","ЙКЛМНОПРСТ","УФХЦЧШЩЪЫЬ","ЭЮЯ       "};
-    static const char* ruLower[4] = {"абвгдеёжзи","йклмнопрст","уфхцчшщъыь","эюя       "};
-    String s;
-    if (rtRussian) s = rtUpper ? ruUpper[row] : ruLower[row];
-    else s = rtUpper ? enUpper[row] : enLower[row];
-    size_t pos = 0;
-    for (uint8_t n = 0; n < col && pos < s.length(); n++) pos += rtBytes(s, pos);
-    String key = rtChar(s, pos);
-    return key == " " ? String("") : key;
+    static const char* ruLower[4] = {"абвгдеёжзи","йклмноп рст","уфхцчшщъыь","эюя       "};
+    String keys = rtRussian ? (rtUpper ? String(ruUpper[row]) : String(ruLower[row])) : (rtUpper ? String(enUpper[row]) : String(enLower[row]));
+    size_t pos=0; for(uint8_t n=0;n<col&&pos<keys.length();n++)pos+=rtBytes(keys,pos);
+    String key=rtChar(keys,pos); return key==" " ? String("") : key;
   }
-  static const char* textActions[10] = {"123","SP","DEL","NL","RU","Aa",".",",","?","SAVE"};
-  static const char* symbolActions[10] = {"ABC","SP","DEL","NL","RU","Aa",".",",","?","SAVE"};
-  return rtSymbolsPage ? symbolActions[col] : textActions[col];
+  if (row == 4) {
+    static const char* textActions[10] = {"123","SP","DEL","NL","RU","Aa","","","","SAVE"};
+    static const char* symbolActions[10] = {"ABC","SP","DEL","NL","RU","Aa","","","","SAVE"};
+    return rtSymbolsPage ? symbolActions[col] : textActions[col];
+  }
+  return String("");
 }
 static void rtMoveSelection(int rowDelta, int colDelta) {
   for (uint8_t tries = 0; tries < 60; ++tries) {
@@ -563,10 +565,12 @@ static void rtDrawPicker(){
   tft.fillScreen(ST77XX_BLACK); drawCyrillicText("ТЕКСТОВЫЙ БЛОК",8,25,ST77XX_WHITE,true);
   drawCyrillicText("UP/DOWN выбор, OK ввод",8,48,0x07FF,false);
   PageConfig& p=cfg.pages[cfg.tftPage-1]; int y=82; uint8_t n=0;
-  for(uint8_t i=0;i<p.widgetCount&&n<7;i++){WidgetConfig& w=p.widgets[i];if(!w.enabled||w.type!="text")continue;
+  for(uint8_t i=0;i<p.widgetCount&&n<6;i++){WidgetConfig& w=p.widgets[i];if(!w.enabled||w.type!="text")continue;
     if(n==rtPick)tft.fillRoundRect(5,y-16,230,28,4,0x03EF);
     drawCyrillicText((n==rtPick?"> ":"  ")+w.label.substring(0,27),10,y+2,ST77XX_WHITE,false);y+=30;n++;
   }
+  if(n==rtPick)tft.fillRoundRect(5,y-16,230,28,4,0x03EF);
+  drawCyrillicText((n==rtPick?"> ":"  ")+String("Часы и дата — настроить"),10,y+2,ST77XX_WHITE,false);
   drawCyrillicText("MENU: выход",8,307,0xBDF7,false);
 }
 static void rtDrawEditor(){
@@ -666,8 +670,9 @@ static void rtOpen(){
   if(!rtCount()){tft.fillScreen(ST77XX_BLACK);drawCyrillicText("Нет текстовых блоков",8,35,ST77XX_WHITE,true);drawCyrillicText("Добавь блок в веб-админке",8,62,0xBDF7,false);delay(900);renderTFT();return;}
   rtMode=RT_PICKER;rtPick=0;rtDrawPicker();
 }
+static void rtOpenClockEditor();
 static void rtEdit(){
-  rtWidget=rtIndex(rtPick);if(rtWidget<0){rtMode=RT_CLOSED;renderTFT();return;}
+  rtWidget=rtIndex(rtPick);if(rtWidget==-2){rtOpenClockEditor();return;}if(rtWidget<0){rtMode=RT_CLOSED;renderTFT();return;}
   rtBuffer=cfg.pages[cfg.tftPage-1].widgets[rtWidget].text;if(rtBuffer.length()>240)rtBuffer=rtBuffer.substring(0,240);
   rtCursor=rtBuffer.length();rtMode=RT_EDIT;rtKeyRow=0;rtKeyCol=0;rtUpper=true;rtRussian=true;rtSymbolsPage=false;rtDrawEditor();
 }
@@ -683,7 +688,41 @@ static void rtSave(){
   }
   rtMode=RT_CLOSED;renderTFT();
 }
+static void rtDrawClockEditor(){
+  tft.fillScreen(ST77XX_BLACK);
+  drawCyrillicText("УСТАНОВКА ЧАСОВ",5,22,0x07FF,true);
+  char date[16], time[16]; snprintf(date,sizeof(date),"%02u.%02u.%04u",(unsigned)rtClockDay,(unsigned)rtClockMonth,(unsigned)rtClockYear);
+  snprintf(time,sizeof(time),"%02u:%02u:%02u",(unsigned)rtClockHour,(unsigned)rtClockMinute,(unsigned)rtClockSecond);
+  drawCyrillicText(date,25,80,rtClockField<=2?ST77XX_YELLOW:ST77XX_WHITE,true);
+  drawCyrillicText(time,25,120,rtClockField>=3?ST77XX_YELLOW:ST77XX_WHITE,true);
+  int xPos[6]={25,55,105,25,65,105}; int yPos[6]={80,80,80,120,120,120}; int width[6]={22,22,48,22,22,22};
+  tft.drawRoundRect(xPos[rtClockField]-3,yPos[rtClockField]-17,width[rtClockField],24,3,0x07FF);
+  drawCyrillicText("LEFT/RIGHT: поле",5,185,0xBDF7,false); drawCyrillicText("UP/DOWN: изменить",5,207,0xBDF7,false);
+  drawCyrillicText("OK: записать в RTC",5,229,0x07E0,false); drawCyrillicText("BACK: отмена",5,251,0xBDF7,false);
+}
+static void rtOpenClockEditor(){
+  rtClockYear=gatewayTimeValid?gatewayYear:2026; rtClockMonth=gatewayTimeValid?gatewayMonth:1; rtClockDay=gatewayTimeValid?gatewayDay:1;
+  rtClockHour=gatewayTimeValid?gatewayHour:0; rtClockMinute=gatewayTimeValid?gatewayMinute:0; rtClockSecond=gatewayTimeValid?gatewaySecond:0;
+  rtClockField=0; rtMode=RT_CLOCK; rtDrawClockEditor();
+}
+static void rtHandleClock(uint32_t k){
+  if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtMode=RT_CLOSED;renderTFT();return;}
+  if(k==IR_CODE_LEFT){rtClockField=(rtClockField+5)%6;rtDrawClockEditor();return;}
+  if(k==IR_CODE_RIGHT){rtClockField=(rtClockField+1)%6;rtDrawClockEditor();return;}
+  if(k==IR_CODE_UP||k==IR_CODE_DOWN){int d=k==IR_CODE_UP?1:-1;
+    if(rtClockField==0)rtClockYear=constrain((int)rtClockYear+d,2000,2099);
+    else if(rtClockField==1)rtClockMonth=(uint8_t)constrain((int)rtClockMonth+d,1,12);
+    else if(rtClockField==2)rtClockDay=(uint8_t)constrain((int)rtClockDay+d,1,31);
+    else if(rtClockField==3)rtClockHour=(uint8_t)((rtClockHour+24+d)%24);
+    else if(rtClockField==4)rtClockMinute=(uint8_t)((rtClockMinute+60+d)%60);
+    else rtClockSecond=(uint8_t)((rtClockSecond+60+d)%60);
+    rtDrawClockEditor();return;
+  }
+  if(k==IR_CODE_OK){noInterrupts();clockCommandYear=rtClockYear;clockCommandMonth=rtClockMonth;clockCommandDay=rtClockDay;clockCommandHour=rtClockHour;clockCommandMinute=rtClockMinute;clockCommandSecond=rtClockSecond;clockCommandSequence++;clockCommandType=1;clockCommandPending=true;interrupts();Serial.println(F("IR clock set command queued for RTC."));rtMode=RT_CLOSED;renderTFT();return;}
+}
+
 static void rtHandle(uint32_t k){
+  if(rtMode==RT_CLOCK){rtHandleClock(k);return;}
   if(rtMode==RT_PICKER){
     uint8_t n=rtCount();if(!n){rtMode=RT_CLOSED;renderTFT();return;}
     if(k==IR_CODE_UP){rtPick=rtPick?rtPick-1:n-1;rtDrawPicker();}
