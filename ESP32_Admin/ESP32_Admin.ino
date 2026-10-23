@@ -366,21 +366,16 @@ static void rtDrawPicker(){
 }
 static void rtDrawEditor(){
   tft.fillScreen(ST77XX_BLACK); PageConfig& p=cfg.pages[cfg.tftPage-1]; WidgetConfig& w=p.widgets[rtWidget];
-  drawCyrillicText("РЕДАКТОР ТЕКСТА",8,23,ST77XX_WHITE,true);
-  drawCyrillicText(w.label.substring(0,28),8,44,0x07FF,false);
-  tft.drawRoundRect(5,54,230,160,5,0x5B6D);
+  // Keep only the selected block label; use nearly the whole display for editing.
+  drawCyrillicText(w.label.substring(0,30),8,18,0x07FF,false);
+  tft.drawRoundRect(3,25,234,290,4,0x5B6D);
   // Render a visible caret at the current cursor position.
   size_t start=rtCursor>100?rtPrev(rtBuffer,rtCursor-80):0;
   String view=rtBuffer.substring(start,rtCursor)+"_"+rtBuffer.substring(rtCursor);
   if(view.length()>150)view=view.substring(0,150);
-  String line="";int y=76;
-  for(size_t pos=0;pos<view.length()&&y<197;){String g=rtChar(view,pos);if(g=="\n"||u8g2Fonts.getUTF8Width((line+g).c_str())>210){drawCyrillicText(line,11,y,ST77XX_WHITE,false);line="";y+=18;if(g=="\n"){pos++;continue;}}else line+=g;pos+=g.length();}
-  if(y<197&&line.length())drawCyrillicText(line,11,y,ST77XX_WHITE,false);
-  drawCyrillicText(String("Режим: ")+(rtRussian?"РУ":"EN")+(rtUpper?" A":" a"),8,236,ST77XX_YELLOW,false);
-  drawCyrillicText("2-9: буквы; 0: пробел/знаки",8,258,0xBDF7,false);
-  drawCyrillicText("AUDIO: RU/EN  SETUP: A/a",8,279,0xBDF7,false);
-  drawCyrillicText("LEFT/RIGHT курсор; BACK удалить",8,300,0xBDF7,false);
-  drawCyrillicText("OK сохранить; MENU отмена",8,318,0xBDF7,false);
+  String line="";int y=43;
+  for(size_t pos=0;pos<view.length()&&y<302;){String g=rtChar(view,pos);if(g=="\n"||u8g2Fonts.getUTF8Width((line+g).c_str())>218){drawCyrillicText(line,9,y,ST77XX_WHITE,false);line="";y+=18;if(g=="\n"){pos++;continue;}}else line+=g;pos+=g.length();}
+  if(y<302&&line.length())drawCyrillicText(line,9,y,ST77XX_WHITE,false);
 }
 static void rtOpen(){
   if(!rtCount()){tft.fillScreen(ST77XX_BLACK);drawCyrillicText("Нет текстовых блоков",8,35,ST77XX_WHITE,true);drawCyrillicText("Добавь блок в веб-админке",8,62,0xBDF7,false);delay(900);renderTFT();return;}
@@ -545,6 +540,5 @@ void loop() {
       }
     }
     if (hasDynamicWidget) renderTFT();
-    else drawTFTStatus();
   }
 }
