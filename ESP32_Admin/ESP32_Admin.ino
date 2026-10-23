@@ -367,13 +367,35 @@ static uint8_t gatewayCrc8(const uint8_t* data, size_t length) {
   return crc;
 }
 static void gatewayOnReceive(int count) {
-  uint8_t n = 0;
+  uint8_t raw[sizeof(GatewayPacket)];
+  uint8_t stored = 0;
+  uint8_t received = 0;
   while (Wire.available()) {
     uint8_t b = (uint8_t)Wire.read();
-    if (n < sizeof(gatewayRxRaw)) gatewayRxRaw[n++] = b;
+    if (stored < sizeof(gatewayRxRaw)) {
+      gatewayRxRaw[stored] = b;
+      raw[stored] = b;
+      ++stored;
+    }
+    if (received < 255) ++received;
   }
-  gatewayRxLength = n;
+  gatewayRxLength = received;
   gatewayRxPending = true;
+
+  // Prepare the acknowledgement in the receive callback, before the master
+  // immediately requests it. Keep all heavier state updates in loop().
+  bool valid = received == sizeof(GatewayPacket);
+  if (valid) {
+    GatewayPacket packet;
+    memcpy(&packet, raw, sizeof(packet));
+    valid = packet.magic == GATEWAY_FRAME_MAGIC &&
+            packet.version == GATEWAY_FRAME_VERSION &&
+            gatewayCrc8(raw, sizeof(packet) - 1) == packet.crc;
+    gatewayAckSequence = packet.sequence;
+  } else if (received >= 3) {
+    gatewayAckSequence = raw[2];
+  }
+  gatewayAckStatus = valid ? 0 : 1;
 }
 static void gatewayOnRequest() {
   uint8_t response[3] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus };
