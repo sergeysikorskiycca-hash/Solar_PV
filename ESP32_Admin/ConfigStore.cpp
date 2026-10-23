@@ -60,7 +60,7 @@ void setDefaults() {
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
     for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.locked = false; w.headingAlign = 0; w.contentAlign = 0;
+      w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0;
       w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0;
     }
   }
@@ -69,7 +69,7 @@ void setDefaults() {
 
 bool isKnownWidgetType(const String& type) {
   return type == "power" || type == "voltage" || type == "current" ||
-         type == "battery" || type == "wifiStatus" || type == "text" || type == "strings";
+         type == "battery" || type == "wifiStatus" || type == "text" || type == "strings" || type == "clock";
 }
 
 static String encodeWidgetText(const String& input) {
@@ -101,6 +101,7 @@ static String decodeWidgetText(const String& input) {
 void initializeDefaultPages() {
   cfg.pageCount = 2;
   cfg.pages[0].title = "Показатели";
+  cfg.pages[0].showTitle = true;
   cfg.pages[0].widgetCount = 4;
   const char* types[4] = {"power", "voltage", "current", "battery"};
   String labels[4] = {cfg.powerLabel, cfg.voltageLabel, cfg.currentLabel, cfg.batteryLabel};
@@ -111,15 +112,16 @@ void initializeDefaultPages() {
   bool enabled[4] = {cfg.showPower, cfg.showVoltage, cfg.showCurrent, cfg.showBattery};
   for (uint8_t i = 0; i < 4; i++) {
     WidgetConfig& w = cfg.pages[0].widgets[i];
-    w.type = types[i]; w.label = labels[i]; w.text = ""; w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.locked = false; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0; w.x = xs[i]; w.y = ys[i];
+    w.type = types[i]; w.label = labels[i]; w.text = ""; w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0; w.x = xs[i]; w.y = ys[i];
     w.w = ws[i]; w.h = hs[i]; w.enabled = enabled[i];
   }
   cfg.pages[1].title = "Wi-Fi";
+  cfg.pages[1].showTitle = true;
   cfg.pages[1].widgetCount = 1;
   WidgetConfig& wifi = cfg.pages[1].widgets[0];
-  wifi.type = "wifiStatus"; wifi.label = "Состояние Wi-Fi"; wifi.text = ""; wifi.headingSize = 1; wifi.contentSize = 1; wifi.stringCount = 2; wifi.locked = false; wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
+  wifi.type = "wifiStatus"; wifi.label = "Состояние Wi-Fi"; wifi.text = ""; wifi.headingSize = 1; wifi.showHeading = true; wifi.contentSize = 1; wifi.stringCount = 2; wifi.locked = false; wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
   wifi.x = 8; wifi.y = 55; wifi.w = 224; wifi.h = 220; wifi.enabled = true;
-  for (uint8_t p = 2; p < MAX_PAGES; p++) { cfg.pages[p].title = ""; cfg.pages[p].widgetCount = 0; }
+  for (uint8_t p = 2; p < MAX_PAGES; p++) { cfg.pages[p].title = ""; cfg.pages[p].showTitle = true; cfg.pages[p].widgetCount = 0; }
 }
 
 bool loadPageKey(const String& key, const String& value) {
@@ -131,6 +133,7 @@ bool loadPageKey(const String& key, const String& value) {
     String suffix = key.substring(end);
     if (suffix == "Title") cfg.pages[p].title = sanitizeTitle(value);
     else if (suffix == "Count") cfg.pages[p].widgetCount = clampInt(value.toInt(), 0, MAX_WIDGETS_PER_PAGE);
+    else if (suffix == "ShowTitle") cfg.pages[p].showTitle = value == "1";
     else return false;
     return true;
   }
@@ -148,6 +151,7 @@ bool loadPageKey(const String& key, const String& value) {
   else if (suffix == "ContentSize") w.contentSize = clampInt(value.toInt(), 0, 4);
   else if (suffix == "StringCount") w.stringCount = clampInt(value.toInt(), 1, 6);
   else if (suffix == "Locked") w.locked = value == "1";
+  else if (suffix == "ShowHeading") w.showHeading = value == "1";
   else if (suffix == "HeadingAlign") w.headingAlign = clampInt(value.toInt(), 0, 2);
   else if (suffix == "ContentAlign") w.contentAlign = clampInt(value.toInt(), 0, 2);
   else if (suffix == "HeadingColor") w.headingColor = clampInt(value.toInt(), 0, 5);
@@ -274,6 +278,7 @@ bool saveConfig() {
   f.println("pageCount=" + String(cfg.pageCount));
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
     f.println("page" + String(p) + "Title=" + sanitizeTitle(cfg.pages[p].title));
+    f.println("page" + String(p) + "ShowTitle=" + String(cfg.pages[p].showTitle ? 1 : 0));
     f.println("page" + String(p) + "Count=" + String(cfg.pages[p].widgetCount));
     for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
       const WidgetConfig& w = cfg.pages[p].widgets[i];
@@ -283,6 +288,7 @@ bool saveConfig() {
       f.println(prefix + "Text=" + encodeWidgetText(w.text));
       f.println(prefix + "HeadingSize=" + String(w.headingSize)); f.println(prefix + "ContentSize=" + String(w.contentSize));
       f.println(prefix + "StringCount=" + String(w.stringCount ? w.stringCount : 2)); f.println(prefix + "Locked=" + String(w.locked ? "1" : "0"));
+      f.println(prefix + "ShowHeading=" + String(w.showHeading ? "1" : "0"));
       f.println(prefix + "HeadingAlign=" + String(w.headingAlign)); f.println(prefix + "ContentAlign=" + String(w.contentAlign));
       f.println(prefix + "HeadingColor=" + String(w.headingColor)); f.println(prefix + "ContentColor=" + String(w.contentColor));
       f.println(prefix + "BackgroundColor=" + String(w.backgroundColor));
