@@ -390,6 +390,7 @@ static void rtDrawEditor(){
   tft.fillScreen(ST77XX_BLACK);
   PageConfig& p=cfg.pages[cfg.tftPage-1]; WidgetConfig& w=p.widgets[rtWidget];
   drawCyrillicText(w.label.substring(0,30),5,13,0x07FF,false);
+  drawCyrillicText(rtSymbolsPage ? "123 / SEARCH: ABC" : "ABC / SEARCH: 123",150,13,0x07FF,false);
 
   // A compact preview of the text being edited, with a caret at the insertion point.
   String view=rtBuffer.substring(0,rtCursor)+"_"+rtBuffer.substring(rtCursor);
@@ -426,7 +427,7 @@ static void rtOpen(){
 static void rtEdit(){
   rtWidget=rtIndex(rtPick);if(rtWidget<0){rtMode=RT_CLOSED;renderTFT();return;}
   rtBuffer=cfg.pages[cfg.tftPage-1].widgets[rtWidget].text;if(rtBuffer.length()>240)rtBuffer=rtBuffer.substring(0,240);
-  rtCursor=rtBuffer.length();rtMode=RT_EDIT;rtKeyRow=1;rtKeyCol=0;rtUpper=true;rtRussian=true;rtDrawEditor();
+  rtCursor=rtBuffer.length();rtMode=RT_EDIT;rtKeyRow=0;rtKeyCol=0;rtUpper=true;rtRussian=true;rtSymbolsPage=false;rtDrawEditor();
 }
 static void rtInsert(String ch){
   if(!ch.length()||rtBuffer.length()+ch.length()>240)return;
@@ -450,6 +451,8 @@ static void rtHandle(uint32_t k){
   }
   if(rtMode!=RT_EDIT)return;
   if(k==IR_CODE_MENU){rtMode=RT_CLOSED;renderTFT();return;}
+  if(k==IR_CODE_SEARCH){rtSymbolsPage=!rtSymbolsPage;rtKeyRow=0;rtKeyCol=0;rtDrawEditor();return;}
+  if(k==IR_CODE_0){rtInsert("0");return;} if(k==IR_CODE_1){rtInsert("1");return;} if(k==IR_CODE_2){rtInsert("2");return;} if(k==IR_CODE_3){rtInsert("3");return;} if(k==IR_CODE_4){rtInsert("4");return;} if(k==IR_CODE_5){rtInsert("5");return;} if(k==IR_CODE_6){rtInsert("6");return;} if(k==IR_CODE_7){rtInsert("7");return;} if(k==IR_CODE_8){rtInsert("8");return;} if(k==IR_CODE_9){rtInsert("9");return;}
   if(k==IR_CODE_UP){rtKeyRow=rtKeyRow?rtKeyRow-1:5;rtDrawEditor();return;}
   if(k==IR_CODE_DOWN){rtKeyRow=(rtKeyRow+1)%6;rtDrawEditor();return;}
   if(k==IR_CODE_LEFT){rtKeyCol=rtKeyCol?rtKeyCol-1:9;rtDrawEditor();return;}
