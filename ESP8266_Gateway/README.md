@@ -1,26 +1,36 @@
 # ESP8266 Gateway firmware
 
-This sketch is the companion to `ESP32_Admin/ESP32_Admin.ino` on branch `esp32-admin-refactor`.
+Companion sketch for `ESP32_Admin/ESP32_Admin.ino` on branch `esp32-admin-refactor`.
 
 ## I2C wiring
 
-- ESP8266 (NodeMCU): SDA = D2 / GPIO4, SCL = D1 / GPIO5.
+- ESP8266 NodeMCU: SDA = D2 / GPIO4, SCL = D1 / GPIO5.
 - ESP32 Dev Module: SDA = GPIO21, SCL = GPIO22.
 - DS3231: address `0x68`, connected to the same SDA/SCL bus.
-- ESP32 gateway endpoint: slave address `0x42`.
+- ESP32 endpoint: I2C slave address `0x42`.
 - Connect GND between both boards. Keep the bus at 3.3 V logic and ensure pull-ups do not pull SDA/SCL to 5 V.
 
-The ESP8266 is the I2C master. It reads the DS3231 once per second and sends a CRC-checked packet to the ESP32 10 times per second. The ESP32 acknowledges the packet; the TFT gateway icon turns green only after a valid packet is received, otherwise it turns red after the communication timeout. The Wi-Fi icon is independent.
+The ESP8266 is the I2C master. It reads the DS3231 once per second and sends a CRC-checked packet to the ESP32 10 times per second. Each packet contains the time and the latest valid ESP-NOW sensor sample (sensor ID, voltage, current, power, shunt voltage, and truncated 16-bit sensor packet number). The frame is 31 bytes to stay within the ESP8266 Wire transmit buffer.
 
-## Sensor slots
+## ESP-NOW sensors
 
-Four signed 16-bit sensor slots and a validity mask are already reserved in the packet. They are intentionally marked invalid in this first gateway build because the current ESP32 admin firmware does not yet define which physical sensors and units should populate those slots. Zero must not be treated as a sensor reading.
+- ESP-NOW channel: 1.
+- The receive packet must match the existing sensor structure: `char name[20]; uint8_t sensorId; float voltage,current,power,shuntVoltage; uint32_t packetNumber;`
+- Sensor IDs 1–10 are accepted. A sample is considered stale after 3 seconds and is no longer forwarded as valid.
+- Sensor values are forwarded as floats. The ESP32 prints received time and sensor values to Serial at 115200 baud.
+- This gateway sketch does not configure INA226 itself; it receives measurements from the ESP-NOW sensor node(s).
+
+## Status indicators
+
+- TFT Wi-Fi icon: green when ESP32 is connected to Wi-Fi, red when disconnected; green bars reflect RSSI.
+- TFT gateway icon: green only after a valid CRC-checked packet arrives from the ESP8266; red after 500 ms without a valid packet.
+- The two indicators are independent and hidden while the IR remote text editor/menu is open.
 
 ## Flashing
 
 1. Open `ESP8266_Gateway/ESP8266_Gateway.ino` in Arduino IDE and upload it to the ESP8266.
 2. Open `ESP32_Admin/ESP32_Admin.ino` as the ESP32 sketch (keep the companion files in the same sketch folder) and upload it to the ESP32.
-3. Open Serial Monitor at 115200 baud on the ESP8266. It reports DS3231 status and whether the ESP32 acknowledges the frames.
-4. On the ESP32 TFT, check the two top-right indicators: Wi-Fi and gateway are separate states.
+3. Open Serial Monitor at 115200 baud on the ESP8266 and ESP32 to verify DS3231 time, sensor packets, and I2C acknowledgements.
+4. On the ESP32 TFT, check the top-right Wi-Fi and gateway indicators.
 
-This source update has not been compiled or hardware-tested here. Please compile both sketches locally in Arduino IDE before uploading.
+The source has not been compiled or hardware-tested here. Compile both sketches locally in Arduino IDE before uploading.
