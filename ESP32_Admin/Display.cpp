@@ -76,8 +76,16 @@ void drawWidget(const WidgetConfig& widget) {
   tft.fillRoundRect(x,y,w,h,5,widgetBackground(widget.backgroundColor)); tft.drawRoundRect(x,y,w,h,5,0x5B6D);
   uint8_t hs=widget.headingSize<=4?widget.headingSize:1, cs=widget.contentSize<=4?widget.contentSize:2;
   int headingBaseline=y+FONT_HEIGHTS[hs]+3;
-  drawAlignedText(widget.label,x,headingBaseline,w,hs,widget.headingAlign,widget.headingColor);
-  int contentBaseline=headingBaseline+FONT_HEIGHTS[hs]/2+FONT_HEIGHTS[cs]+3;
+  if (widget.showHeading) drawAlignedText(widget.label,x,headingBaseline,w,hs,widget.headingAlign,widget.headingColor);
+  int contentBaseline=widget.showHeading ? headingBaseline+FONT_HEIGHTS[hs]/2+FONT_HEIGHTS[cs]+3 : y+FONT_HEIGHTS[cs]+5;
+  if(widget.type=="clock") {
+    extern bool gatewayTimeValid; extern uint16_t gatewayYear; extern uint8_t gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond;
+    String timeText = gatewayTimeValid ? (String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" + String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" + String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond)) : String("--:--:--");
+    String dateText = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : String("--.--.----");
+    drawAlignedText(timeText,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
+    drawAlignedText(dateText,x,contentBaseline+FONT_HEIGHTS[cs]+4,w,cs,widget.contentAlign,widget.contentColor);
+    return;
+  }
   if(widget.type=="text") {
     int avail=y+h-4-contentBaseline, lineHeight=FONT_HEIGHTS[cs]+3;
     drawWrappedText(widget,widget.text,contentBaseline,avail>0?avail/lineHeight+1:0); return;
@@ -140,7 +148,7 @@ void renderTFT() {
     while (cut > 0 && (((uint8_t)pageTitle[cut] & 0xC0) == 0x80)) --cut;
     pageTitle.remove(cut);
   }
-  drawCyrillicText(pageTitle,8,25,ST77XX_WHITE,true);
+  if (cfg.pages[pageIndex].showTitle) drawCyrillicText(pageTitle,8,25,ST77XX_WHITE,true);
   PageConfig& page=cfg.pages[pageIndex]; for(uint8_t i=0;i<page.widgetCount;i++)drawWidget(page.widgets[i]);
   drawTFTIndicators();
   lastStatusText="";
