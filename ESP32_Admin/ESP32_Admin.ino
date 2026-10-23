@@ -327,7 +327,8 @@ static String rtBuffer, rtLastChar;
 static size_t rtCursor = 0, rtLastStart = 0;
 static uint32_t rtLastKey = 0;
 static unsigned long rtLastAt = 0;
-static bool rtRussian = false, rtUpper = true;
+static bool rtRussian = true, rtUpper = true;
+static uint8_t rtKeyRow = 1, rtKeyCol = 0;
 
 static size_t rtBytes(const String& s, size_t p) {
   if (p >= s.length()) return 0;
@@ -354,6 +355,24 @@ static int rtIndex(uint8_t wanted){
   }
   return -1;
 }
+static String rtKeyAt(uint8_t row, uint8_t col) {
+  if (row == 0) return String("0123456789").substring(col, col + 1);
+  if (row >= 1 && row <= 4) {
+    static const char* enUpper[4] = {"ABCDEFGHIJ","KLMNOPQRST","UVWXYZ.,!?","@#$%&*-_+="};
+    static const char* enLower[4] = {"abcdefghij","klmnopqrst","uvwxyz.,!?","@#$%&*-_+="};
+    static const char* ruUpper[4] = {"АБВГДЕЁЖЗИ","ЙКЛМНОПРСТ","УФХЦЧШЩЪЫЬ","ЭЮЯ.,!?-_:;"};
+    static const char* ruLower[4] = {"абвгдеёжзи","йклмнопрст","уфхцчшщъыь","эюя.,!?-_:;"};
+    String s;
+    uint8_t index = row - 1;
+    if (rtRussian) s = rtUpper ? ruUpper[index] : ruLower[index];
+    else s = rtUpper ? enUpper[index] : enLower[index];
+    size_t pos = 0;
+    for (uint8_t n = 0; n < col && pos < s.length(); n++) pos += rtBytes(s, pos);
+    return rtChar(s, pos);
+  }
+  static const char* actions[10] = {".",",","!","?","SP","DEL","NL","RU","Aa","SAVE"};
+  return actions[col];
+}
 static void rtDrawPicker(){
   tft.fillScreen(ST77XX_BLACK); drawCyrillicText("ТЕКСТОВЫЙ БЛОК",8,25,ST77XX_WHITE,true);
   drawCyrillicText("UP/DOWN выбор, OK ввод",8,48,0x07FF,false);
@@ -365,17 +384,37 @@ static void rtDrawPicker(){
   drawCyrillicText("MENU: выход",8,307,0xBDF7,false);
 }
 static void rtDrawEditor(){
-  tft.fillScreen(ST77XX_BLACK); PageConfig& p=cfg.pages[cfg.tftPage-1]; WidgetConfig& w=p.widgets[rtWidget];
-  // Keep only the selected block label; use nearly the whole display for editing.
-  drawCyrillicText(w.label.substring(0,30),8,18,0x07FF,false);
-  tft.drawRoundRect(3,25,234,290,4,0x5B6D);
-  // Render a visible caret at the current cursor position.
-  size_t start=rtCursor>100?rtPrev(rtBuffer,rtCursor-80):0;
-  String view=rtBuffer.substring(start,rtCursor)+"_"+rtBuffer.substring(rtCursor);
-  if(view.length()>150)view=view.substring(0,150);
-  String line="";int y=43;
-  for(size_t pos=0;pos<view.length()&&y<302;){String g=rtChar(view,pos);if(g=="\n"||u8g2Fonts.getUTF8Width((line+g).c_str())>218){drawCyrillicText(line,9,y,ST77XX_WHITE,false);line="";y+=18;if(g=="\n"){pos++;continue;}}else line+=g;pos+=g.length();}
-  if(y<302&&line.length())drawCyrillicText(line,9,y,ST77XX_WHITE,false);
+  tft.fillScreen(ST77XX_BLACK);
+  PageConfig& p=cfg.pages[cfg.tftPage-1]; WidgetConfig& w=p.widgets[rtWidget];
+  drawCyrillicText(w.label.substring(0,30),5,13,0x07FF,false);
+
+  // A compact preview of the text being edited, with a caret at the insertion point.
+  String view=rtBuffer.substring(0,rtCursor)+"_"+rtBuffer.substring(rtCursor);
+  String line=""; int y=31; uint8_t lines=0;
+  for(size_t pos=0;pos<view.length()&&lines<4;){
+    String g=rtChar(view,pos);
+    if(g=="\n"||u8g2Fonts.getUTF8Width((line+g).c_str())>228){
+      drawCyrillicText(line,5,y,ST77XX_WHITE,false); line=""; y+=15; lines++;
+      if(g=="\n"){pos++;continue;}
+    } else line+=g;
+    pos+=g.length();
+  }
+  if(lines<4&&line.length())drawCyrillicText(line,5,y,ST77XX_WHITE,false);
+
+  const int x0=2, y0=96, cellW=23, cellH=29;
+  for(uint8_t row=0;row<6;row++){
+    for(uint8_t col=0;col<10;col++){
+      int x=x0+col*cellW, yk=y0+row*cellH;
+      bool selected=(row==rtKeyRow&&col==rtKeyCol);
+      if(selected)tft.fillRoundRect(x,yk,cellW-1,cellH-2,3,0x03EF);
+      else tft.drawRoundRect(x,yk,cellW-1,cellH-2,3,0x4208);
+      String key=rtKeyAt(row,col);
+      int tw=u8g2Fonts.getUTF8Width(key.c_str());
+      int tx=x+(cellW-tw)/2;
+      if(tx<x+1)tx=x+1;
+      drawCyrillicText(key,tx,yk+19,selected?ST77XX_WHITE:0xBDF7,false);
+    }
+  }
 }
 static void rtOpen(){
   if(!rtCount()){tft.fillScreen(ST77XX_BLACK);drawCyrillicText("Нет текстовых блоков",8,35,ST77XX_WHITE,true);drawCyrillicText("Добавь блок в веб-админке",8,62,0xBDF7,false);delay(900);renderTFT();return;}
@@ -384,29 +423,11 @@ static void rtOpen(){
 static void rtEdit(){
   rtWidget=rtIndex(rtPick);if(rtWidget<0){rtMode=RT_CLOSED;renderTFT();return;}
   rtBuffer=cfg.pages[cfg.tftPage-1].widgets[rtWidget].text;if(rtBuffer.length()>240)rtBuffer=rtBuffer.substring(0,240);
-  rtCursor=rtBuffer.length();rtMode=RT_EDIT;rtLastKey=0;rtLastChar="";rtDrawEditor();
+  rtCursor=rtBuffer.length();rtMode=RT_EDIT;rtKeyRow=1;rtKeyCol=0;rtUpper=true;rtRussian=true;rtDrawEditor();
 }
-static String rtGroup(uint32_t k){
-  if(k==IR_CODE_2)return rtRussian?(rtUpper?"АБВГДЕЁЖЗ":"абвгдеёжз"):(rtUpper?"ABC":"abc");
-  if(k==IR_CODE_3)return rtRussian?(rtUpper?"ИЙКЛМНОПР":"ийклмнопр"):(rtUpper?"DEF":"def");
-  if(k==IR_CODE_4)return rtRussian?(rtUpper?"СТУФХЦЧШЩ":"стуфхцчшщ"):(rtUpper?"GHI":"ghi");
-  if(k==IR_CODE_5)return rtRussian?(rtUpper?"ЪЫЬЭЮЯ":"ъыьэюя"):(rtUpper?"JKL":"jkl");
-  if(k==IR_CODE_6)return rtUpper?"MNO":"mno";
-  if(k==IR_CODE_7)return rtUpper?"PQRS":"pqrs";
-  if(k==IR_CODE_8)return rtUpper?"TUV":"tuv";
-  if(k==IR_CODE_9)return rtUpper?"WXYZ":"wxyz";
-  if(k==IR_CODE_0)return "0 .,!?@#$%&*-_+=";
-  if(k==IR_CODE_1)return "1:;/()[]";
-  return "";
-}
-static void rtInsert(String ch,uint32_t key){
-  if(!ch.length())return;
-  bool replace=(key==rtLastKey&&millis()-rtLastAt<950&&rtLastChar.length());
-  if(replace){rtBuffer.remove(rtLastStart,rtLastChar.length());rtCursor=rtLastStart;}
-  else rtLastStart=rtCursor;
-  if(rtBuffer.length()+ch.length()>240)return;
-  rtBuffer=rtBuffer.substring(0,rtCursor)+ch+rtBuffer.substring(rtCursor);rtCursor+=ch.length();
-  rtLastKey=key;rtLastAt=millis();rtLastChar=ch;rtDrawEditor();
+static void rtInsert(String ch){
+  if(!ch.length()||rtBuffer.length()+ch.length()>240)return;
+  rtBuffer=rtBuffer.substring(0,rtCursor)+ch+rtBuffer.substring(rtCursor);rtCursor+=ch.length();rtDrawEditor();
 }
 static void rtSave(){
   if(rtWidget>=0&&cfg.tftPage>=1&&cfg.tftPage<=cfg.pageCount){
@@ -425,21 +446,25 @@ static void rtHandle(uint32_t k){
     return;
   }
   if(rtMode!=RT_EDIT)return;
-  if(k==IR_CODE_OK){rtSave();return;}
   if(k==IR_CODE_MENU){rtMode=RT_CLOSED;renderTFT();return;}
-  if(k==IR_CODE_AUDIO){rtRussian=!rtRussian;rtLastKey=0;rtDrawEditor();return;}
-  if(k==IR_CODE_SETUP){rtUpper=!rtUpper;rtLastKey=0;rtDrawEditor();return;}
-  if(k==IR_CODE_LEFT){rtCursor=rtPrev(rtBuffer,rtCursor);rtLastKey=0;rtDrawEditor();return;}
-  if(k==IR_CODE_RIGHT){if(rtCursor<rtBuffer.length())rtCursor+=rtBytes(rtBuffer,rtCursor);rtLastKey=0;rtDrawEditor();return;}
-  if(k==IR_CODE_BACK){if(rtCursor){size_t q=rtPrev(rtBuffer,rtCursor);rtBuffer.remove(q,rtCursor-q);rtCursor=q;}rtLastKey=0;rtLastChar="";rtDrawEditor();return;}
-  if(k==IR_CODE_DOWN){rtInsert("\n",0);return;}
-  String g=rtGroup(k);if(!g.length())return;
-  if(k==rtLastKey&&millis()-rtLastAt<950&&rtLastChar.length()){
-    size_t pos=0;bool found=false;
-    while(pos<g.length()){String c=rtChar(g,pos);if(c==rtLastChar){pos+=c.length();found=true;break;}pos+=c.length();}
-    if(!found||pos>=g.length())pos=0;
-    rtInsert(rtChar(g,pos),k);
-  }else rtInsert(rtChar(g,0),k);
+  if(k==IR_CODE_UP){rtKeyRow=rtKeyRow?rtKeyRow-1:5;rtDrawEditor();return;}
+  if(k==IR_CODE_DOWN){rtKeyRow=(rtKeyRow+1)%6;rtDrawEditor();return;}
+  if(k==IR_CODE_LEFT){rtKeyCol=rtKeyCol?rtKeyCol-1:9;rtDrawEditor();return;}
+  if(k==IR_CODE_RIGHT){rtKeyCol=(rtKeyCol+1)%10;rtDrawEditor();return;}
+  if(k==IR_CODE_OK){
+    String key=rtKeyAt(rtKeyRow,rtKeyCol);
+    if(key=="SP")rtInsert(" ");
+    else if(key=="DEL"){if(rtCursor){size_t q=rtPrev(rtBuffer,rtCursor);rtBuffer.remove(q,rtCursor-q);rtCursor=q;rtDrawEditor();}}
+    else if(key=="NL")rtInsert("\n");
+    else if(key=="RU"){rtRussian=!rtRussian;rtDrawEditor();}
+    else if(key=="Aa"){rtUpper=!rtUpper;rtDrawEditor();}
+    else if(key=="SAVE")rtSave();
+    else rtInsert(key);
+    return;
+  }
+  // Convenient remote shortcuts remain available; the on-screen keys are the primary controls.
+  if(k==IR_CODE_BACK){if(rtCursor){size_t q=rtPrev(rtBuffer,rtCursor);rtBuffer.remove(q,rtCursor-q);rtCursor=q;rtDrawEditor();}return;}
+  if(k==IR_CODE_START){rtSave();return;}
 }
 
 // Change the physical TFT page without writing flash on every button press.
