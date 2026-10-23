@@ -198,6 +198,9 @@ static bool exchangePacket() {
     return false;
   }
 
+  // Give the ESP32 slave receive callback a brief chance to validate the frame
+  // and prepare the matching acknowledgement before the immediate read.
+  delay(2);
   uint8_t count = Wire.requestFrom(ESP32_ADDRESS, (uint8_t)3);
   if (count != 3) {
     while (Wire.available()) Wire.read();
