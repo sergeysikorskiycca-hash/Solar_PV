@@ -81,6 +81,7 @@ static bool rtcPresent = false;
 static bool lastAckOk = false;
 static uint8_t lastAckStatus = 0xFF;
 static bool espNowReady = false;
+static uint8_t lastClockCommandSequence = 0xFF;
 
 static uint8_t crc8(const uint8_t* data, size_t length) {
   uint8_t crc = 0;
@@ -90,6 +91,18 @@ static uint8_t crc8(const uint8_t* data, size_t length) {
       crc = (crc & 0x80) ? (uint8_t)((crc << 1) ^ 0x07) : (uint8_t)(crc << 1);
   }
   return crc;
+}
+
+static uint8_t toBcd(uint8_t value) { return (uint8_t)(((value / 10) << 4) | (value % 10)); }
+
+static bool writeRtc(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
+  if (year < 2000 || year > 2099 || month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) return false;
+  Wire.beginTransmission(RTC_ADDRESS);
+  Wire.write((uint8_t)0x00);
+  Wire.write(toBcd(second)); Wire.write(toBcd(minute)); Wire.write(toBcd(hour));
+  Wire.write((uint8_t)1); // day of week (not otherwise used by the UI)
+  Wire.write(toBcd(day)); Wire.write(toBcd(month)); Wire.write(toBcd((uint8_t)(year - 2000)));
+  return Wire.endTransmission() == 0;
 }
 
 static uint8_t fromBcd(uint8_t value) {
@@ -201,8 +214,8 @@ static bool exchangePacket() {
   // Give the ESP32 slave receive callback a brief chance to validate the frame
   // and prepare the matching acknowledgement before the immediate read.
   delay(2);
-  uint8_t count = Wire.requestFrom(ESP32_ADDRESS, (uint8_t)3);
-  if (count != 3) {
+  uint8_t count = Wire.requestFrom(ESP32_ADDRESS, (uint8_t)12);
+  if (count != 12) {
     while (Wire.available()) Wire.read();
     lastAckOk = false;
     lastAckStatus = 0xFE;
@@ -212,8 +225,17 @@ static bool exchangePacket() {
   uint8_t ackMagic = Wire.read();
   uint8_t ackSequence = Wire.read();
   uint8_t ackStatus = Wire.read();
+  uint8_t commandType = Wire.read();
+  uint8_t commandSequence = Wire.read();
+  uint16_t commandYear = (uint16_t)Wire.read(); commandYear |= (uint16_t)Wire.read() << 8;
+  uint8_t commandMonth = Wire.read(), commandDay = Wire.read(), commandHour = Wire.read(), commandMinute = Wire.read(), commandSecond = Wire.read();
   lastAckStatus = ackStatus;
   lastAckOk = ackMagic == ACK_MAGIC && ackSequence == packet.sequence && ackStatus == 0;
+  if (commandType == 1 && commandSequence != lastClockCommandSequence) {
+    bool clockWritten = writeRtc(commandYear, commandMonth, commandDay, commandHour, commandMinute, commandSecond);
+    if (clockWritten) { lastClockCommandSequence = commandSequence; rtcPresent = readRtc(); Serial.printf("RTC set from ESP32: %04u-%02u-%02u %02u:%02u:%02u\\n", (unsigned)commandYear, (unsigned)commandMonth, (unsigned)commandDay, (unsigned)commandHour, (unsigned)commandMinute, (unsigned)commandSecond); }
+    else Serial.println(F("ERROR: RTC write command failed."));
+  }
   return lastAckOk;
 }
 
