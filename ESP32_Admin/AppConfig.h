@@ -19,7 +19,8 @@ struct WidgetConfig {
   String text;      // Free text for text widgets; supports UTF-8 and line breaks.
   uint8_t headingSize, contentSize;
   uint8_t stringCount; // Number of PV strings shown by a strings widget.
-  bool locked; // Prevents accidental position and size changes in the web editor.
+  bool locked; // Prevents accidental position and size changes in the web editor
+  bool showHeading; // Hide redundant widget heading when false.
   uint8_t headingAlign, contentAlign;
   uint8_t headingColor, contentColor;
   uint8_t backgroundColor; // 0 = near-black; 1..5 = dark background presets
@@ -29,6 +30,7 @@ struct WidgetConfig {
 
 struct PageConfig {
   String title;
+  bool showTitle; // Whether to draw this page title on the TFT
   uint8_t widgetCount;
   WidgetConfig widgets[MAX_WIDGETS_PER_PAGE];
 };
