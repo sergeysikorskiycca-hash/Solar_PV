@@ -396,7 +396,7 @@ static void rtDrawEditor(){
   PageConfig& p=cfg.pages[cfg.tftPage-1];
   if (rtWifiPassword) drawCyrillicText("ПАРОЛЬ WI-FI",5,13,0x07FF,false);
   else { WidgetConfig& w=p.widgets[rtWidget]; drawCyrillicText(w.label.substring(0,30),5,13,0x07FF,false); }
-  drawCyrillicText(rtSymbolsPage ? "123 / SEARCH: ABC" : "ABC / SEARCH: 123",150,13,0x07FF,false);
+  drawCyrillicText(rtSymbolsPage ? "123" : "ABC",205,13,0x07FF,false);
 
   // A compact preview of the text being edited, with a caret at the insertion point.
   String preview=rtBuffer;
