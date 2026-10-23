@@ -40,8 +40,10 @@ bool gatewayTimeValid = false;
 uint32_t gatewayLastPacketMs = 0;
 uint16_t gatewayYear = 0;
 uint8_t gatewayMonth = 0, gatewayDay = 0, gatewayHour = 0, gatewayMinute = 0, gatewaySecond = 0;
-int16_t gatewaySensors[4] = {0, 0, 0, 0};
-uint8_t gatewaySensorValidMask = 0;
+uint8_t gatewaySensorId = 0;
+float gatewayVoltage = 0.0f, gatewayCurrent = 0.0f, gatewayPower = 0.0f, gatewayShuntVoltage = 0.0f;
+uint16_t gatewaySensorPacketNumber = 0;
+bool gatewaySensorValid = false;
 static uint32_t lastIndicatorDraw = 0;
 static uint32_t lastGatewayLogMs = 0;
 bool webStarted = false;
@@ -345,15 +347,16 @@ struct GatewayPacket {
   uint8_t magic;
   uint8_t version;
   uint8_t sequence;
-  uint8_t flags;             // bit 0: RTC time valid
+  uint8_t flags;             // bit 0: RTC valid, bit 1: sensor data valid
   uint16_t year;
   uint8_t month, day, hour, minute, second;
-  int16_t sensor[4];         // reserved telemetry slots; units defined per sensor
-  uint8_t sensorValidMask;   // bits 0..3 indicate valid sensor slots
+  uint8_t sensorId;
+  float voltage, current, power, shuntVoltage;
+  uint16_t sensorPacketNumber;
   uint8_t crc;
 };
 #pragma pack(pop)
-static_assert(sizeof(GatewayPacket) == 21, "GatewayPacket size mismatch");
+static_assert(sizeof(GatewayPacket) == 31, "GatewayPacket size mismatch");
 static volatile uint8_t gatewayRxRaw[sizeof(GatewayPacket)];
 static volatile uint8_t gatewayRxLength = 0;
 static volatile bool gatewayRxPending = false;
@@ -429,14 +432,30 @@ static void processGatewayPacket() {
       gatewayTimeValid = (packet.flags & 0x01) != 0;
       gatewayYear = packet.year; gatewayMonth = packet.month; gatewayDay = packet.day;
       gatewayHour = packet.hour; gatewayMinute = packet.minute; gatewaySecond = packet.second;
-      gatewaySensorValidMask = packet.sensorValidMask;
-      for (uint8_t i = 0; i < 4; ++i) gatewaySensors[i] = packet.sensor[i];
+      gatewaySensorValid = (packet.flags & 0x02) != 0;
+      gatewaySensorId = packet.sensorId;
+      gatewayVoltage = packet.voltage;
+      gatewayCurrent = packet.current;
+      gatewayPower = packet.power;
+      gatewayShuntVoltage = packet.shuntVoltage;
+      gatewaySensorPacketNumber = packet.sensorPacketNumber;
       gatewayOnline = true;
-      if (gatewayTimeValid && millis() - lastGatewayLogMs >= 1000UL) {
+      if (millis() - lastGatewayLogMs >= 1000UL) {
         lastGatewayLogMs = millis();
-        Serial.printf("Gateway RTC: %04u-%02u-%02u %02u:%02u:%02u | sensor mask=0x%02X\\n",
-                      gatewayYear, gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond,
-                      gatewaySensorValidMask);
+        if (gatewayTimeValid) {
+          Serial.printf("Gateway RTC: %04u-%02u-%02u %02u:%02u:%02u",
+                        (unsigned)gatewayYear, (unsigned)gatewayMonth, (unsigned)gatewayDay,
+                        (unsigned)gatewayHour, (unsigned)gatewayMinute, (unsigned)gatewaySecond);
+        } else {
+          Serial.print(F("Gateway RTC: unavailable"));
+        }
+        if (gatewaySensorValid) {
+          Serial.printf(" | sensor %u: %.2f V, %.3f A, %.1f W, shunt %.3f mV, packet %u\\n",
+                        (unsigned)gatewaySensorId, gatewayVoltage, gatewayCurrent, gatewayPower,
+                        gatewayShuntVoltage, (unsigned)gatewaySensorPacketNumber);
+        } else {
+          Serial.println(F(" | sensor data unavailable"));
+        }
       }
     } else {
       gatewayAckStatus = 1;
