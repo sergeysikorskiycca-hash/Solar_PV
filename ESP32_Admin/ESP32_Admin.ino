@@ -426,8 +426,8 @@ static void gatewayOnReceive(int count) {
 }
 static void gatewayOnRequest() {
   // ACK plus one-shot RTC command. The gateway de-duplicates by command sequence.
-  uint8_t response[11] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus,
-    (uint8_t)(clockCommandPending ? clockCommandType : 0),
+  uint8_t response[12] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus,
+    (uint8_t)(clockCommandPending ? clockCommandType : 0), clockCommandSequence,
     (uint8_t)(clockCommandYear & 0xFF), (uint8_t)(clockCommandYear >> 8),
     clockCommandMonth, clockCommandDay, clockCommandHour, clockCommandMinute, clockCommandSecond };
   Wire.write(response, sizeof(response));
