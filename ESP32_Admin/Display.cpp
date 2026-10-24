@@ -1,6 +1,14 @@
 #include "Display.h"
 #include "AppConfig.h"
 #include <WiFi.h>
+
+// Live telemetry received from the ESP8266 gateway over I2C.
+extern bool gatewayOnline;
+extern bool gatewaySensorValid;
+extern float gatewayVoltage, gatewayCurrent, gatewayPower, gatewayShuntVoltage;
+extern uint8_t gatewaySensorId;
+extern uint16_t gatewaySensorPacketNumber;
+
 extern bool routerModeEnabled;
 extern bool setupApEnabled;
 extern bool wifiControlPendingRouter;
@@ -132,8 +140,16 @@ void drawWidget(const WidgetConfig& widget) {
     else {drawLine("Роутер не подключён");drawLine("Сеть: "+cfg.ssid);}
     if(apActive&&lineY<y+h-4){drawLine("Точка настройки:");drawLine("IP: "+WiFi.softAPIP().toString());} return;
   }
-  String value="DEMO";
-  if(widget.type=="power")value="DEMO W";else if(widget.type=="voltage")value="DEMO V";else if(widget.type=="current")value="DEMO A";else if(widget.type=="battery")value="DEMO %";
+  String value = "--";
+  if (widget.type == "power") {
+    value = gatewayOnline && gatewaySensorValid ? String(gatewayPower, 1) + " W" : "-- W";
+  } else if (widget.type == "voltage") {
+    value = gatewayOnline && gatewaySensorValid ? String(gatewayVoltage, 1) + " V" : "-- V";
+  } else if (widget.type == "current") {
+    value = gatewayOnline && gatewaySensorValid ? String(gatewayCurrent, 2) + " A" : "-- A";
+  } else if (widget.type == "battery") {
+    value = "-- %"; // Battery percentage is not supplied by the PV sensor.
+  }
   drawAlignedText(value,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
 }
 extern bool gatewayOnline;
@@ -296,7 +312,15 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
       out[count] = "OK: изменить (5 сек.)"; colors[count++] = 0xBDF7;
     }
   } else if (widget.type == "power" || widget.type == "voltage" || widget.type == "current" || widget.type == "battery") {
-    out[count] = widget.type == "power" ? "DEMO W" : widget.type == "voltage" ? "DEMO V" : widget.type == "current" ? "DEMO A" : "DEMO %";
+    if (widget.type == "power") {
+      out[count] = gatewayOnline && gatewaySensorValid ? String(gatewayPower, 1) + " W" : "-- W";
+    } else if (widget.type == "voltage") {
+      out[count] = gatewayOnline && gatewaySensorValid ? String(gatewayVoltage, 1) + " V" : "-- V";
+    } else if (widget.type == "current") {
+      out[count] = gatewayOnline && gatewaySensorValid ? String(gatewayCurrent, 2) + " A" : "-- A";
+    } else {
+      out[count] = "-- %"; // Battery percentage is not supplied by the PV sensor.
+    }
     colors[count++] = widgetColor(widget.contentColor);
   }
 }
