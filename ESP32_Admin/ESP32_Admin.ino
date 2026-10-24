@@ -963,6 +963,12 @@ void loop() {
     ESP.restart();
   }
 
+  static uint32_t lastWifiControlRefresh = 0;
+  if (wifiControlApplyPending && rtMode == RT_CLOSED && millis() - lastWifiControlRefresh >= 1000UL) {
+    lastWifiControlRefresh = millis();
+    refreshWifiControlWidget();
+  }
+
   if (wifiControlApplyPending && (long)(millis() - wifiControlApplyAt) >= 0) {
     routerModeEnabled = wifiControlPendingRouter;
     setupApEnabled = wifiControlPendingAp;
