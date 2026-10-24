@@ -91,6 +91,9 @@ uint8_t gatewaySensorId = 0;
 float gatewayVoltage = 0.0f, gatewayCurrent = 0.0f, gatewayPower = 0.0f, gatewayShuntVoltage = 0.0f;
 uint16_t gatewaySensorPacketNumber = 0;
 bool gatewaySensorValid = false;
+// RSSI reported by the ESP8266 gateway for the latest ESP-NOW sensor packet.
+int8_t gatewayEspNowRssi = -127;
+bool gatewayEspNowRssiValid = false;
 static uint32_t lastIndicatorDraw = 0;
 static uint32_t lastGatewayLogMs = 0;
 bool webStarted = false;
@@ -447,10 +450,11 @@ struct GatewayPacket {
   uint8_t sensorId;
   float voltage, current, power, shuntVoltage;
   uint16_t sensorPacketNumber;
+  int8_t espNowRssi;          // dBm; valid when flags bit 2 is set
   uint8_t crc;
 };
 #pragma pack(pop)
-static_assert(sizeof(GatewayPacket) == 31, "GatewayPacket size mismatch");
+static_assert(sizeof(GatewayPacket) == 32, "GatewayPacket size mismatch");
 static volatile uint8_t gatewayRxRaw[sizeof(GatewayPacket)];
 static volatile uint8_t gatewayRxLength = 0;
 static volatile bool gatewayRxPending = false;
@@ -539,6 +543,8 @@ static void processGatewayPacket() {
       gatewayPower = packet.power;
       gatewayShuntVoltage = packet.shuntVoltage;
       gatewaySensorPacketNumber = packet.sensorPacketNumber;
+      gatewayEspNowRssi = packet.espNowRssi;
+      gatewayEspNowRssiValid = gatewaySensorValid && ((packet.flags & 0x04) != 0);
       gatewayOnline = true;
       if (millis() - lastGatewayLogMs >= 1000UL) {
         lastGatewayLogMs = millis();
