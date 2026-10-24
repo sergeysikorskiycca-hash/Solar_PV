@@ -2,46 +2,38 @@
 #include <WiFi.h>
 #include "AppConfig.h"
 #include "Display.h"
-
 extern bool apActive;
 extern unsigned long disconnectedSince;
-
-void startAccessPoint() {
-  if (apActive) return;
-  if (cfg.ssid.length() > 0) WiFi.mode(WIFI_AP_STA);
-  else WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
-  apActive = WiFi.softAP("SolarPV-Setup", "SolarPV8266");
-  Serial.println();
-  Serial.println(F("Setup access point requested."));
-  Serial.println(F("SSID: SolarPV-Setup"));
-  Serial.println(F("Open http://192.168.4.1"));
-  renderTFT();
-}
-
-void connectWiFiAtBoot() {
-  if (cfg.ssid.length() == 0) {
-    startAccessPoint();
-    return;
-  }
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(cfg.ssid.c_str(), cfg.password.c_str());
-  Serial.print(F("Connecting to configured Wi-Fi"));
-  unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000UL) {
-    delay(250);
-    Serial.print('.');
-  }
-  Serial.println();
-  if (WiFi.status() == WL_CONNECTED) {
-    disconnectedSince = 0;
-    Serial.print(F("Connected. IP: "));
-    Serial.println(WiFi.localIP());
-    startAccessPoint();
+extern const char* AP_SSID;
+extern const char* AP_PASS;
+bool routerModeEnabled = false;
+bool setupApEnabled = true;
+void applyWiFiMode() {
+  const bool wasAp = apActive;
+  if (setupApEnabled && routerModeEnabled) {
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.softAPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
+    if (!apActive) apActive = WiFi.softAP(AP_SSID, AP_PASS);
+    if (cfg.ssid.length() && WiFi.status() != WL_CONNECTED) { WiFi.setAutoReconnect(true); WiFi.begin(cfg.ssid.c_str(), cfg.password.c_str()); }
+  } else if (setupApEnabled) {
+    if (WiFi.status() == WL_CONNECTED) WiFi.disconnect(false, false);
+    WiFi.mode(WIFI_AP);
+    WiFi.softAPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
+    if (!apActive) apActive = WiFi.softAP(AP_SSID, AP_PASS);
+  } else if (routerModeEnabled) {
+    if (apActive) WiFi.softAPdisconnect(true);
+    apActive = false; WiFi.mode(WIFI_STA); WiFi.setAutoReconnect(true);
+    if (cfg.ssid.length() && WiFi.status() != WL_CONNECTED) WiFi.begin(cfg.ssid.c_str(), cfg.password.c_str());
   } else {
-    Serial.println(F("Wi-Fi connection failed; enabling setup AP."));
-    startAccessPoint();
-    disconnectedSince = millis();
+    if (apActive) WiFi.softAPdisconnect(true);
+    apActive = false; WiFi.disconnect(true, false); WiFi.mode(WIFI_OFF);
   }
+  disconnectedSince = 0;
+  Serial.printf("Wi-Fi mode: router=%s, setupAP=%s\n", routerModeEnabled?"ON":"OFF", setupApEnabled?"ON":"OFF");
+  if (wasAp != apActive) renderTFT();
+}
+void startAccessPoint() { if (setupApEnabled && !apActive) applyWiFiMode(); }
+void connectWiFiAtBoot() {
+  routerModeEnabled = false; setupApEnabled = true;
+  WiFi.persistent(false); WiFi.setAutoReconnect(false); applyWiFiMode();
 }
