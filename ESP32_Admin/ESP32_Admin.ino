@@ -56,7 +56,7 @@ static void refreshWifiControlWidget() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
   for (uint8_t i = 0; i < page.widgetCount; ++i)
-    if (page.widgets[i].enabled && page.widgets[i].type == "wifiControl") drawWidget(page.widgets[i]);
+    if (page.widgets[i].enabled && page.widgets[i].type == "wifiControl") updateWidgetIncremental(page.widgets[i], cfg.tftPage - 1, i);
 }
 static void handleInlineWifiControl(uint32_t code) {
   if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
@@ -996,25 +996,13 @@ void loop() {
   // Runtime switches are authoritative; never auto-enable a disabled interface.
   if (routerModeEnabled && WiFi.status() == WL_CONNECTED) disconnectedSince = 0;
 
-  static uint8_t lastClockSecond = 255;
-  if (rtMode == RT_CLOSED && gatewayTimeValid && gatewaySecond != lastClockSecond && cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
-    lastClockSecond = gatewaySecond;
-    PageConfig& cp = cfg.pages[cfg.tftPage - 1];
-    for (uint8_t i = 0; i < cp.widgetCount; ++i) {
-      if (cp.widgets[i].enabled && cp.widgets[i].type == "clock") updateClockWidget(cp.widgets[i]);
-    }
-  }
-
-  // Refresh only Wi-Fi widget regions, not the entire TFT page.
-  if (millis() - lastStatusDraw >= 15000UL) {
-    lastStatusDraw = millis();
-    bool hasDynamicWidget = false;
-    if (cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
-      PageConfig& page = cfg.pages[cfg.tftPage - 1];
-      for (uint8_t i = 0; i < page.widgetCount; i++) {
-        if (page.widgets[i].enabled && page.widgets[i].type == "wifiStatus") drawWidget(page.widgets[i]);
-      }
-    }
-    (void)hasDynamicWidget;
+  // Common incremental renderer checks each visible widget; only changed lines are painted.
+  static uint32_t lastIncrementalRefresh = 0;
+  if (rtMode == RT_CLOSED && millis() - lastIncrementalRefresh >= 500UL &&
+      cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
+    lastIncrementalRefresh = millis();
+    PageConfig& visiblePage = cfg.pages[cfg.tftPage - 1];
+    for (uint8_t i = 0; i < visiblePage.widgetCount && i < MAX_WIDGETS_PER_PAGE; ++i)
+      updateWidgetIncremental(visiblePage.widgets[i], cfg.tftPage - 1, i);
   }
 }
