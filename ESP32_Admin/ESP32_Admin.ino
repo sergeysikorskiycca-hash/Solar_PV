@@ -525,6 +525,8 @@ static bool rtWifiPassword = false;
 static String rtWifiNetworks[20];
 static bool rtWifiSecure[20];
 static uint8_t rtWifiCount = 0, rtWifiPick = 0;
+static uint8_t rtWifiModeRow = 0;
+static bool rtPendingRouter = false, rtPendingAp = true;
 static String rtWifiSelectedSSID;
 static uint16_t rtClockYear=2026;
 static uint8_t rtClockMonth=1, rtClockDay=1, rtClockHour=0, rtClockMinute=0, rtClockSecond=0, rtClockField=0;
@@ -636,22 +638,21 @@ static void rtDrawEditor(){
 
 static void rtWifiDrawMenu(const String& message = "") {
   tft.fillScreen(ST77XX_BLACK);
-  drawCyrillicText("УПРАВЛЕНИЕ WI-FI",5,20,0x07FF,true);
-  drawCyrillicText("1: роутер  2: точка",5,63,0xFFE0,false);
-  drawCyrillicText("3: выключить обе",5,82,0xFFE0,false);
-  if(message.length()) drawCyrillicText(message.substring(0,31),5,43,ST77XX_WHITE,false);
-  else if(WiFi.status()==WL_CONNECTED) drawCyrillicText("Подключено: "+WiFi.SSID().substring(0,20),5,43,ST77XX_WHITE,false);
-  else drawCyrillicText("Нет подключения к роутеру",5,43,ST77XX_WHITE,false);
-  drawCyrillicText("SEARCH: поиск сетей",5,65,0xBDF7,false);
-  if(!rtWifiCount) drawCyrillicText("Нажми SEARCH для поиска",5,100,0xBDF7,false);
-  int first=rtWifiPick>5?rtWifiPick-5:0;
-  for(uint8_t row=0;row<6&&first+row<rtWifiCount;row++){
-    uint8_t idx=first+row; int y=99+row*31;
-    if(idx==rtWifiPick)tft.fillRoundRect(3,y-15,234,27,3,0x03EF);
-    String name=rtWifiNetworks[idx]; if(name.length()>23)name=name.substring(0,23);
-    drawCyrillicText(String(idx==rtWifiPick?"> ":"  ")+name+(rtWifiSecure[idx]?" *":""),7,y+2,ST77XX_WHITE,false);
+  drawCyrillicText("УПРАВЛЕНИЕ WI-FI",5,22,0x07FF,true);
+  drawCyrillicText("ВВЕРХ/ВНИЗ: строка",5,47,0xBDF7,false);
+  drawCyrillicText("ВЛЕВО/ВПРАВО: изменить",5,64,0xBDF7,false);
+
+  const char* labels[2] = {"СЕТЬ Роутер", "ТОЧКА ДОСТУПА"};
+  bool values[2] = {rtPendingRouter, rtPendingAp};
+  for (uint8_t row = 0; row < 2; ++row) {
+    int y = 105 + row * 48;
+    if (row == rtWifiModeRow) tft.fillRoundRect(4,y-22,232,36,4,0x03EF);
+    drawCyrillicText(labels[row],10,y,ST77XX_WHITE,false);
+    drawCyrillicText(values[row] ? "[ V ]" : "[   ]",181,y,values[row]?0x07E0:0xF800,false);
   }
-  drawCyrillicText("OK: выбрать BACK: выход",5,307,0xBDF7,false);
+  if (message.length()) drawCyrillicText(message.substring(0,30),5,225,ST77XX_YELLOW,false);
+  else drawCyrillicText("OK: применить  SEARCH: сети",5,225,0xBDF7,false);
+  drawCyrillicText("MENU/BACK: выход",5,307,0xBDF7,false);
 }
 static void rtWifiScan() {
   if(!routerModeEnabled && !setupApEnabled){rtWifiDrawMenu("Сначала включи Wi-Fi (1 или 2)");return;}
@@ -680,7 +681,8 @@ static void rtWifiConnect(const String& ssid,const String& password) {
   Serial.printf("IR Wi-Fi: connecting to SSID '%s'\\n",ssid.c_str());
 }
 static void rtOpenWifi() {
-  rtMode=RT_WIFI_MENU; rtWifiCount=0; rtWifiPick=0; rtWifiDrawMenu();
+  rtMode=RT_WIFI_MENU; rtWifiCount=0; rtWifiPick=0; rtWifiModeRow=0;
+  rtPendingRouter=routerModeEnabled; rtPendingAp=setupApEnabled; rtWifiDrawMenu();
 }
 static void rtWifiChoose() {
   if(rtWifiPick>=rtWifiCount)return;
@@ -781,13 +783,21 @@ static void rtHandle(uint32_t k){
   }
   if(rtMode==RT_WIFI_MENU){
     if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtMode=RT_CLOSED;renderTFT();return;}
-    if(k==IR_CODE_1){routerModeEnabled=!routerModeEnabled;applyWiFiMode();rtWifiDrawMenu(routerModeEnabled?"Роутер: ВКЛ":"Роутер: ВЫКЛ");return;}
-    if(k==IR_CODE_2){setupApEnabled=!setupApEnabled;applyWiFiMode();rtWifiDrawMenu(setupApEnabled?"Точка: ВКЛ":"Точка: ВЫКЛ");return;}
-    if(k==IR_CODE_3){routerModeEnabled=false;setupApEnabled=false;applyWiFiMode();rtWifiDrawMenu("Обе сети выключены");return;}
+    if(k==IR_CODE_UP){rtWifiModeRow=rtWifiModeRow?0:1;rtWifiDrawMenu();return;}
+    if(k==IR_CODE_DOWN){rtWifiModeRow=(rtWifiModeRow+1)%2;rtWifiDrawMenu();return;}
+    if(k==IR_CODE_LEFT||k==IR_CODE_RIGHT){
+      if(rtWifiModeRow==0)rtPendingRouter=!rtPendingRouter;else rtPendingAp=!rtPendingAp;
+      rtWifiDrawMenu();return;
+    }
+    if(k==IR_CODE_OK){
+      routerModeEnabled=rtPendingRouter;setupApEnabled=rtPendingAp;applyWiFiMode();
+      rtWifiDrawMenu("Настройки Wi-Fi применены");return;
+    }
+    if(k==IR_CODE_1){rtPendingRouter=!rtPendingRouter;rtWifiDrawMenu();return;}
+    if(k==IR_CODE_2){rtPendingAp=!rtPendingAp;rtWifiDrawMenu();return;}
+    if(k==IR_CODE_3){rtPendingRouter=false;rtPendingAp=false;rtWifiDrawMenu();return;}
     if(k==IR_CODE_SEARCH){rtWifiScan();return;}
-    if(k==IR_CODE_UP&&rtWifiCount){rtWifiPick=rtWifiPick?rtWifiPick-1:rtWifiCount-1;rtWifiDrawMenu();return;}
-    if(k==IR_CODE_DOWN&&rtWifiCount){rtWifiPick=(rtWifiPick+1)%rtWifiCount;rtWifiDrawMenu();return;}
-    if(k==IR_CODE_OK){rtWifiChoose();return;}
+    if(rtWifiCount && k==IR_CODE_OK){rtWifiChoose();return;}
     return;
   }
   if(rtMode!=RT_EDIT)return;
