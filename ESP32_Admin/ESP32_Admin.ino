@@ -21,6 +21,9 @@
 #include "AppConfig.h"
 #include "ConfigStore.h"
 #include "Display.h"
+
+// Explicit declaration keeps incremental widget refresh visible to Arduino's sketch preprocessor.
+void drawWidget(const WidgetConfig& widget);
 #include "WifiManager.h"
 #include "WebAdmin.h"
 #include "WebPage.h"
