@@ -37,6 +37,8 @@ struct PageConfig {
 };
 
 struct AppConfig {
+  bool defaultRouterMode;
+  bool defaultSetupAp;
   String ssid;
   String password;
   String title;
