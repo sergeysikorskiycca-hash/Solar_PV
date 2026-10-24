@@ -3,7 +3,7 @@
 #include <WiFi.h>
 
 static const uint16_t WIDGET_COLORS[6] = { ST77XX_WHITE, 0x07FF, 0x07E0, 0xFFE0, 0xF800, 0xFD20 };
-static const uint8_t FONT_HEIGHTS[5] = {13, 14, 16, 15, 20};
+static const uint8_t FONT_HEIGHTS[6] = {13, 14, 16, 15, 20, 24};
 
 static void setWidgetFont(uint8_t size) {
   switch (size) {
@@ -12,7 +12,8 @@ static void setWidgetFont(uint8_t size) {
     // Use the same Cyrillic-capable Unifont face as the page heading for the standard widget text.
     case 2: u8g2Fonts.setFont(u8g2_font_unifont_t_cyrillic); break;
     case 3: u8g2Fonts.setFont(u8g2_font_9x15_t_cyrillic); break;
-    default: u8g2Fonts.setFont(u8g2_font_10x20_t_cyrillic); break;
+    case 4: u8g2Fonts.setFont(u8g2_font_10x20_t_cyrillic); break;
+    default: u8g2Fonts.setFont(u8g2_font_helvR24_t_cyrillic); break;
   }
 }
 static uint16_t widgetColor(uint8_t color) { return WIDGET_COLORS[color <= 5 ? color : 0]; }
@@ -74,7 +75,7 @@ void drawWidget(const WidgetConfig& widget) {
   if (!widget.enabled) return;
   const int x=widget.x, y=widget.y, w=widget.w, h=widget.h;
   tft.fillRoundRect(x,y,w,h,5,widgetBackground(widget.backgroundColor)); tft.drawRoundRect(x,y,w,h,5,0x5B6D);
-  uint8_t hs=widget.headingSize<=4?widget.headingSize:1, cs=widget.contentSize<=4?widget.contentSize:2;
+  uint8_t hs=widget.headingSize<=5?widget.headingSize:1, cs=widget.contentSize<=5?widget.contentSize:2;
   int headingBaseline=y+FONT_HEIGHTS[hs]+3;
   if (widget.showHeading) drawAlignedText(widget.label,x,headingBaseline,w,hs,widget.headingAlign,widget.headingColor);
   int contentBaseline=widget.showHeading ? headingBaseline+FONT_HEIGHTS[hs]/2+FONT_HEIGHTS[cs]+3 : y+FONT_HEIGHTS[cs]+5;
