@@ -17,3 +17,5 @@ void drawTFTIndicators();
 void renderTFT();
 void drawWidget(const WidgetConfig& widget);
 void updateClockWidget(const WidgetConfig& widget);
+void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint8_t widgetIndex);
+void resetIncrementalWidgetCache();
