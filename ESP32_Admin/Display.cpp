@@ -107,10 +107,17 @@ void drawWidget(const WidgetConfig& widget) {
   if(widget.type=="wifiControl") {
     int lineY=contentBaseline, lineHeight=FONT_HEIGHTS[cs]+4;
     auto line=[&](const String& s,uint16_t color){if(lineY<=y+h-4)drawAlignedText(s,x,lineY,w,cs,widget.contentAlign,color);lineY+=lineHeight;};
-    line(String("Роутер: ")+(routerModeEnabled?"ВКЛ":"ВЫКЛ"),routerModeEnabled?0x07E0:0xF800);
-    line(String("Точка: ")+(setupApEnabled?"ВКЛ":"ВЫКЛ"),setupApEnabled?0x07E0:0xF800);
-    line("Пульт: SETUP — меню",0xBDF7);
-    line("1: роутер  2: точка",0xBDF7);
+    bool router = wifiControlApplyPending ? wifiControlPendingRouter : routerModeEnabled;
+    bool ap = wifiControlApplyPending ? wifiControlPendingAp : setupApEnabled;
+    line(String(wifiControlSelectedRow==0?"> ":"  ")+"Роутер: "+(router?"ВКЛ":"ВЫКЛ"),wifiControlSelectedRow==0?0x07FF:(router?0x07E0:0xF800));
+    line(String(wifiControlSelectedRow==1?"> ":"  ")+"Точка: "+(ap?"ВКЛ":"ВЫКЛ"),wifiControlSelectedRow==1?0x07FF:(ap?0x07E0:0xF800));
+    if(wifiControlApplyPending) {
+      uint32_t remaining = (int32_t)(wifiControlApplyAt - millis()) > 0 ? (wifiControlApplyAt - millis() + 999UL) / 1000UL : 0;
+      line("Применение через "+String(remaining)+" сек.",0xFFE0);
+    } else {
+      line("ВВЕРХ/ВНИЗ: выбор",0xBDF7);
+      line("OK: изменить (5 сек.)",0xBDF7);
+    }
     return;
   }
   if(widget.type=="wifiStatus") {
