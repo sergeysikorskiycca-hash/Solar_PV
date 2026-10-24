@@ -3,6 +3,11 @@
 #include <WiFi.h>
 extern bool routerModeEnabled;
 extern bool setupApEnabled;
+extern bool wifiControlPendingRouter;
+extern bool wifiControlPendingAp;
+extern bool wifiControlApplyPending;
+extern uint8_t wifiControlSelectedRow;
+extern uint32_t wifiControlApplyAt;
 
 static const uint16_t WIDGET_COLORS[6] = { ST77XX_WHITE, 0x07FF, 0x07E0, 0xFFE0, 0xF800, 0xFD20 };
 static const uint8_t FONT_HEIGHTS[6] = {13, 14, 16, 15, 20, 24};
