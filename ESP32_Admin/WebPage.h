@@ -91,7 +91,9 @@ function renderCanvas(){
   node.appendChild(name);
   const lockButton=document.createElement('button');lockButton.type='button';lockButton.className='lock-toggle';lockButton.textContent=w.locked?'🔒':'🔓';lockButton.title=w.locked?'Разблокировать перемещение и размер':'Зафиксировать положение и размер';lockButton.setAttribute('aria-label',lockButton.title);
   lockButton.addEventListener('pointerdown',e=>e.stopPropagation());lockButton.addEventListener('click',e=>{e.stopPropagation();w.locked=!w.locked;selectedWidget=i;renderAll()});node.appendChild(lockButton);
-  if(w.type==='wifiStatus'){
+  if(w.type==='wifiControl'){
+   const lines=document.createElement('div');lines.className='wifi-lines';lines.textContent='Роутер: '+(wifiMode.router?'ВКЛ':'ВЫКЛ')+'\\nТочка: '+(wifiMode.ap?'ВКЛ':'ВЫКЛ')+'\\nПульт: SETUP, затем 1/2';lines.style.whiteSpace='pre-line';lines.style.fontSize=contentSizes[w.contentSize]+'px';lines.style.color=palette[w.contentColor];node.appendChild(lines);
+  }else if(w.type==='wifiStatus'){
    const lines=document.createElement('div');lines.className='wifi-lines';lines.textContent=networkStatus||'Состояние сети появится здесь';node.appendChild(lines);
    lines.style.fontSize=contentSizes[w.contentSize]+'px';lines.style.textAlign=['left','center','right'][w.contentAlign];lines.style.color=palette[w.contentColor];
   }else if(w.type==='clock'){
@@ -145,7 +147,7 @@ async function refreshDeviceState(){
   const p=Math.max(0,Math.min((Number(c.tftPage)||1)-1,Math.max(0,pages.length-1)));
   if(p!==devicePage){devicePage=p;if(followDevice)editorPage=Math.min(devicePage,pages.length-1);renderAll()}
   if(c.clock){if(document.activeElement!==$('clockDate'))$('clockDate').value=c.clock.date||'';if(document.activeElement!==$('clockTime'))$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
-  networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;$('netStatus').textContent=networkStatus;$('preview').querySelectorAll('.wifi-lines').forEach(el=>el.textContent=networkStatus||'Состояние сети появится здесь');$('prevNetwork').textContent=networkLabel;updateDeviceStatus();
+  networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;$('netStatus').textContent=networkStatus;$('preview').querySelectorAll('.wifi-lines').forEach(el=>{if(!el.closest('.widget')||pages[editorPage].widgets[Number(el.closest('.widget').dataset.index)]?.type!=='wifiControl')el.textContent=networkStatus||'Состояние сети появится здесь';else el.textContent='Роутер: '+(wifiMode.router?'ВКЛ':'ВЫКЛ')+'\\nТочка: '+(wifiMode.ap?'ВКЛ':'ВЫКЛ')+'\\nПульт: SETUP, затем 1/2';});$('prevNetwork').textContent=networkLabel;updateDeviceStatus();
  }catch(e){}
 }
 $('styleTarget').addEventListener('change',syncStyleControls);
