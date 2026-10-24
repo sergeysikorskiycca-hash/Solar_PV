@@ -84,7 +84,7 @@ void drawWidget(const WidgetConfig& widget) {
     String timeText = gatewayTimeValid ? (String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" + String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" + String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond)) : String("--:--:--");
     String dateText = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : String("--.--.----");
     drawAlignedText(timeText,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
-    drawAlignedText(dateText,x,contentBaseline+FONT_HEIGHTS[cs]+4,w,cs,widget.contentAlign,widget.contentColor);
+    drawAlignedText(dateText,x,contentBaseline+FONT_HEIGHTS[cs]+6,w,cs,widget.contentAlign,widget.contentColor);
     return;
   }
   if(widget.type=="text") {
