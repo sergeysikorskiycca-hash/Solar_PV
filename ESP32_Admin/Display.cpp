@@ -243,6 +243,105 @@ void updateClockWidget(const WidgetConfig& widget) {
   cache.background = widget.backgroundColor;
   cache.timeText = timeText; cache.dateText = dateText; cache.initialized = true;
 }
+
+
+// Per-page/per-widget cache for incremental refresh of dynamic widget content.
+struct IncrementalWidgetCache {
+  bool initialized;
+  int x, y, w, h, firstBaseline, lineHeight;
+  uint8_t contentSize, align, color, background, count;
+  String lines[6];
+  uint16_t colors[6];
+};
+static IncrementalWidgetCache incrementalCaches[MAX_PAGES][MAX_WIDGETS_PER_PAGE];
+
+static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t colors[], uint8_t& count) {
+  count = 0;
+  if (widget.type == "clock") {
+    extern bool gatewayTimeValid;
+    extern uint16_t gatewayYear;
+    extern uint8_t gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond;
+    out[count] = gatewayTimeValid ? (String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" + String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" + String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond)) : "--:--:--";
+    colors[count++] = widgetColor(widget.contentColor);
+    out[count] = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : "--.--.----";
+    colors[count++] = widgetColor(widget.contentColor);
+  } else if (widget.type == "wifiStatus") {
+    if (WiFi.status() == WL_CONNECTED) {
+      out[count] = "Сеть: " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);
+      out[count] = "Сигнал: " + String(WiFi.RSSI()) + " dBm"; colors[count++] = widgetColor(widget.contentColor);
+      out[count] = "IP: " + WiFi.localIP().toString(); colors[count++] = widgetColor(widget.contentColor);
+    } else {
+      out[count] = "Роутер не подключён"; colors[count++] = widgetColor(widget.contentColor);
+      out[count] = "Сеть: " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);
+    }
+    if (apActive && count <= 4) {
+      out[count] = "Точка настройки:"; colors[count++] = widgetColor(widget.contentColor);
+      out[count] = "IP: " + WiFi.softAPIP().toString(); colors[count++] = widgetColor(widget.contentColor);
+    }
+  } else if (widget.type == "wifiControl") {
+    bool router = wifiControlApplyPending ? wifiControlPendingRouter : routerModeEnabled;
+    bool ap = wifiControlApplyPending ? wifiControlPendingAp : setupApEnabled;
+    out[count] = String(wifiControlSelectedRow == 0 ? "> " : "  ") + "Роутер: " + (router ? "ВКЛ" : "ВЫКЛ");
+    colors[count++] = wifiControlSelectedRow == 0 ? 0x07FF : (router ? 0x07E0 : 0xF800);
+    out[count] = String(wifiControlSelectedRow == 1 ? "> " : "  ") + "Точка: " + (ap ? "ВКЛ" : "ВЫКЛ");
+    colors[count++] = wifiControlSelectedRow == 1 ? 0x07FF : (ap ? 0x07E0 : 0xF800);
+    if (wifiControlApplyPending) {
+      uint32_t remaining = (int32_t)(wifiControlApplyAt - millis()) > 0 ? (wifiControlApplyAt - millis() + 999UL) / 1000UL : 0;
+      out[count] = "Применение через " + String(remaining) + " сек."; colors[count++] = 0xFFE0;
+    } else {
+      out[count] = "ВВЕРХ/ВНИЗ: выбор"; colors[count++] = 0xBDF7;
+      out[count] = "OK: изменить (5 сек.)"; colors[count++] = 0xBDF7;
+    }
+  } else if (widget.type == "power" || widget.type == "voltage" || widget.type == "current" || widget.type == "battery") {
+    out[count] = widget.type == "power" ? "DEMO W" : widget.type == "voltage" ? "DEMO V" : widget.type == "current" ? "DEMO A" : "DEMO %";
+    colors[count++] = widgetColor(widget.contentColor);
+  }
+}
+
+void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint8_t widgetIndex) {
+  if (!widget.enabled || pageIndex >= MAX_PAGES || widgetIndex >= MAX_WIDGETS_PER_PAGE) return;
+  if (widget.type == "text" || widget.type == "strings") return;
+  String lines[6]; uint16_t colors[6]; uint8_t count = 0;
+  makeDynamicLines(widget, lines, colors, count);
+  if (!count) return;
+  const uint8_t hs = widget.headingSize <= 5 ? widget.headingSize : 1;
+  const uint8_t cs = widget.contentSize <= 5 ? widget.contentSize : 2;
+  const int headingBaseline = widget.y + FONT_HEIGHTS[hs] + 3;
+  const int firstBaseline = widget.showHeading ? headingBaseline + FONT_HEIGHTS[hs] / 2 + FONT_HEIGHTS[cs] + 3 : widget.y + FONT_HEIGHTS[cs] + 5;
+  const int lineHeight = FONT_HEIGHTS[cs] + (widget.type == "wifiStatus" ? 5 : 4);
+  IncrementalWidgetCache& cache = incrementalCaches[pageIndex][widgetIndex];
+  const bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y || cache.w != widget.w ||
+      cache.h != widget.h || cache.firstBaseline != firstBaseline || cache.lineHeight != lineHeight ||
+      cache.contentSize != cs || cache.align != widget.contentAlign || cache.color != widget.contentColor ||
+      cache.background != widget.backgroundColor || cache.count != count;
+  if (layoutChanged) {
+    int top = firstBaseline - FONT_HEIGHTS[cs] + 1, bottom = widget.y + widget.h - 3;
+    if (bottom > top) tft.fillRect(widget.x + 2, top, widget.w - 4, bottom - top, widgetBackground(widget.backgroundColor));
+  }
+  for (uint8_t i = 0; i < count; ++i) {
+    int baseline = firstBaseline + i * lineHeight;
+    if (baseline > widget.y + widget.h - 4) break;
+    if (layoutChanged || cache.lines[i] != lines[i] || cache.colors[i] != colors[i]) {
+      tft.fillRect(widget.x + 2, baseline - FONT_HEIGHTS[cs] + 1, widget.w - 4, FONT_HEIGHTS[cs] + 4, widgetBackground(widget.backgroundColor));
+      setWidgetFont(cs);
+      int textWidth = u8g2Fonts.getUTF8Width(lines[i].c_str()), tx = widget.x + 6, available = widget.w - 12;
+      if (widget.contentAlign == 1) tx += (available - textWidth) / 2;
+      else if (widget.contentAlign == 2) tx += available - textWidth;
+      if (tx < widget.x + 3) tx = widget.x + 3;
+      u8g2Fonts.setForegroundColor(colors[i]); u8g2Fonts.setCursor(tx, baseline); u8g2Fonts.print(lines[i]);
+    }
+    cache.lines[i] = lines[i]; cache.colors[i] = colors[i];
+  }
+  cache.x = widget.x; cache.y = widget.y; cache.w = widget.w; cache.h = widget.h;
+  cache.firstBaseline = firstBaseline; cache.lineHeight = lineHeight; cache.contentSize = cs;
+  cache.align = widget.contentAlign; cache.color = widget.contentColor; cache.background = widget.backgroundColor;
+  cache.count = count; cache.initialized = true;
+}
+void resetIncrementalWidgetCache() {
+  for (uint8_t p = 0; p < MAX_PAGES; ++p)
+    for (uint8_t w = 0; w < MAX_WIDGETS_PER_PAGE; ++w) incrementalCaches[p][w].initialized = false;
+}
+
 void drawTFTIndicators() {
   // Reserve the top-right corner for independent Wi-Fi and gateway status.
   tft.fillRect(186, 0, 54, 23, ST77XX_BLACK);
@@ -268,6 +367,7 @@ void drawTFTIndicators() {
 }
 
 void renderTFT() {
+  resetIncrementalWidgetCache();
   // The TFT is reserved for the configured page widgets; network status belongs
   // in the dedicated Wi-Fi status widget, not in a permanent footer.
   tft.fillScreen(ST77XX_BLACK); tft.setTextWrap(false);
