@@ -80,6 +80,10 @@ static uint32_t lastLogMs = 0;
 static bool rtcPresent = false;
 static bool lastAckOk = false;
 static uint8_t lastAckStatus = 0xFF;
+static uint8_t lastI2CWriteError = 0xFF;
+static uint8_t lastI2CReadCount = 0;
+static uint8_t lastAckMagicSeen = 0;
+static uint8_t lastAckSequenceSeen = 0;
 static bool espNowReady = false;
 static uint8_t lastClockCommandSequence = 0xFF;
 
@@ -205,6 +209,7 @@ static bool exchangePacket() {
   Wire.beginTransmission(ESP32_ADDRESS);
   Wire.write((const uint8_t*)&packet, sizeof(packet));
   uint8_t writeError = Wire.endTransmission();
+  lastI2CWriteError = writeError;
   if (writeError != 0) {
     lastAckOk = false;
     lastAckStatus = writeError;
@@ -215,6 +220,7 @@ static bool exchangePacket() {
   // and prepare the matching acknowledgement before the immediate read.
   delay(2);
   uint8_t count = Wire.requestFrom(ESP32_ADDRESS, (uint8_t)12);
+  lastI2CReadCount = count;
   if (count != 12) {
     while (Wire.available()) Wire.read();
     lastAckOk = false;
@@ -225,6 +231,8 @@ static bool exchangePacket() {
   uint8_t ackMagic = Wire.read();
   uint8_t ackSequence = Wire.read();
   uint8_t ackStatus = Wire.read();
+  lastAckMagicSeen = ackMagic;
+  lastAckSequenceSeen = ackSequence;
   uint8_t commandType = Wire.read();
   uint8_t commandSequence = Wire.read();
   uint16_t commandYear = (uint16_t)Wire.read(); commandYear |= (uint16_t)Wire.read() << 8;
@@ -283,12 +291,17 @@ void loop() {
 
   if (now - lastLogMs >= 1000UL) {
     lastLogMs = now;
-    Serial.printf("I2C ESP32: %s | ACK status: 0x%02X | RTC: %s %04u-%02u-%02u %02u:%02u:%02u | ESP-NOW: %s\n",
-                  lastAckOk ? "OK" : "NO RESPONSE",
-                  lastAckStatus,
-                  rtcPresent ? "OK" : "MISSING",
+    Serial.printf("DS3231: %s | %04u-%02u-%02u %02u:%02u:%02u\n",
+                  rtcPresent ? "READ OK" : "READ FAILED",
                   (unsigned)packet.year, (unsigned)packet.month, (unsigned)packet.day,
-                  (unsigned)packet.hour, (unsigned)packet.minute, (unsigned)packet.second,
+                  (unsigned)packet.hour, (unsigned)packet.minute, (unsigned)packet.second);
+    Serial.printf("I2C ESP32: %s | writeErr=%u | readBytes=%u/12 | ACK magic=0x%02X seq=%u status=0x%02X | ESP-NOW: %s\n",
+                  lastAckOk ? "OK" : "NO RESPONSE",
+                  (unsigned)lastI2CWriteError,
+                  (unsigned)lastI2CReadCount,
+                  (unsigned)lastAckMagicSeen,
+                  (unsigned)lastAckSequenceSeen,
+                  lastAckStatus,
                   espNowReady ? "READY" : "FAILED");
     int8_t sensorIndex = -1;
     for (uint8_t i = 0; i < MAX_SENSORS; ++i) if (sensorSlots[i].valid && millis() - sensorSlots[i].lastSeenMs <= 3000UL) { sensorIndex = (int8_t)i; break; }
