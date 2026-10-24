@@ -403,7 +403,10 @@ static void gatewayOnReceive(int count) {
   gatewayAckStatus = valid ? 0 : 1;
 }
 static void gatewayOnRequest() {
-  uint8_t response[3] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus };
+  // Keep the reply compatible with ESP8266_Gateway's 12-byte protocol.
+  // Clock-command fields remain zero until RTC-setting support is enabled here.
+  uint8_t response[12] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus,
+    0, 0, 0, 0, 0, 0, 0, 0, 0 };
   Wire.write(response, sizeof(response));
 }
 static void processGatewayPacket() {
