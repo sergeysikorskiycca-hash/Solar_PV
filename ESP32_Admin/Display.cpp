@@ -13,7 +13,7 @@ static void setWidgetFont(uint8_t size) {
     case 2: u8g2Fonts.setFont(u8g2_font_unifont_t_cyrillic); break;
     case 3: u8g2Fonts.setFont(u8g2_font_9x15_t_cyrillic); break;
     case 4: u8g2Fonts.setFont(u8g2_font_10x20_t_cyrillic); break;
-    default: u8g2Fonts.setFont(u8g2_font_helvR24_t_cyrillic); break;
+    default: u8g2Fonts.setFont(u8g2_font_inr24_t_cyrillic); break;
   }
 }
 static uint16_t widgetColor(uint8_t color) { return WIDGET_COLORS[color <= 5 ? color : 0]; }
@@ -51,7 +51,7 @@ void drawTFTStatus(bool force) {
 static void drawWrappedText(const WidgetConfig& widget, const String& rawText, int startBaseline, int maxLines) {
   String content = rawText; content.replace("\r", ""); content += "\n";
   String line = ""; int baseline = startBaseline;
-  uint8_t sz = widget.contentSize <= 4 ? widget.contentSize : 1;
+  uint8_t sz = widget.contentSize <= 5 ? widget.contentSize : 1;
   const int lineHeight = FONT_HEIGHTS[sz] + 3, maxWidth = widget.w - 12;
   setWidgetFont(sz);
   for (size_t pos = 0; pos < content.length() && maxLines > 0;) {
