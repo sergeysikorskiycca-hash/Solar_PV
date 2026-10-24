@@ -3,7 +3,7 @@
 
 // Shared configuration model for the ESP32 admin firmware.
 static constexpr uint8_t MAX_SAVED_NETWORKS = 8;
-static constexpr uint8_t MAX_PAGES = 4;
+static constexpr uint8_t MAX_PAGES = 8;
 static constexpr uint8_t MAX_WIDGETS_PER_PAGE = 12;
 static constexpr char CONFIG_PATH[] = "/solarpv.cfg";
 
