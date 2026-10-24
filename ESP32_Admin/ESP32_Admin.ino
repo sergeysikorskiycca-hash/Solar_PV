@@ -920,7 +920,7 @@ void loop() {
     lastClockSecond = gatewaySecond;
     PageConfig& cp = cfg.pages[cfg.tftPage - 1];
     for (uint8_t i = 0; i < cp.widgetCount; ++i) {
-      if (cp.widgets[i].enabled && cp.widgets[i].type == "clock") drawWidget(cp.widgets[i]);
+      if (cp.widgets[i].enabled && cp.widgets[i].type == "clock") updateClockWidget(cp.widgets[i]);
     }
   }
 
