@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <Adafruit_ST7789.h>
 #include <U8g2_for_Adafruit_GFX.h>
+#include "AppConfig.h"
 
 extern Adafruit_ST7789 tft;
 extern U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
@@ -14,3 +15,4 @@ String getTFTStatusText();
 void drawTFTStatus(bool force = false);
 void drawTFTIndicators();
 void renderTFT();
+void drawWidget(const WidgetConfig& widget);
