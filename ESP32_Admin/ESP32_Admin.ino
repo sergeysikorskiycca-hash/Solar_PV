@@ -273,14 +273,11 @@ void handleSetPage() {
   delay(20); renderTFT();
 }
 void handleScanWiFi() {
-  // Keep the setup access point alive while scanning nearby 2.4 GHz networks.
-  WiFi.mode(WIFI_AP_STA);
-  if (!apActive) {
-    WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1),
-                      IPAddress(255, 255, 255, 0));
-    apActive = WiFi.softAP(AP_SSID, AP_PASS);
+  // Scanning must not silently override the temporary router/AP switches.
+  if (!routerModeEnabled && !setupApEnabled) {
+    server.send(409, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Сначала включите роутер или точку доступа.\"}");
+    return;
   }
-
   Serial.println(F("Wi-Fi scan requested from admin page."));
   int count = WiFi.scanNetworks(false, true);
   if (count < 0) {
@@ -657,8 +654,8 @@ static void rtWifiDrawMenu(const String& message = "") {
   drawCyrillicText("OK: выбрать BACK: выход",5,307,0xBDF7,false);
 }
 static void rtWifiScan() {
-  if(!apActive) startAccessPoint();
-  WiFi.mode(WIFI_AP_STA);
+  if(!routerModeEnabled && !setupApEnabled){rtWifiDrawMenu("Сначала включи Wi-Fi (1 или 2)");return;}
+  WiFi.mode(setupApEnabled && routerModeEnabled ? WIFI_AP_STA : (setupApEnabled ? WIFI_AP : WIFI_STA));
   drawCyrillicText("Поиск сетей Wi-Fi...",5,87,ST77XX_WHITE,false);
   int count=WiFi.scanNetworks(false,true); rtWifiCount=0;
   if(count>=0) for(int i=0;i<count&&rtWifiCount<20;i++){
