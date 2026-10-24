@@ -8,11 +8,11 @@ The ESP32 port is being refactored on `esp32-admin-refactor`; TFT GPIO defaults 
 
 The ESP32 display firmware is prepared to receive the ESP-NOW signal level reported by the ESP8266 gateway over the existing I2C frame:
 
-- `GatewayPacket` is 32 bytes, within the ESP8266 Wire buffer limit.
+- New `GatewayPacket` frames are 32 bytes, within the ESP8266 Wire buffer limit. The ESP32 also accepts the existing 31-byte frame so the current gateway keeps working until its firmware is updated.
 - `flags` bit 0 means RTC data is valid; bit 1 means sensor telemetry is valid; bit 2 means the ESP-NOW RSSI field is valid.
 - `espNowRssi` is a signed 8-bit RSSI value in dBm and is accepted only when bit 2 and sensor-valid bit 1 are both set.
 - The TFT shows three separate indicators: ESP32 Wi-Fi, ESP8266-to-ESP32 I2C link, and ESP-NOW RSSI. The ESP-NOW bars stay red until the gateway provides a valid RSSI field; the ESP32 does not infer or invent signal strength.
-- The gateway sketch must be updated to send the matching 32-byte packet and calculate/report RSSI before this indicator can turn green. The gateway firmware is intentionally unchanged in this preparation step.
+- The gateway sketch must be updated to send the matching 32-byte packet and calculate/report RSSI before this indicator can turn green. Until then, legacy 31-byte packets continue carrying time and sensor telemetry; the ESP-NOW indicator correctly stays red. The gateway firmware is intentionally unchanged in this preparation step.
 
 ## Existing behavior to preserve
 
