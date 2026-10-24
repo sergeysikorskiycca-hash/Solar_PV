@@ -1,6 +1,8 @@
 #include "Display.h"
 #include "AppConfig.h"
 #include <WiFi.h>
+extern bool routerModeEnabled;
+extern bool setupApEnabled;
 
 static const uint16_t WIDGET_COLORS[6] = { ST77XX_WHITE, 0x07FF, 0x07E0, 0xFFE0, 0xF800, 0xFD20 };
 static const uint8_t FONT_HEIGHTS[6] = {13, 14, 16, 15, 20, 24};
@@ -84,7 +86,7 @@ void drawWidget(const WidgetConfig& widget) {
     String timeText = gatewayTimeValid ? (String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" + String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" + String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond)) : String("--:--:--");
     String dateText = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : String("--.--.----");
     drawAlignedText(timeText,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
-    drawAlignedText(dateText,x,contentBaseline+FONT_HEIGHTS[cs]+6,w,cs,widget.contentAlign,widget.contentColor);
+    drawAlignedText(dateText,x,contentBaseline+FONT_HEIGHTS[cs]+4,w,cs,widget.contentAlign,widget.contentColor);
     return;
   }
   if(widget.type=="text") {
@@ -99,6 +101,15 @@ void drawWidget(const WidgetConfig& widget) {
       drawAlignedText("Стринг " + String(i + 1) + ": -- В", x, lineY, w, cs, widget.contentAlign, widget.contentColor);
       lineY += lineHeight;
     }
+    return;
+  }
+  if(widget.type=="wifiControl") {
+    int lineY=contentBaseline, lineHeight=FONT_HEIGHTS[cs]+4;
+    auto line=[&](const String& s,uint16_t color){if(lineY<=y+h-4)drawAlignedText(s,x,lineY,w,cs,widget.contentAlign,color);lineY+=lineHeight;};
+    line(String("Роутер: ")+(routerModeEnabled?"ВКЛ":"ВЫКЛ"),routerModeEnabled?0x07E0:0xF800);
+    line(String("Точка: ")+(setupApEnabled?"ВКЛ":"ВЫКЛ"),setupApEnabled?0x07E0:0xF800);
+    line("Пульт: SETUP — меню",0xBDF7);
+    line("1: роутер  2: точка",0xBDF7);
     return;
   }
   if(widget.type=="wifiStatus") {
