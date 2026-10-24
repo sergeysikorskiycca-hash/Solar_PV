@@ -125,6 +125,23 @@ void drawWidget(const WidgetConfig& widget) {
 }
 extern bool gatewayOnline;
 
+void updateClockWidget(const WidgetConfig& widget) {
+  if (!widget.enabled || widget.type != "clock") return;
+  const int x=widget.x, y=widget.y, w=widget.w, h=widget.h;
+  uint8_t hs=widget.headingSize<=5?widget.headingSize:1, cs=widget.contentSize<=5?widget.contentSize:2;
+  int headingBaseline=y+FONT_HEIGHTS[hs]+3;
+  int contentBaseline=widget.showHeading ? headingBaseline+FONT_HEIGHTS[hs]/2+FONT_HEIGHTS[cs]+3 : y+FONT_HEIGHTS[cs]+5;
+  // Refresh only the clock text area. Keep the widget frame and heading untouched
+  // to avoid a visible flash every second.
+  int textTop=contentBaseline-FONT_HEIGHTS[cs]+1;
+  int textBottom=contentBaseline+2*FONT_HEIGHTS[cs]+4;
+  tft.fillRect(x+2,textTop,w-4,textBottom-textTop,widgetBackground(widget.backgroundColor));
+  extern bool gatewayTimeValid; extern uint16_t gatewayYear; extern uint8_t gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond;
+  String timeText = gatewayTimeValid ? (String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" + String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" + String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond)) : String("--:--:--");
+  String dateText = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : String("--.--.----");
+  drawAlignedText(timeText,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
+  drawAlignedText(dateText,x,contentBaseline+FONT_HEIGHTS[cs]+4,w,cs,widget.contentAlign,widget.contentColor);
+}
 void drawTFTIndicators() {
   // Reserve the top-right corner for independent Wi-Fi and gateway status.
   tft.fillRect(186, 0, 54, 23, ST77XX_BLACK);
