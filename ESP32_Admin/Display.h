@@ -16,3 +16,4 @@ void drawTFTStatus(bool force = false);
 void drawTFTIndicators();
 void renderTFT();
 void drawWidget(const WidgetConfig& widget);
+void updateClockWidget(const WidgetConfig& widget);
