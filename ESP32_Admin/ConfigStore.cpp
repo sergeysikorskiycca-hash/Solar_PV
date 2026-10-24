@@ -60,7 +60,7 @@ void setDefaults() {
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
     for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0;
+      w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.locked = false; w.showHeading = true; w.showBorder = true; w.headingAlign = 0; w.contentAlign = 0;
       w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0;
     }
   }
@@ -152,11 +152,12 @@ bool loadPageKey(const String& key, const String& value) {
   else if (suffix == "StringCount") w.stringCount = clampInt(value.toInt(), 1, 6);
   else if (suffix == "Locked") w.locked = value == "1";
   else if (suffix == "ShowHeading") w.showHeading = value == "1";
+  else if (suffix == "ShowBorder") w.showBorder = value == "1";
   else if (suffix == "HeadingAlign") w.headingAlign = clampInt(value.toInt(), 0, 2);
   else if (suffix == "ContentAlign") w.contentAlign = clampInt(value.toInt(), 0, 2);
   else if (suffix == "HeadingColor") w.headingColor = clampInt(value.toInt(), 0, 5);
   else if (suffix == "ContentColor") w.contentColor = clampInt(value.toInt(), 0, 5);
-  else if (suffix == "BackgroundColor") w.backgroundColor = clampInt(value.toInt(), 0, 5);
+  else if (suffix == "BackgroundColor") w.backgroundColor = clampInt(value.toInt(), 0, 6);
   else if (suffix == "X") w.x = clampInt(value.toInt(), 0, 239);
   else if (suffix == "Y") w.y = clampInt(value.toInt(), 40, 289);
   else if (suffix == "W") w.w = clampInt(value.toInt(), 40, 240);
@@ -224,7 +225,7 @@ void loadConfig() {
       w.headingSize = clampInt(w.headingSize, 0, 4); w.contentSize = clampInt(w.contentSize, 0, 4);
       w.stringCount = clampInt(w.stringCount ? w.stringCount : 2, 1, 6);
       w.headingAlign = clampInt(w.headingAlign, 0, 2); w.contentAlign = clampInt(w.contentAlign, 0, 2);
-      w.headingColor = clampInt(w.headingColor, 0, 5); w.contentColor = clampInt(w.contentColor, 0, 5); w.backgroundColor = clampInt(w.backgroundColor, 0, 5);
+      w.headingColor = clampInt(w.headingColor, 0, 5); w.contentColor = clampInt(w.contentColor, 0, 5); w.backgroundColor = clampInt(w.backgroundColor, 0, 6);
       w.w = clampInt(w.w, 40, 240); w.h = clampInt(w.h, 36, 250);
       w.x = clampInt(w.x, 0, 240 - w.w); w.y = clampInt(w.y, 40, 290 - w.h);
     }
@@ -289,6 +290,7 @@ bool saveConfig() {
       f.println(prefix + "HeadingSize=" + String(w.headingSize)); f.println(prefix + "ContentSize=" + String(w.contentSize));
       f.println(prefix + "StringCount=" + String(w.stringCount ? w.stringCount : 2)); f.println(prefix + "Locked=" + String(w.locked ? "1" : "0"));
       f.println(prefix + "ShowHeading=" + String(w.showHeading ? "1" : "0"));
+      f.println(prefix + "ShowBorder=" + String(w.showBorder ? "1" : "0"));
       f.println(prefix + "HeadingAlign=" + String(w.headingAlign)); f.println(prefix + "ContentAlign=" + String(w.contentAlign));
       f.println(prefix + "HeadingColor=" + String(w.headingColor)); f.println(prefix + "ContentColor=" + String(w.contentColor));
       f.println(prefix + "BackgroundColor=" + String(w.backgroundColor));
