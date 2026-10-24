@@ -1,12 +1,6 @@
 name: ESP32 Admin build
 
 on:
-  push:
-    branches:
-      - esp32-admin-refactor
-    paths:
-      - "ESP32_Admin/**"
-      - ".github/workflows/esp32-admin-build.yml"
   workflow_dispatch:
 
 jobs:
