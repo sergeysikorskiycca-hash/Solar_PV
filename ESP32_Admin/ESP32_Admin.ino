@@ -755,7 +755,7 @@ static void rtHandleClock(uint32_t k){
 }
 
 static void rtHandle(uint32_t k){
-  if(rtMode==RT_CLOCK){rtHandleClock(k);return;}
+  if(rtMode==RT_CLOCK || rtMode==RT_CLOCK_CONFIRM){rtHandleClock(k);return;}
   if(rtMode==RT_PICKER){
     uint8_t n=rtCount();if(!n){rtMode=RT_CLOSED;renderTFT();return;}
     if(k==IR_CODE_UP){rtPick=rtPick?rtPick-1:n-1;rtDrawPicker();}
