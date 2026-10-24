@@ -672,8 +672,10 @@ static void rtDrawEditor(){
   }
   if(lines<4&&line.length())drawCyrillicText(line,5,y,ST77XX_WHITE,false);
 
-  const int x0=2, y0=96, cellW=23, cellH=29;
+  const int x0=2, cellW=23, cellH=29;
   const uint8_t keyboardRows = rtSymbolsPage ? 6 : 4;
+  // Keep the keyboard anchored to the bottom edge of the 320px TFT.
+  const int y0 = 320 - keyboardRows * cellH - 2;
   for(uint8_t row=0;row<keyboardRows;row++){
     for(uint8_t col=0;col<10;col++){
       int x=x0+col*cellW, yk=y0+row*cellH;
