@@ -154,8 +154,6 @@ void drawWidget(const WidgetConfig& widget) {
 }
 extern bool gatewayOnline;
 extern bool gatewaySensorValid;
-extern int8_t gatewayEspNowRssi;
-extern bool gatewayEspNowRssiValid;
 
 void updateClockWidget(const WidgetConfig& widget) {
   if (!widget.enabled || widget.type != "clock") return;
@@ -370,7 +368,7 @@ void resetIncrementalWidgetCache() {
 }
 
 void drawTFTIndicators() {
-  // Three independent indicators: ESP32 Wi-Fi, I2C gateway link, ESP-NOW RSSI.
+  // Three independent indicators: ESP32 Wi-Fi, I2C gateway link, and fresh ESP-NOW sensor data.
   tft.fillRect(186, 0, 54, 23, ST77XX_BLACK);
 
   const bool wifiConnected = WiFi.status() == WL_CONNECTED;
@@ -394,27 +392,18 @@ void drawTFTIndicators() {
   tft.drawLine(211, 8, 213, 8, linkColor);
   tft.drawLine(211, 14, 213, 14, linkColor);
 
-  // ESP-NOW uses a distinct antenna symbol, not Wi-Fi-style bars.
-  // The antenna mast and dot identify the radio; side ticks show RSSI strength.
-  const bool rssiValid = gatewayEspNowRssiValid && gatewaySensorValid && gatewayOnline;
-  const uint16_t rssiColor = rssiValid ? 0x07E0 : 0xF800;
-  int nowBars = 0;
-  if (rssiValid) {
-    const int rssi = gatewayEspNowRssi;
-    nowBars = rssi >= -55 ? 4 : (rssi >= -67 ? 3 : (rssi >= -78 ? 2 : 1));
-  }
+  // ESP-NOW has a distinct antenna symbol. Its color reports whether the gateway
+  // has received sensor data recently; no RSSI measurement is needed.
+  const bool espNowActive = gatewayOnline && gatewaySensorValid;
+  const uint16_t espNowColor = espNowActive ? 0x07E0 : 0xF800;
 
-  // Antenna centerline and tip.
-  tft.drawLine(230, 10, 230, 19, rssiColor);
-  tft.drawCircle(230, 7, 2, rssiColor);
-  // Four distinct side marks, from short to long; inactive marks are dimmed.
+  tft.drawLine(230, 10, 230, 19, espNowColor);
+  tft.drawCircle(230, 7, 2, espNowColor);
   for (int i = 0; i < 4; ++i) {
-    const uint16_t c = rssiValid ? (i < nowBars ? rssiColor : 0x4208) : rssiColor;
     const int y = 11 + i * 2;
     const int len = 2 + i;
-    tft.drawLine(230 - len, y, 230 - 1, y, c);
-    if (i < nowBars || !rssiValid) tft.drawLine(231, y, 231 + len, y, c);
-    else tft.drawLine(231, y, 231 + len, y, 0x4208);
+    tft.drawLine(230 - len, y, 229, y, espNowColor);
+    tft.drawLine(231, y, 231 + len, y, espNowColor);
   }
 }
 
