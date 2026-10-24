@@ -11,7 +11,7 @@ Companion sketch for `ESP32_Admin/ESP32_Admin.ino` on branch `esp32-admin-refact
 - The browser admin and IR remote can set the DS3231 date/time through the ESP32; the gateway writes the command to RTC.
 - Connect GND between both boards. Keep the bus at 3.3 V logic and ensure pull-ups do not pull SDA/SCL to 5 V.
 
-The ESP8266 is the I2C master. It reads the DS3231 once per second and sends a CRC-checked packet to the ESP32 10 times per second. Each packet contains the time and the latest valid ESP-NOW sensor sample (sensor ID, voltage, current, power, shunt voltage, truncated 16-bit sensor packet number, and received ESP-NOW RSSI in dBm when available). The data frame is 32 bytes. Flags bit 2 indicates a valid RSSI field; bit 1 indicates valid sensor telemetry. The ESP32 reply is 12 bytes: the 3-byte ACK plus an optional one-shot RTC date/time write command.
+The ESP8266 is the I2C master. It reads the DS3231 once per second and sends a CRC-checked packet to the ESP32 10 times per second. Each packet contains the time and the latest valid ESP-NOW sensor sample (sensor ID, voltage, current, power, shunt voltage, and truncated 16-bit sensor packet number). The data frame is 31 bytes. The ESP32 reply is 12 bytes: the 3-byte ACK plus an optional one-shot RTC date/time write command.
 
 ## ESP-NOW sensors
 
@@ -24,9 +24,8 @@ The ESP8266 is the I2C master. It reads the DS3231 once per second and sends a C
 ## Status indicators
 
 - TFT Wi-Fi icon: green when ESP32 is connected to Wi-Fi, red when disconnected; green bars reflect RSSI.
-- TFT I2C gateway icon: green only after a valid CRC-checked packet arrives from the ESP8266; red after 500 ms without a valid packet.
-- TFT ESP-NOW indicator: green when a valid received RSSI value is forwarded; red if RSSI is unavailable or sensor data is stale.
-- The indicators are independent and hidden while the IR remote text editor/menu is open.
+- TFT gateway icon: green only after a valid CRC-checked packet arrives from the ESP8266; red after 500 ms without a valid packet.
+- The two indicators are independent and hidden while the IR remote text editor/menu is open.
 
 ## Flashing
 
