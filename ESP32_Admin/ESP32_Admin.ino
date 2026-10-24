@@ -338,6 +338,14 @@ void handleSaveWiFi() {
   restartAt = millis() + 1200;
 }
 
+static bool validCalendarDate(int year, int month, int day) {
+  if (year < 2000 || year > 2099 || month < 1 || month > 12 || day < 1) return false;
+  static const uint8_t daysInMonth[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
+  int maxDay = daysInMonth[month - 1];
+  if (month == 2 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)) maxDay = 29;
+  return day <= maxDay;
+}
+
 void handleSetClock() {
   DynamicJsonDocument doc(512);
   if (deserializeJson(doc, server.arg("plain"))) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректные данные времени.\"}"); return; }
@@ -345,7 +353,7 @@ void handleSetClock() {
   if (date.length() != 10 || time.length() < 5) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Укажи дату и время.\"}"); return; }
   int year=date.substring(0,4).toInt(), month=date.substring(5,7).toInt(), day=date.substring(8,10).toInt();
   int hour=time.substring(0,2).toInt(), minute=time.substring(3,5).toInt(), second=time.length() >= 8 ? time.substring(6,8).toInt() : 0;
-  if (year < 2000 || year > 2099 || month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Дата или время вне допустимого диапазона.\"}"); return; }
+  if (!validCalendarDate(year, month, day) || hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Дата или время вне допустимого диапазона.\"}"); return; }
   noInterrupts(); clockCommandYear=year; clockCommandMonth=month; clockCommandDay=day; clockCommandHour=hour; clockCommandMinute=minute; clockCommandSecond=second; clockCommandSequence++; clockCommandType=1; clockCommandPending=true; interrupts();
   server.send(200, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Команда установки времени отправлена шлюзу. Дождись обновления RTC.\"}");
 }
@@ -356,7 +364,7 @@ void handleNotFound() {
 }
 
 
-enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU, RT_CLOCK };
+enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU, RT_CLOCK, RT_CLOCK_CONFIRM };
 
 // Wire protocol shared with ESP8266_Gateway. The ESP8266 is the I2C master;
 // ESP32 is the slave at 0x42. All multi-byte fields are little-endian.
@@ -690,6 +698,16 @@ static void rtSave(){
   }
   rtMode=RT_CLOSED;renderTFT();
 }
+static void rtDrawClockConfirm(){
+  tft.fillScreen(ST77XX_BLACK);
+  drawCyrillicText("ПОДТВЕРДИТЬ ВРЕМЯ",5,25,0xFFE0,true);
+  char date[16], time[16]; snprintf(date,sizeof(date),"%02u.%02u.%04u",(unsigned)rtClockDay,(unsigned)rtClockMonth,(unsigned)rtClockYear);
+  snprintf(time,sizeof(time),"%02u:%02u:%02u",(unsigned)rtClockHour,(unsigned)rtClockMinute,(unsigned)rtClockSecond);
+  drawCyrillicText(date,25,85,ST77XX_WHITE,true); drawCyrillicText(time,25,125,ST77XX_WHITE,true);
+  drawCyrillicText("OK: записать в DS3231",5,195,0x07E0,false);
+  drawCyrillicText("BACK: вернуться к правке",5,220,0xBDF7,false);
+  drawCyrillicText("MENU: отмена",5,245,0xBDF7,false);
+}
 static void rtDrawClockEditor(){
   tft.fillScreen(ST77XX_BLACK);
   drawCyrillicText("УСТАНОВКА ЧАСОВ",5,22,0x07FF,true);
@@ -708,6 +726,16 @@ static void rtOpenClockEditor(){
   rtClockField=0; rtMode=RT_CLOCK; rtDrawClockEditor();
 }
 static void rtHandleClock(uint32_t k){
+  if(rtMode==RT_CLOCK_CONFIRM){
+    if(k==IR_CODE_OK){
+      if(!validCalendarDate(rtClockYear,rtClockMonth,rtClockDay)){rtMode=RT_CLOCK;rtDrawClockEditor();drawCyrillicText("НЕКОРРЕКТНАЯ ДАТА",5,285,ST77XX_RED,false);return;}
+      noInterrupts();clockCommandYear=rtClockYear;clockCommandMonth=rtClockMonth;clockCommandDay=rtClockDay;clockCommandHour=rtClockHour;clockCommandMinute=rtClockMinute;clockCommandSecond=rtClockSecond;clockCommandSequence++;clockCommandType=1;clockCommandPending=true;interrupts();
+      Serial.println(F("IR clock set command queued for RTC."));rtMode=RT_CLOSED;renderTFT();return;
+    }
+    if(k==IR_CODE_BACK){rtMode=RT_CLOCK;rtDrawClockEditor();return;}
+    if(k==IR_CODE_MENU){rtMode=RT_CLOSED;renderTFT();return;}
+    return;
+  }
   if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtMode=RT_CLOSED;renderTFT();return;}
   if(k==IR_CODE_LEFT){rtClockField=(rtClockField+5)%6;rtDrawClockEditor();return;}
   if(k==IR_CODE_RIGHT){rtClockField=(rtClockField+1)%6;rtDrawClockEditor();return;}
@@ -720,7 +748,10 @@ static void rtHandleClock(uint32_t k){
     else rtClockSecond=(uint8_t)((rtClockSecond+60+d)%60);
     rtDrawClockEditor();return;
   }
-  if(k==IR_CODE_OK){noInterrupts();clockCommandYear=rtClockYear;clockCommandMonth=rtClockMonth;clockCommandDay=rtClockDay;clockCommandHour=rtClockHour;clockCommandMinute=rtClockMinute;clockCommandSecond=rtClockSecond;clockCommandSequence++;clockCommandType=1;clockCommandPending=true;interrupts();Serial.println(F("IR clock set command queued for RTC."));rtMode=RT_CLOSED;renderTFT();return;}
+  if(k==IR_CODE_OK){
+    if(!validCalendarDate(rtClockYear,rtClockMonth,rtClockDay)){drawCyrillicText("НЕКОРРЕКТНАЯ ДАТА",5,285,ST77XX_RED,false);return;}
+    rtMode=RT_CLOCK_CONFIRM;rtDrawClockConfirm();return;
+  }
 }
 
 static void rtHandle(uint32_t k){
