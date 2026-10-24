@@ -3,7 +3,7 @@
 
 // Shared configuration model for the ESP32 admin firmware.
 static constexpr uint8_t MAX_SAVED_NETWORKS = 8;
-static constexpr uint8_t MAX_PAGES = 4;
+static constexpr uint8_t MAX_PAGES = 8;
 static constexpr uint8_t MAX_WIDGETS_PER_PAGE = 12;
 static constexpr char CONFIG_PATH[] = "/solarpv.cfg";
 
@@ -19,21 +19,26 @@ struct WidgetConfig {
   String text;      // Free text for text widgets; supports UTF-8 and line breaks.
   uint8_t headingSize, contentSize;
   uint8_t stringCount; // Number of PV strings shown by a strings widget.
-  bool locked; // Prevents accidental position and size changes in the web editor.
+  bool locked; // Prevents accidental position and size changes in the web editor
+  bool showHeading; // Hide redundant widget heading when false.
+  bool showBorder; // Draw widget outline when true.
   uint8_t headingAlign, contentAlign;
   uint8_t headingColor, contentColor;
-  uint8_t backgroundColor; // 0 = near-black; 1..5 = dark background presets
+  uint8_t backgroundColor; // 0..5 = dark presets; 6 = black
   int x, y, w, h;
   bool enabled;
 };
 
 struct PageConfig {
   String title;
+  bool showTitle; // Whether to draw this page title on the TFT
   uint8_t widgetCount;
   WidgetConfig widgets[MAX_WIDGETS_PER_PAGE];
 };
 
 struct AppConfig {
+  bool defaultRouterMode;
+  bool defaultSetupAp;
   String ssid;
   String password;
   String title;

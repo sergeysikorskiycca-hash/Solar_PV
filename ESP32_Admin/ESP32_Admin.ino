@@ -21,18 +21,65 @@
 #include "AppConfig.h"
 #include "ConfigStore.h"
 #include "Display.h"
+
+// Explicit declaration keeps incremental widget refresh visible to Arduino's sketch preprocessor.
+void drawWidget(const WidgetConfig& widget);
 #include "WifiManager.h"
 #include "WebAdmin.h"
 #include "WebPage.h"
 #include "IR_Remote.h"
 
-static const char* AP_SSID = "SolarPV-Setup";
-static const char* AP_PASS = "SolarPV8266";
+const char* AP_SSID = "SolarPV-Setup";
+const char* AP_PASS = "SolarPV8266";
 Adafruit_ST7789 tft(TFT_CS_PIN, TFT_DC_PIN, TFT_RST_PIN);
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 WebServer server(80);
 
 bool apActive = false;
+extern bool routerModeEnabled;
+extern bool setupApEnabled;
+void applyWiFiMode();
+
+bool wifiControlPendingRouter = false;
+bool wifiControlPendingAp = true;
+bool wifiControlApplyPending = false;
+uint8_t wifiControlSelectedRow = 0;
+uint32_t wifiControlApplyAt = 0;
+static bool hasWifiControlOnCurrentPage() {
+  if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return false;
+  PageConfig& page = cfg.pages[cfg.tftPage - 1];
+  for (uint8_t i = 0; i < page.widgetCount; ++i)
+    if (page.widgets[i].enabled && page.widgets[i].type == "wifiControl") return true;
+  return false;
+}
+static void refreshWifiControlWidget() {
+  if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return;
+  PageConfig& page = cfg.pages[cfg.tftPage - 1];
+  for (uint8_t i = 0; i < page.widgetCount; ++i)
+    if (page.widgets[i].enabled && page.widgets[i].type == "wifiControl") updateWidgetIncremental(page.widgets[i], cfg.tftPage - 1, i);
+}
+static void handleInlineWifiControl(uint32_t code) {
+  if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
+    wifiControlSelectedRow = wifiControlSelectedRow ? 0 : 1;
+    refreshWifiControlWidget();
+  } else if (code == IR_CODE_OK) {
+    if (!wifiControlApplyPending) {
+      wifiControlPendingRouter = routerModeEnabled;
+      wifiControlPendingAp = setupApEnabled;
+    }
+    if (wifiControlSelectedRow == 0) wifiControlPendingRouter = !wifiControlPendingRouter;
+    else wifiControlPendingAp = !wifiControlPendingAp;
+    wifiControlApplyPending = true;
+    wifiControlApplyAt = millis() + 5000UL;
+    refreshWifiControlWidget();
+  }
+}
+
+static volatile uint8_t clockCommandSequence = 0;
+static volatile uint8_t clockCommandType = 0;
+static volatile uint16_t clockCommandYear = 2026;
+static volatile uint8_t clockCommandMonth = 1, clockCommandDay = 1, clockCommandHour = 0, clockCommandMinute = 0, clockCommandSecond = 0;
+static volatile bool clockCommandPending = false;
 
 // ESP8266 gateway telemetry arrives as a checked I2C frame.
 bool gatewayOnline = false;
@@ -127,7 +174,11 @@ String makeConfigJson() {
   j += "\"voltageW\":" + String(cfg.voltageW) + ",\"voltageH\":" + String(cfg.voltageH) + ",";
   j += "\"currentW\":" + String(cfg.currentW) + ",\"currentH\":" + String(cfg.currentH) + ",";
   j += "\"batteryW\":" + String(cfg.batteryW) + ",\"batteryH\":" + String(cfg.batteryH) + ",";
-  j += "\"ssid\":\"" + jsonEscape(cfg.ssid) + "\",";
+  j += "\"clock\":{\"valid\":" + String(gatewayTimeValid ? "true" : "false") + ",\"date\":\"";
+  if (gatewayTimeValid) { char d[11]; snprintf(d, sizeof(d), "%04u-%02u-%02u", (unsigned)gatewayYear, (unsigned)gatewayMonth, (unsigned)gatewayDay); j += d; }
+  j += "\",\"time\":\"";
+  if (gatewayTimeValid) { char t[9]; snprintf(t, sizeof(t), "%02u:%02u:%02u", (unsigned)gatewayHour, (unsigned)gatewayMinute, (unsigned)gatewaySecond); j += t; }
+  j += "\"},\"ssid\":\"" + jsonEscape(cfg.ssid) + "\",";
   j += "\"savedNetworks\":[";
   bool firstSaved = true;
   for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) {
@@ -157,11 +208,11 @@ String makeConfigJson() {
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
     if (p) j += ",";
     const PageConfig& page = cfg.pages[p];
-    j += "{\"title\":\"" + jsonEscape(page.title) + "\",\"widgetCount\":" + String(page.widgetCount) + ",\"widgets\":[";
+    j += "{\"title\":\"" + jsonEscape(page.title) + "\",\"showTitle\":" + String(page.showTitle ? "true" : "false") + ",\"widgetCount\":" + String(page.widgetCount) + ",\"widgets\":[";
     for (uint8_t i = 0; i < page.widgetCount; i++) {
       if (i) j += ",";
       const WidgetConfig& w = page.widgets[i];
-      j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",\"text\":\"" + jsonEscapeText(w.text) + "\",";
+      j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",\"text\":\"" + jsonEscapeText(w.text) + "\",\"showHeading\":" + String(w.showHeading ? "true" : "false") + ",\"showBorder\":" + String(w.showBorder ? "true" : "false") + ",";
       j += "\"headingSize\":" + String(w.headingSize) + ",\"contentSize\":" + String(w.contentSize) + ",\"stringCount\":" + String(w.stringCount ? w.stringCount : 2) + ",\"locked\":" + String(w.locked ? "true" : "false") + ",\"headingAlign\":" + String(w.headingAlign) + ",\"contentAlign\":" + String(w.contentAlign) + ",\"headingColor\":" + String(w.headingColor) + ",\"contentColor\":" + String(w.contentColor) + ",\"backgroundColor\":" + String(w.backgroundColor) + ",";
       j += "\"x\":" + String(w.x) + ",\"y\":" + String(w.y) + ",\"w\":" + String(w.w) + ",\"h\":" + String(w.h) + ",";
       j += "\"enabled\":" + String(w.enabled ? "true" : "false") + "}";
@@ -169,6 +220,7 @@ String makeConfigJson() {
     j += "]}";
   }
   j += "]}";
+  j.remove(j.length() - 1); j += ",\"wifiMode\":{\"router\":" + String(routerModeEnabled ? "true" : "false") + ",\"ap\":" + String(setupApEnabled ? "true" : "false") + ",\"apActive\":" + String(apActive ? "true" : "false") + ",\"defaultRouter\":" + String(cfg.defaultRouterMode ? "true" : "false") + ",\"defaultAp\":" + String(cfg.defaultSetupAp ? "true" : "false") + "}}";
   return j;
 }
 
@@ -207,6 +259,7 @@ void handleSaveDisplay() {
     String pageTitle = String(sourcePage["title"] | "");
     if (!pageTitle.length()) pageTitle = "Страница " + String(p + 1);
     cfg.pages[p].title = sanitizeTitle(pageTitle);
+    cfg.pages[p].showTitle = sourcePage["showTitle"] | true;
     JsonArray sourceWidgets = sourcePage["widgets"].as<JsonArray>();
     cfg.pages[p].widgetCount = clampInt(sourceWidgets.size(), 0, MAX_WIDGETS_PER_PAGE);
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
@@ -217,10 +270,10 @@ void handleSaveDisplay() {
       w.label = sanitizeTitle(String(source["label"] | "Блок"));
       w.text = String(source["text"] | "");
       if (w.text.length() > 240) w.text = w.text.substring(0, 240);
-      w.headingSize = clampInt(source["headingSize"] | 1, 0, 4); w.contentSize = clampInt(source["contentSize"] | 2, 0, 4);
-      w.stringCount = clampInt(source["stringCount"] | 2, 1, 6); w.locked = source["locked"] | false;
+      w.headingSize = clampInt(source["headingSize"] | 1, 0, 5); w.contentSize = clampInt(source["contentSize"] | 2, 0, 5);
+      w.stringCount = clampInt(source["stringCount"] | 2, 1, 6); w.locked = source["locked"] | false; w.showHeading = source["showHeading"] | true; w.showBorder = source["showBorder"] | true;
       w.headingAlign = clampInt(source["headingAlign"] | 0, 0, 2); w.contentAlign = clampInt(source["contentAlign"] | 0, 0, 2);
-      w.headingColor = clampInt(source["headingColor"] | 0, 0, 5); w.contentColor = clampInt(source["contentColor"] | 3, 0, 5); w.backgroundColor = clampInt(source["backgroundColor"] | 0, 0, 5);
+      w.headingColor = clampInt(source["headingColor"] | 0, 0, 5); w.contentColor = clampInt(source["contentColor"] | 3, 0, 5); w.backgroundColor = clampInt(source["backgroundColor"] | 0, 0, 6);
       w.w = clampInt(source["w"] | 106, 40, 240);
       w.h = clampInt(source["h"] | 58, 36, 250);
       w.x = clampInt(source["x"] | 8, 0, 240 - w.w);
@@ -256,14 +309,11 @@ void handleSetPage() {
   delay(20); renderTFT();
 }
 void handleScanWiFi() {
-  // Keep the setup access point alive while scanning nearby 2.4 GHz networks.
-  WiFi.mode(WIFI_AP_STA);
-  if (!apActive) {
-    WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1),
-                      IPAddress(255, 255, 255, 0));
-    apActive = WiFi.softAP(AP_SSID, AP_PASS);
+  // Scanning must not silently override the temporary router/AP switches.
+  if (!routerModeEnabled && !setupApEnabled) {
+    server.send(409, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Сначала включите роутер или точку доступа.\"}");
+    return;
   }
-
   Serial.println(F("Wi-Fi scan requested from admin page."));
   int count = WiFi.scanNetworks(false, true);
   if (count < 0) {
@@ -288,6 +338,30 @@ void handleScanWiFi() {
   json += "]}";
   WiFi.scanDelete();
   server.send(200, "application/json; charset=utf-8", json);
+}
+
+void handleSaveWiFiDefaults() {
+  DynamicJsonDocument doc(256);
+  if (deserializeJson(doc, server.arg("plain"))) {
+    server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректные настройки.\"}");
+    return;
+  }
+  cfg.defaultRouterMode = doc["router"] | cfg.defaultRouterMode;
+  cfg.defaultSetupAp = doc["ap"] | cfg.defaultSetupAp;
+  if (!saveConfig()) {
+    server.send(500, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Не удалось сохранить настройки.\"}");
+    return;
+  }
+  server.send(200, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Настройки запуска сохранены. Текущий режим не изменён; новые значения применятся после перезагрузки.\"}");
+}
+
+void handleWiFiMode() {
+  DynamicJsonDocument doc(256);
+  if (deserializeJson(doc, server.arg("plain"))) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректные настройки Wi-Fi.\"}"); return; }
+  routerModeEnabled = doc["router"] | routerModeEnabled;
+  setupApEnabled = doc["ap"] | setupApEnabled;
+  applyWiFiMode();
+  server.send(200, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Временный режим применён. После перезагрузки включится только точка SolarPV-Setup.\"}");
 }
 
 void handleSaveWiFi() {
@@ -328,13 +402,33 @@ void handleSaveWiFi() {
   restartAt = millis() + 1200;
 }
 
+static bool validCalendarDate(int year, int month, int day) {
+  if (year < 2000 || year > 2099 || month < 1 || month > 12 || day < 1) return false;
+  static const uint8_t daysInMonth[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
+  int maxDay = daysInMonth[month - 1];
+  if (month == 2 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)) maxDay = 29;
+  return day <= maxDay;
+}
+
+void handleSetClock() {
+  DynamicJsonDocument doc(512);
+  if (deserializeJson(doc, server.arg("plain"))) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректные данные времени.\"}"); return; }
+  String date = String(doc["date"] | ""); String time = String(doc["time"] | "");
+  if (date.length() != 10 || time.length() < 5) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Укажи дату и время.\"}"); return; }
+  int year=date.substring(0,4).toInt(), month=date.substring(5,7).toInt(), day=date.substring(8,10).toInt();
+  int hour=time.substring(0,2).toInt(), minute=time.substring(3,5).toInt(), second=time.length() >= 8 ? time.substring(6,8).toInt() : 0;
+  if (!validCalendarDate(year, month, day) || hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Дата или время вне допустимого диапазона.\"}"); return; }
+  noInterrupts(); clockCommandYear=year; clockCommandMonth=month; clockCommandDay=day; clockCommandHour=hour; clockCommandMinute=minute; clockCommandSecond=second; clockCommandSequence++; clockCommandType=1; clockCommandPending=true; interrupts();
+  server.send(200, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Команда установки времени отправлена шлюзу. Дождись обновления RTC.\"}");
+}
+
 void handleNotFound() {
   server.sendHeader("Location", "/", true);
   server.send(302, "text/plain", "");
 }
 
 
-enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU };
+enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU, RT_CLOCK, RT_CLOCK_CONFIRM };
 
 // Wire protocol shared with ESP8266_Gateway. The ESP8266 is the I2C master;
 // ESP32 is the slave at 0x42. All multi-byte fields are little-endian.
@@ -362,6 +456,7 @@ static volatile uint8_t gatewayRxLength = 0;
 static volatile bool gatewayRxPending = false;
 static volatile uint8_t gatewayAckSequence = 0;
 static volatile uint8_t gatewayAckStatus = 1;
+
 
 static uint8_t gatewayCrc8(const uint8_t* data, size_t length) {
   uint8_t crc = 0;
@@ -403,11 +498,13 @@ static void gatewayOnReceive(int count) {
   gatewayAckStatus = valid ? 0 : 1;
 }
 static void gatewayOnRequest() {
-  // Keep the reply compatible with ESP8266_Gateway's 12-byte protocol.
-  // Clock-command fields remain zero until RTC-setting support is enabled here.
+  // ACK plus one-shot RTC command. The gateway de-duplicates by command sequence.
   uint8_t response[12] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus,
-    0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    (uint8_t)(clockCommandPending ? clockCommandType : 0), clockCommandSequence,
+    (uint8_t)(clockCommandYear & 0xFF), (uint8_t)(clockCommandYear >> 8),
+    clockCommandMonth, clockCommandDay, clockCommandHour, clockCommandMinute, clockCommandSecond };
   Wire.write(response, sizeof(response));
+  if (clockCommandPending) clockCommandPending = false;
 }
 static void processGatewayPacket() {
   uint8_t raw[sizeof(GatewayPacket)];
@@ -479,7 +576,11 @@ static bool rtWifiPassword = false;
 static String rtWifiNetworks[20];
 static bool rtWifiSecure[20];
 static uint8_t rtWifiCount = 0, rtWifiPick = 0;
+static uint8_t rtWifiModeRow = 0;
+static bool rtPendingRouter = false, rtPendingAp = true;
 static String rtWifiSelectedSSID;
+static uint16_t rtClockYear=2026;
+static uint8_t rtClockMonth=1, rtClockDay=1, rtClockHour=0, rtClockMinute=0, rtClockSecond=0, rtClockField=0;
 
 static size_t rtBytes(const String& s, size_t p) {
   if (p >= s.length()) return 0;
@@ -492,47 +593,49 @@ static size_t rtPrev(const String& s,size_t p) {
   return p;
 }
 static String rtChar(const String& s,size_t p){return s.substring(p,p+rtBytes(s,p));}
-static int rtCount(){
+static int rtTextCount(){
   if(cfg.tftPage<1||cfg.tftPage>cfg.pageCount)return 0;
   int n=0; PageConfig& p=cfg.pages[cfg.tftPage-1];
   for(uint8_t i=0;i<p.widgetCount;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text")n++;
   return n;
 }
+static int rtCount(){ return (rtTextCount() > 6 ? 6 : rtTextCount()) + 1; }
 static int rtIndex(uint8_t wanted){
   if(cfg.tftPage<1||cfg.tftPage>cfg.pageCount)return -1;
   PageConfig& p=cfg.pages[cfg.tftPage-1]; uint8_t n=0;
-  for(uint8_t i=0;i<p.widgetCount;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text"){
+  for(uint8_t i=0;i<p.widgetCount&&n<6;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text"){
     if(n++==wanted)return i;
   }
+  if(wanted==n)return -2;
   return -1;
 }
 static String rtKeyAt(uint8_t row, uint8_t col) {
-  if (row < 5) {
-    if (rtSymbolsPage) {
-      static const char* symbols[5] = {"0123456789","!@#$%^&*()","-_=+[]{}<>",".,;:'\\\"~","/?\\\\|%&^"};
-      return String(symbols[row]).substring(col, col + 1);
-    }
-    if (row == 4) return String(".,!?-_:;@#").substring(col, col + 1);
-    static const char* enUpper[4] = {"ABCDEFGHIJ","KLMNOPQRST","UVWXYZ    ","          "};
-    static const char* enLower[4] = {"abcdefghij","klmnopqrst","uvwxyz    ","          "};
-    static const char* ruUpper[4] = {"АБВГДЕЁЖЗИ","ЙКЛМНОПРСТ","УФХЦЧШЩЪЫЬ","ЭЮЯ       "};
-    static const char* ruLower[4] = {"абвгдеёжзи","йклмнопрст","уфхцчшщъыь","эюя       "};
-    String s;
-    if (rtRussian) s = rtUpper ? ruUpper[row] : ruLower[row];
-    else s = rtUpper ? enUpper[row] : enLower[row];
-    size_t pos = 0;
-    for (uint8_t n = 0; n < col && pos < s.length(); n++) pos += rtBytes(s, pos);
-    String key = rtChar(s, pos);
-    return key == " " ? String("") : key;
+  if (rtSymbolsPage && row < 5) {
+    static const char* symbols[5] = {"0123456789","!@#$%^&*()","-_=+[]{}<>", ".,;:\'\\\"~", "/?\\\\|%&^"};
+    return String(symbols[row]).substring(col, col + 1);
   }
-  static const char* textActions[10] = {"123","SP","DEL","NL","RU","Aa",".",",","?","SAVE"};
-  static const char* symbolActions[10] = {"ABC","SP","DEL","NL","RU","Aa",".",",","?","SAVE"};
-  return rtSymbolsPage ? symbolActions[col] : textActions[col];
+  if (!rtSymbolsPage && row < 3) {
+    static const char* enUpper[3] = {"ABCDEFGHIJ","KLMNOPQRST","UVWXYZ    "};
+    static const char* enLower[3] = {"abcdefghij","klmnopqrst","uvwxyz    "};
+    static const char* ruUpper[3] = {"АБВГДЕЁЖЗИ","ЙКЛМНОПРСТ","УФХЦЧШЩЪЫЬ"};
+    static const char* ruLower[3] = {"абвгдеёжзи","йклмнопрст","уфхцчшщъыь"};
+    String keys = rtRussian ? (rtUpper ? String(ruUpper[row]) : String(ruLower[row])) : (rtUpper ? String(enUpper[row]) : String(enLower[row]));
+    size_t pos=0; for(uint8_t n=0;n<col&&pos<keys.length();n++)pos+=rtBytes(keys,pos);
+    String key=rtChar(keys,pos); return key==" " ? String("") : key;
+  }
+  if ((!rtSymbolsPage && row == 3) || (rtSymbolsPage && row == 5)) {
+    static const char* textActions[10] = {"123","SP","DEL","NL","RU","Aa","","","SAVE",""};
+    static const char* symbolActions[10] = {"ABC","SP","DEL","NL","RU","Aa","","","SAVE",""};
+    return rtSymbolsPage ? symbolActions[col] : textActions[col];
+  }
+  return String("");
 }
 static void rtMoveSelection(int rowDelta, int colDelta) {
-  for (uint8_t tries = 0; tries < 60; ++tries) {
-    rtKeyRow = (uint8_t)((rtKeyRow + 6 + rowDelta) % 6);
-    rtKeyCol = (uint8_t)((rtKeyCol + 10 + colDelta) % 10);
+  const int maxRows = rtSymbolsPage ? 6 : 4;
+  for (int tries = 0; tries < maxRows * 10; ++tries) {
+    int row = ((int)rtKeyRow + rowDelta + maxRows) % maxRows;
+    int col = ((int)rtKeyCol + colDelta + 10) % 10;
+    rtKeyRow = (uint8_t)row; rtKeyCol = (uint8_t)col;
     if (rtKeyAt(rtKeyRow, rtKeyCol).length()) return;
   }
 }
@@ -540,10 +643,12 @@ static void rtDrawPicker(){
   tft.fillScreen(ST77XX_BLACK); drawCyrillicText("ТЕКСТОВЫЙ БЛОК",8,25,ST77XX_WHITE,true);
   drawCyrillicText("UP/DOWN выбор, OK ввод",8,48,0x07FF,false);
   PageConfig& p=cfg.pages[cfg.tftPage-1]; int y=82; uint8_t n=0;
-  for(uint8_t i=0;i<p.widgetCount&&n<7;i++){WidgetConfig& w=p.widgets[i];if(!w.enabled||w.type!="text")continue;
+  for(uint8_t i=0;i<p.widgetCount&&n<6;i++){WidgetConfig& w=p.widgets[i];if(!w.enabled||w.type!="text")continue;
     if(n==rtPick)tft.fillRoundRect(5,y-16,230,28,4,0x03EF);
     drawCyrillicText((n==rtPick?"> ":"  ")+w.label.substring(0,27),10,y+2,ST77XX_WHITE,false);y+=30;n++;
   }
+  if(n==rtPick)tft.fillRoundRect(5,y-16,230,28,4,0x03EF);
+  drawCyrillicText((n==rtPick?"> ":"  ")+String("Часы и дата — настроить"),10,y+2,ST77XX_WHITE,false);
   drawCyrillicText("MENU: выход",8,307,0xBDF7,false);
 }
 static void rtDrawEditor(){
@@ -567,8 +672,11 @@ static void rtDrawEditor(){
   }
   if(lines<4&&line.length())drawCyrillicText(line,5,y,ST77XX_WHITE,false);
 
-  const int x0=2, y0=96, cellW=23, cellH=29;
-  for(uint8_t row=0;row<6;row++){
+  const int x0=2, cellW=23, cellH=29;
+  const uint8_t keyboardRows = rtSymbolsPage ? 6 : 4;
+  // Keep the keyboard anchored to the bottom edge of the 320px TFT.
+  const int y0 = 320 - keyboardRows * cellH - 2;
+  for(uint8_t row=0;row<keyboardRows;row++){
     for(uint8_t col=0;col<10;col++){
       int x=x0+col*cellW, yk=y0+row*cellH;
       String key=rtKeyAt(row,col);
@@ -586,24 +694,25 @@ static void rtDrawEditor(){
 
 static void rtWifiDrawMenu(const String& message = "") {
   tft.fillScreen(ST77XX_BLACK);
-  drawCyrillicText("УПРАВЛЕНИЕ WI-FI",5,20,0x07FF,true);
-  if(message.length()) drawCyrillicText(message.substring(0,31),5,43,ST77XX_WHITE,false);
-  else if(WiFi.status()==WL_CONNECTED) drawCyrillicText("Подключено: "+WiFi.SSID().substring(0,20),5,43,ST77XX_WHITE,false);
-  else drawCyrillicText("Нет подключения к роутеру",5,43,ST77XX_WHITE,false);
-  drawCyrillicText("SEARCH: поиск сетей",5,65,0xBDF7,false);
-  if(!rtWifiCount) drawCyrillicText("Нажми SEARCH для поиска",5,100,0xBDF7,false);
-  int first=rtWifiPick>5?rtWifiPick-5:0;
-  for(uint8_t row=0;row<6&&first+row<rtWifiCount;row++){
-    uint8_t idx=first+row; int y=99+row*31;
-    if(idx==rtWifiPick)tft.fillRoundRect(3,y-15,234,27,3,0x03EF);
-    String name=rtWifiNetworks[idx]; if(name.length()>23)name=name.substring(0,23);
-    drawCyrillicText(String(idx==rtWifiPick?"> ":"  ")+name+(rtWifiSecure[idx]?" *":""),7,y+2,ST77XX_WHITE,false);
+  drawCyrillicText("УПРАВЛЕНИЕ WI-FI",5,22,0x07FF,true);
+  drawCyrillicText("ВВЕРХ/ВНИЗ: строка",5,47,0xBDF7,false);
+  drawCyrillicText("ВЛЕВО/ВПРАВО: изменить",5,64,0xBDF7,false);
+
+  const char* labels[2] = {"СЕТЬ Роутер", "ТОЧКА ДОСТУПА"};
+  bool values[2] = {rtPendingRouter, rtPendingAp};
+  for (uint8_t row = 0; row < 2; ++row) {
+    int y = 105 + row * 48;
+    if (row == rtWifiModeRow) tft.fillRoundRect(4,y-22,232,36,4,0x03EF);
+    drawCyrillicText(labels[row],10,y,ST77XX_WHITE,false);
+    drawCyrillicText(values[row] ? "[ V ]" : "[   ]",181,y,values[row]?0x07E0:0xF800,false);
   }
-  drawCyrillicText("OK: выбрать BACK: выход",5,307,0xBDF7,false);
+  if (message.length()) drawCyrillicText(message.substring(0,30),5,225,ST77XX_YELLOW,false);
+  else drawCyrillicText("OK: применить  SEARCH: сети",5,225,0xBDF7,false);
+  drawCyrillicText("MENU/BACK: выход",5,307,0xBDF7,false);
 }
 static void rtWifiScan() {
-  if(!apActive) startAccessPoint();
-  WiFi.mode(WIFI_AP_STA);
+  if(!routerModeEnabled && !setupApEnabled){rtWifiDrawMenu("Сначала включи Wi-Fi (1 или 2)");return;}
+  WiFi.mode(setupApEnabled && routerModeEnabled ? WIFI_AP_STA : (setupApEnabled ? WIFI_AP : WIFI_STA));
   drawCyrillicText("Поиск сетей Wi-Fi...",5,87,ST77XX_WHITE,false);
   int count=WiFi.scanNetworks(false,true); rtWifiCount=0;
   if(count>=0) for(int i=0;i<count&&rtWifiCount<20;i++){
@@ -628,7 +737,8 @@ static void rtWifiConnect(const String& ssid,const String& password) {
   Serial.printf("IR Wi-Fi: connecting to SSID '%s'\\n",ssid.c_str());
 }
 static void rtOpenWifi() {
-  rtMode=RT_WIFI_MENU; rtWifiCount=0; rtWifiPick=0; rtWifiDrawMenu();
+  rtMode=RT_WIFI_MENU; rtWifiCount=0; rtWifiPick=0; rtWifiModeRow=0;
+  rtPendingRouter=routerModeEnabled; rtPendingAp=setupApEnabled; rtWifiDrawMenu();
 }
 static void rtWifiChoose() {
   if(rtWifiPick>=rtWifiCount)return;
@@ -643,8 +753,9 @@ static void rtOpen(){
   if(!rtCount()){tft.fillScreen(ST77XX_BLACK);drawCyrillicText("Нет текстовых блоков",8,35,ST77XX_WHITE,true);drawCyrillicText("Добавь блок в веб-админке",8,62,0xBDF7,false);delay(900);renderTFT();return;}
   rtMode=RT_PICKER;rtPick=0;rtDrawPicker();
 }
+static void rtOpenClockEditor();
 static void rtEdit(){
-  rtWidget=rtIndex(rtPick);if(rtWidget<0){rtMode=RT_CLOSED;renderTFT();return;}
+  rtWidget=rtIndex(rtPick);if(rtWidget==-2){rtOpenClockEditor();return;}if(rtWidget<0){rtMode=RT_CLOSED;renderTFT();return;}
   rtBuffer=cfg.pages[cfg.tftPage-1].widgets[rtWidget].text;if(rtBuffer.length()>240)rtBuffer=rtBuffer.substring(0,240);
   rtCursor=rtBuffer.length();rtMode=RT_EDIT;rtKeyRow=0;rtKeyCol=0;rtUpper=true;rtRussian=true;rtSymbolsPage=false;rtDrawEditor();
 }
@@ -660,7 +771,75 @@ static void rtSave(){
   }
   rtMode=RT_CLOSED;renderTFT();
 }
+static void rtDrawClockConfirm(){
+  tft.fillScreen(ST77XX_BLACK);
+  drawCyrillicText("ПОДТВЕРДИТЬ ВРЕМЯ",5,25,0xFFE0,true);
+  char date[16], time[16]; snprintf(date,sizeof(date),"%02u.%02u.%04u",(unsigned)rtClockDay,(unsigned)rtClockMonth,(unsigned)rtClockYear);
+  snprintf(time,sizeof(time),"%02u:%02u:%02u",(unsigned)rtClockHour,(unsigned)rtClockMinute,(unsigned)rtClockSecond);
+  drawCyrillicText(date,25,85,ST77XX_WHITE,true); drawCyrillicText(time,25,125,ST77XX_WHITE,true);
+  drawCyrillicText("OK: записать в DS3231",5,195,0x07E0,false);
+  drawCyrillicText("BACK: вернуться к правке",5,220,0xBDF7,false);
+  drawCyrillicText("MENU: отмена",5,245,0xBDF7,false);
+}
+static void rtDrawClockEditor(){
+  tft.fillScreen(ST77XX_BLACK);
+  drawCyrillicText("УСТАНОВКА ЧАСОВ",5,22,0x07FF,true);
+  char date[16], time[16]; snprintf(date,sizeof(date),"%02u.%02u.%04u",(unsigned)rtClockDay,(unsigned)rtClockMonth,(unsigned)rtClockYear);
+  snprintf(time,sizeof(time),"%02u:%02u:%02u",(unsigned)rtClockHour,(unsigned)rtClockMinute,(unsigned)rtClockSecond);
+  drawCyrillicText(date,25,80,rtClockField<=2?0xFFE0:ST77XX_WHITE,true);
+  drawCyrillicText(time,25,120,rtClockField>=3?ST77XX_YELLOW:ST77XX_WHITE,true);
+  int xPos[6]={25,55,105,25,65,105}; int yPos[6]={80,80,80,120,120,120}; int width[6]={22,22,48,22,22,22};
+  tft.drawRoundRect(xPos[rtClockField]-3,yPos[rtClockField]-17,width[rtClockField],24,3,0x07FF);
+  drawCyrillicText("LEFT/RIGHT: поле",5,185,0xBDF7,false); drawCyrillicText("UP/DOWN: изменить",5,207,0xBDF7,false);
+  drawCyrillicText("OK: записать в RTC",5,229,0x07E0,false); drawCyrillicText("BACK: отмена",5,251,0xBDF7,false);
+}
+static void rtOpenClockEditor(){
+  rtClockYear=gatewayTimeValid?gatewayYear:2026; rtClockMonth=gatewayTimeValid?gatewayMonth:1; rtClockDay=gatewayTimeValid?gatewayDay:1;
+  rtClockHour=gatewayTimeValid?gatewayHour:0; rtClockMinute=gatewayTimeValid?gatewayMinute:0; rtClockSecond=gatewayTimeValid?gatewaySecond:0;
+  rtClockField=0; rtMode=RT_CLOCK; rtDrawClockEditor();
+}
+static uint8_t rtDaysInMonth(uint16_t year, uint8_t month) {
+  static const uint8_t days[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
+  if (month < 1 || month > 12) return 31;
+  if (month == 2 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)) return 29;
+  return days[month - 1];
+}
+static void rtClampClockDay() {
+  uint8_t maxDay = rtDaysInMonth(rtClockYear, rtClockMonth);
+  if (rtClockDay > maxDay) rtClockDay = maxDay;
+}
+static void rtHandleClock(uint32_t k){
+  if(rtMode==RT_CLOCK_CONFIRM){
+    if(k==IR_CODE_OK){
+      if(!validCalendarDate(rtClockYear,rtClockMonth,rtClockDay)){rtMode=RT_CLOCK;rtDrawClockEditor();drawCyrillicText("НЕКОРРЕКТНАЯ ДАТА",5,285,ST77XX_RED,false);return;}
+      noInterrupts();clockCommandYear=rtClockYear;clockCommandMonth=rtClockMonth;clockCommandDay=rtClockDay;clockCommandHour=rtClockHour;clockCommandMinute=rtClockMinute;clockCommandSecond=rtClockSecond;clockCommandSequence++;clockCommandType=1;clockCommandPending=true;interrupts();
+      Serial.println(F("IR clock set command queued for RTC."));rtMode=RT_CLOSED;renderTFT();return;
+    }
+    if(k==IR_CODE_BACK){rtMode=RT_CLOCK;rtDrawClockEditor();return;}
+    if(k==IR_CODE_MENU){rtMode=RT_CLOSED;renderTFT();return;}
+    return;
+  }
+  if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtMode=RT_CLOSED;renderTFT();return;}
+  if(k==IR_CODE_LEFT){rtClockField=(rtClockField+5)%6;rtDrawClockEditor();return;}
+  if(k==IR_CODE_RIGHT){rtClockField=(rtClockField+1)%6;rtDrawClockEditor();return;}
+  if(k==IR_CODE_UP||k==IR_CODE_DOWN){int d=k==IR_CODE_UP?1:-1;
+    if(rtClockField==0)rtClockYear=(uint16_t)constrain((int)rtClockYear+d,2000,2099);
+    else if(rtClockField==1)rtClockMonth=(uint8_t)((rtClockMonth-1+d+12)%12+1);
+    else if(rtClockField==2){int maxDay=rtDaysInMonth(rtClockYear,rtClockMonth);rtClockDay=(uint8_t)((rtClockDay-1+d+maxDay)%maxDay+1);}
+    else if(rtClockField==3)rtClockHour=(uint8_t)((rtClockHour+24+d)%24);
+    else if(rtClockField==4)rtClockMinute=(uint8_t)((rtClockMinute+60+d)%60);
+    else rtClockSecond=(uint8_t)((rtClockSecond+60+d)%60);
+    rtClampClockDay();
+    rtDrawClockEditor();return;
+  }
+  if(k==IR_CODE_OK){
+    if(!validCalendarDate(rtClockYear,rtClockMonth,rtClockDay)){drawCyrillicText("НЕКОРРЕКТНАЯ ДАТА",5,285,ST77XX_RED,false);return;}
+    rtMode=RT_CLOCK_CONFIRM;rtDrawClockConfirm();return;
+  }
+}
+
 static void rtHandle(uint32_t k){
+  if(rtMode==RT_CLOCK || rtMode==RT_CLOCK_CONFIRM){rtHandleClock(k);return;}
   if(rtMode==RT_PICKER){
     uint8_t n=rtCount();if(!n){rtMode=RT_CLOSED;renderTFT();return;}
     if(k==IR_CODE_UP){rtPick=rtPick?rtPick-1:n-1;rtDrawPicker();}
@@ -671,10 +850,21 @@ static void rtHandle(uint32_t k){
   }
   if(rtMode==RT_WIFI_MENU){
     if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtMode=RT_CLOSED;renderTFT();return;}
+    if(k==IR_CODE_UP){rtWifiModeRow=rtWifiModeRow?0:1;rtWifiDrawMenu();return;}
+    if(k==IR_CODE_DOWN){rtWifiModeRow=(rtWifiModeRow+1)%2;rtWifiDrawMenu();return;}
+    if(k==IR_CODE_LEFT||k==IR_CODE_RIGHT){
+      if(rtWifiModeRow==0)rtPendingRouter=!rtPendingRouter;else rtPendingAp=!rtPendingAp;
+      rtWifiDrawMenu();return;
+    }
+    if(k==IR_CODE_OK){
+      routerModeEnabled=rtPendingRouter;setupApEnabled=rtPendingAp;applyWiFiMode();
+      rtWifiDrawMenu("Настройки Wi-Fi применены");return;
+    }
+    if(k==IR_CODE_1){rtPendingRouter=!rtPendingRouter;rtWifiDrawMenu();return;}
+    if(k==IR_CODE_2){rtPendingAp=!rtPendingAp;rtWifiDrawMenu();return;}
+    if(k==IR_CODE_3){rtPendingRouter=false;rtPendingAp=false;rtWifiDrawMenu();return;}
     if(k==IR_CODE_SEARCH){rtWifiScan();return;}
-    if(k==IR_CODE_UP&&rtWifiCount){rtWifiPick=rtWifiPick?rtWifiPick-1:rtWifiCount-1;rtWifiDrawMenu();return;}
-    if(k==IR_CODE_DOWN&&rtWifiCount){rtWifiPick=(rtWifiPick+1)%rtWifiCount;rtWifiDrawMenu();return;}
-    if(k==IR_CODE_OK){rtWifiChoose();return;}
+    if(rtWifiCount && k==IR_CODE_OK){rtWifiChoose();return;}
     return;
   }
   if(rtMode!=RT_EDIT)return;
@@ -717,6 +907,7 @@ static void handleIRRemote() {
   const uint32_t code = IR_RemoteUpdate();
   if (code == 0) return;
   if (rtMode != RT_CLOSED) { rtHandle(code); return; }
+  if (hasWifiControlOnCurrentPage() && (code == IR_CODE_UP || code == IR_CODE_DOWN || code == IR_CODE_OK)) { handleInlineWifiControl(code); return; }
   if (code == IR_CODE_SETUP) rtOpenWifi();
   else if (code == IR_CODE_MENU) rtOpen();
   else if (code == IR_CODE_LEFT || code == IR_CODE_BACK) showTFTPage(cfg.tftPage > 1 ? cfg.tftPage - 1 : cfg.pageCount);
@@ -768,8 +959,6 @@ void setup() {
   if (Wire.begin(GATEWAY_I2C_ADDRESS, 21, 22, 100000)) Serial.println(F("I2C gateway slave ready at 0x42 (SDA=21, SCL=22)."));
   else Serial.println(F("ERROR: I2C gateway slave initialization failed."));
 
-  WiFi.persistent(false);
-  WiFi.setAutoReconnect(true);
   connectWiFiAtBoot();
   setupWebServer();
   renderTFT();
@@ -791,26 +980,31 @@ void loop() {
     ESP.restart();
   }
 
-  if (cfg.ssid.length() > 0) {
-    if (WiFi.status() == WL_CONNECTED) {
-      disconnectedSince = 0;
-      // Keep both router and setup AP available; do not spam Serial.
-    } else {
-      if (disconnectedSince == 0) disconnectedSince = millis();
-      if (!apActive && millis() - disconnectedSince >= 30000UL) startAccessPoint();
-    }
+  static uint32_t lastWifiControlRefresh = 0;
+  if (wifiControlApplyPending && rtMode == RT_CLOSED && millis() - lastWifiControlRefresh >= 1000UL) {
+    lastWifiControlRefresh = millis();
+    refreshWifiControlWidget();
   }
 
-  // Refresh live Wi-Fi widgets periodically; otherwise update only the footer.
-  if (millis() - lastStatusDraw >= 15000UL) {
-    lastStatusDraw = millis();
-    bool hasDynamicWidget = false;
-    if (cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
-      PageConfig& page = cfg.pages[cfg.tftPage - 1];
-      for (uint8_t i = 0; i < page.widgetCount; i++) {
-        if (page.widgets[i].enabled && page.widgets[i].type == "wifiStatus") hasDynamicWidget = true;
-      }
-    }
-    if (hasDynamicWidget) renderTFT();
+  if (wifiControlApplyPending && (long)(millis() - wifiControlApplyAt) >= 0) {
+    routerModeEnabled = wifiControlPendingRouter;
+    setupApEnabled = wifiControlPendingAp;
+    applyWiFiMode();
+    wifiControlApplyPending = false;
+    refreshWifiControlWidget();
+    Serial.println(F("Inline Wi-Fi control applied after 5 seconds."));
+  }
+
+  // Runtime switches are authoritative; never auto-enable a disabled interface.
+  if (routerModeEnabled && WiFi.status() == WL_CONNECTED) disconnectedSince = 0;
+
+  // Common incremental renderer checks each visible widget; only changed lines are painted.
+  static uint32_t lastIncrementalRefresh = 0;
+  if (rtMode == RT_CLOSED && millis() - lastIncrementalRefresh >= 500UL &&
+      cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
+    lastIncrementalRefresh = millis();
+    PageConfig& visiblePage = cfg.pages[cfg.tftPage - 1];
+    for (uint8_t i = 0; i < visiblePage.widgetCount && i < MAX_WIDGETS_PER_PAGE; ++i)
+      updateWidgetIncremental(visiblePage.widgets[i], cfg.tftPage - 1, i);
   }
 }

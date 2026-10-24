@@ -26,24 +26,24 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <header><h1>Solar_PV — редактор экранов</h1><p>Универсальные страницы и повторно используемые блоки · TFT ST7789 240 × 320</p></header>
 <main><div>
 <section><h2>Страницы</h2><div class="page-tabs" id="pageTabs"></div>
-<label for="pageTitle">Название выбранной страницы</label><input id="pageTitle" type="text" maxlength="24" value="Показатели">
+<label for="pageTitle">Название выбранной страницы</label><input id="pageTitle" type="text" maxlength="24" value="Показатели"><label style="display:flex;align-items:center;gap:8px"><input id="showPageTitle" type="checkbox" checked> Показывать название страницы</label>
 <div class="row"><button class="primary" id="newPage">＋ Новая страница</button><button id="followDevice">К странице дисплея</button><button class="danger" id="deletePage">Удалить страницу</button></div>
 <p class="hint">Жёлтая рамка у вкладки показывает страницу, которая сейчас выведена на физический дисплей. Выбирать другую страницу для редактирования можно независимо.</p>
 <div class="status" id="deviceStatus">Получение состояния ESP32…</div></section>
 <section><h2>Библиотека блоков</h2><label for="widgetType">Тип нового блока</label><select id="widgetType">
-<option value="power">Мощность PV</option><option value="voltage">Напряжение</option><option value="current">Ток</option><option value="battery">Аккумулятор</option><option value="wifiStatus">Состояние Wi-Fi</option><option value="strings">Мониторинг стрингов</option><option value="text">Текстовый блок</option></select>
+<option value="power">Мощность PV</option><option value="voltage">Напряжение</option><option value="current">Ток</option><option value="battery">Аккумулятор</option><option value="wifiStatus">Состояние Wi-Fi</option><option value="wifiControl">Управление Wi-Fi</option><option value="strings">Мониторинг стрингов</option><option value="clock">Часы и дата</option><option value="text">Текстовый блок</option></select>
 <div class="row" style="margin-top:8px"><button class="primary" id="addWidget">＋ Добавить на страницу</button><button id="deleteWidget">Удалить выбранный блок</button></div>
-<p class="hint">Щёлкни по подписи блока, чтобы изменить её. Перетаскивай блок мышью, размер меняй за зелёный угол.</p><label for="widgetText">Текст выбранного блока</label><textarea id="widgetText" rows="5" maxlength="240" placeholder="Введите комментарий, буквы, цифры и символы…" style="width:100%;padding:9px;border:1px solid #465c73;border-radius:7px;background:#101923;color:#fff;font:14px Arial,sans-serif;resize:vertical"></textarea><p class="hint">Поле активно для текстового блока. Поддерживаются переносы строк; максимум 240 символов.</p><div id="stringCountWrap" style="display:none"><label for="stringCount">Количество стрингов в блоке</label><select id="stringCount"><option value="1">1 стринг</option><option value="2">2 стринга</option><option value="3">3 стринга</option><option value="4">4 стринга</option><option value="5">5 стрингов</option><option value="6">6 стрингов</option></select><p class="hint">Пока отображаются заглушки «— В». Реальные значения появятся после подключения источника телеметрии.</p></div>
+<p class="hint">Щёлкни по подписи блока, чтобы изменить её. Перетаскивай блок мышью, размер меняй за зелёный угол.</p><label style="display:flex;align-items:center;gap:8px"><input id="showWidgetHeading" type="checkbox" checked> Показывать заголовок блока</label><label style="display:flex;align-items:center;gap:8px"><input id="showWidgetBorder" type="checkbox" checked> Показывать рамку блока</label><label for="widgetText">Текст выбранного блока</label><textarea id="widgetText" rows="5" maxlength="240" placeholder="Введите комментарий, буквы, цифры и символы…" style="width:100%;padding:9px;border:1px solid #465c73;border-radius:7px;background:#101923;color:#fff;font:14px Arial,sans-serif;resize:vertical"></textarea><p class="hint">Поле активно для текстового блока. Поддерживаются переносы строк; максимум 240 символов.</p><div id="stringCountWrap" style="display:none"><label for="stringCount">Количество стрингов в блоке</label><select id="stringCount"><option value="1">1 стринг</option><option value="2">2 стринга</option><option value="3">3 стринга</option><option value="4">4 стринга</option><option value="5">5 стрингов</option><option value="6">6 стрингов</option></select><p class="hint">Пока отображаются заглушки «— В». Реальные значения появятся после подключения источника телеметрии.</p></div>
 <h3>Оформление выбранного блока</h3>
 <label for="styleTarget">Настраивать</label><select id="styleTarget"><option value="heading">Заголовок блока</option><option value="content">Содержимое блока</option></select>
-<label for="styleSize">Размер текста</label><select id="styleSize"><option value="0">Маленький</option><option value="1">Обычный</option><option value="2">Крупный</option><option value="3">Огромный</option><option value="4">Максимальный</option></select>
+<label for="styleSize">Размер текста</label><select id="styleSize"><option value="0">Маленький</option><option value="1">Обычный</option><option value="2">Крупный</option><option value="3">Огромный</option><option value="4">Максимальный</option><option value="5">Сверхкрупный</option></select>
 <label for="styleAlign">Выравнивание</label><select id="styleAlign"><option value="0">Слева</option><option value="1">По центру</option><option value="2">Справа</option></select>
 <label for="styleColor">Цвет текста</label><select id="styleColor"><option value="0">Белый</option><option value="1">Голубой</option><option value="2">Зелёный</option><option value="3">Жёлтый</option><option value="4">Красный</option><option value="5">Оранжевый</option></select>
-<label for="backgroundColor">Фон блока</label><select id="backgroundColor"><option value="0">Почти чёрный</option><option value="1">Тёмно-синий</option><option value="2">Тёмно-зелёный</option><option value="3">Тёмно-фиолетовый</option><option value="4">Тёмно-красный</option><option value="5">Графитовый</option></select>
+<label for="backgroundColor">Фон блока</label><select id="backgroundColor"><option value="0">Почти чёрный</option><option value="1">Тёмно-синий</option><option value="2">Тёмно-зелёный</option><option value="3">Тёмно-фиолетовый</option><option value="4">Тёмно-красный</option><option value="5">Графитовый</option><option value="6">Чёрный</option></select>
 <p class="hint">Настройки относятся только к выбранному блоку и выбранной части — заголовку или содержимому. Палитра ограничена шестью контрастными цветами.</p>
 <div class="toolbar" style="margin-top:12px"><button class="primary wide" id="saveDisplay">Сохранить все страницы и применить</button><button id="showOnTft">Показать выбранную страницу на TFT</button><button id="resetLayout">Восстановить исходный макет</button></div>
 <p class="hint">Значения телеметрии пока демонстрационные. Реальные датчики не подключаются этим редактором.</p></section>
-<section><h2>Подключение к Wi-Fi</h2><div class="status" id="netStatus">Получение состояния устройства…</div>
+<section><h2>Часы и дата RTC</h2><p class="hint">Установи время и дату часов DS3231. Команда передаётся на ESP8266-шлюз и записывается в RTC.</p><div class="row"><div><label for="clockDate">Дата</label><input id="clockDate" type="date"></div><div><label for="clockTime">Время</label><input id="clockTime" type="time" step="1"></div></div><button class="primary" id="setClock" style="margin-top:8px;width:100%">Установить время и дату</button><div class="status" id="clockStatus" style="margin-top:8px">Чтение времени устройства…</div></section><section><h2>Временное управление Wi-Fi</h2><div class="status" id="wifiModeStatus">Загрузка режима…</div><div class="row" style="margin-top:8px"><button id="toggleRouter">Роутер: ВЫКЛ</button><button id="toggleAp">Точка: ВКЛ</button></div><button class="danger" id="wifiOff" style="width:100%;margin-top:8px">Выключить обе сети</button><p class="hint">После перезапуска включится только точка SolarPV-Setup. Если выключить обе сети, админка станет недоступна.</p></section><section><h2>Постоянные настройки запуска Wi-Fi</h2><p class="hint">Эти значения сохраняются во флеш-памяти и применяются после перезагрузки. Переключатели выше действуют только до перезапуска.</p><label><input id="defaultRouter" type="checkbox"> Подключаться к домашнему роутеру</label><label><input id="defaultAp" type="checkbox"> Включать точку SolarPV-Setup</label><button class="primary" id="saveWiFiDefaults" style="width:100%;margin-top:8px">Сохранить настройки запуска</button><div class="status" id="wifiDefaultsStatus" style="margin-top:8px">Настройки запуска…</div></section><section><h2>Подключение к Wi-Fi</h2><div class="status" id="netStatus">Получение состояния устройства…</div>
 <label for="networkList">Найденные и сохранённые сети</label><div class="wifi-scan"><select id="networkList"><option value="">Нажмите «Сканировать»</option></select><button id="scanNetworks">Сканировать</button></div><p class="hint" id="scanStatus">Список ещё не обновлялся.</p>
 <label for="ssid">SSID</label><input id="ssid" type="text" maxlength="32" autocomplete="off"><label for="password">Пароль Wi-Fi</label><input id="password" type="password" maxlength="63" autocomplete="new-password">
 <p class="hint">Для сохранённой сети оставь пароль пустым. Можно хранить до 8 сетей.</p><button class="primary" id="saveWifi" style="margin-top:8px;width:100%">Сохранить Wi-Fi и перезапустить</button></section>
@@ -53,23 +53,23 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <div class="screen-footer"><span id="prevNetwork">Wi-Fi: —</span><span id="prevPage">Стр. 1</span></div></div>
 <p class="hint">Предпросмотр повторяет координаты TFT. Выбранная для редактирования страница не обязана совпадать с физическим экраном.</p></section></div></main>
 <script>
-const MAX_PAGES=4,MAX_WIDGETS=12;
+const MAX_PAGES=8,MAX_WIDGETS=12;
 const defaults=[
  {type:'power',label:'Мощность PV',x:8,y:55,w:224,h:58,enabled:true},
  {type:'voltage',label:'Напряжение',x:8,y:125,w:106,h:58,enabled:true},
  {type:'current',label:'Ток',x:125,y:125,w:106,h:58,enabled:true},
  {type:'battery',label:'Аккумулятор',x:8,y:205,w:224,h:58,enabled:true}
 ];
-const backgroundPalette=['#101820','#001B2E','#073326','#302044','#481D20','#30343B'];
-const typeLabels={power:'Мощность PV',voltage:'Напряжение',current:'Ток',battery:'Аккумулятор',wifiStatus:'Состояние Wi-Fi',strings:'Мониторинг стрингов',text:'Текст'};
+const backgroundPalette=['#101820','#001B2E','#073326','#302044','#481D20','#30343B','#000000'];
+const typeLabels={power:'Мощность PV',voltage:'Напряжение',current:'Ток',battery:'Аккумулятор',wifiStatus:'Состояние Wi-Fi',wifiControl:'Управление Wi-Fi',strings:'Мониторинг стрингов',clock:'Часы и дата',text:'Текст'};
 const demoValues={power:'DEMO W',voltage:'DEMO V',current:'DEMO A',battery:'DEMO %'};
 let pages=[],editorPage=0,devicePage=0,selectedWidget=-1,followDevice=true,pointerEdit=null;
-let networkStatus='',networkLabel='Wi-Fi: —',savedNetworks=[];
+let networkStatus='',networkLabel='Wi-Fi: —',savedNetworks=[],wifiMode={router:false,ap:true,apActive:true};
 const $=id=>document.getElementById(id);
 function clone(x){return JSON.parse(JSON.stringify(x))}
-function normalizePage(p,i){return {title:p.title||('Страница '+(i+1)),widgets:(p.widgets||[]).slice(0,MAX_WIDGETS).map(w=>({type:typeLabels[w.type]?w.type:'power',label:w.label||typeLabels[w.type]||'Блок',text:String(w.text||''),headingSize:Math.max(0,Math.min(4,Number(w.headingSize??1))),contentSize:Math.max(0,Math.min(4,Number(w.contentSize??2))),headingAlign:Math.max(0,Math.min(2,Number(w.headingAlign??0))),contentAlign:Math.max(0,Math.min(2,Number(w.contentAlign??0))),headingColor:Math.max(0,Math.min(5,Number(w.headingColor??0))),contentColor:Math.max(0,Math.min(5,Number(w.contentColor??(w.type==='wifiStatus'?0:3)))),backgroundColor:Math.max(0,Math.min(5,Number(w.backgroundColor??0))),stringCount:Math.max(1,Math.min(6,Number(w.stringCount??2))),locked:w.locked===true,x:Number(w.x)||0,y:Number(w.y)||40,w:Math.max(40,Number(w.w)||106),h:Math.max(36,Number(w.h)||58),enabled:w.enabled!==false}))}}
-function ensurePages(){if(!pages.length)pages=[{title:'Показатели',widgets:clone(defaults)},{title:'Wi-Fi',widgets:[{type:'wifiStatus',label:'Состояние Wi-Fi',x:8,y:55,w:224,h:220,enabled:true}]}];pages=pages.slice(0,MAX_PAGES).map(normalizePage)}
-function widgetValue(w){if(w.type==='wifiStatus')return '<div class="wifi-lines"></div>';if(w.type==='strings')return '<div class="strings-lines"></div>';return '<div class="value">'+(demoValues[w.type]||'DEMO')+'</div>'}
+function normalizePage(p,i){return {title:p.title||('Страница '+(i+1)),showTitle:p.showTitle!==false,widgets:(p.widgets||[]).slice(0,MAX_WIDGETS).map(w=>({type:typeLabels[w.type]?w.type:'power',label:w.label||typeLabels[w.type]||'Блок',text:String(w.text||''),headingSize:Math.max(0,Math.min(5,Number(w.headingSize??1))),contentSize:Math.max(0,Math.min(5,Number(w.contentSize??2))),headingAlign:Math.max(0,Math.min(2,Number(w.headingAlign??0))),contentAlign:Math.max(0,Math.min(2,Number(w.contentAlign??0))),headingColor:Math.max(0,Math.min(5,Number(w.headingColor??0))),contentColor:Math.max(0,Math.min(5,Number(w.contentColor??(w.type==='wifiStatus'?0:3)))),backgroundColor:Math.max(0,Math.min(6,Number(w.backgroundColor??0))),stringCount:Math.max(1,Math.min(6,Number(w.stringCount??2))),locked:w.locked===true,showHeading:w.showHeading!==false,showBorder:w.showBorder!==false,x:Number(w.x)||0,y:Number(w.y)||40,w:Math.max(40,Number(w.w)||106),h:Math.max(36,Number(w.h)||58),enabled:w.enabled!==false}))}}
+function ensurePages(){if(!pages.length)pages=[{title:'Показатели',showTitle:true,widgets:clone(defaults)},{title:'Wi-Fi',showTitle:true,widgets:[{type:'wifiStatus',label:'Состояние Wi-Fi',x:8,y:55,w:224,h:220,enabled:true}]}];pages=pages.slice(0,MAX_PAGES).map(normalizePage)}
+function widgetValue(w){if(w.type==='clock')return '<div class="value">12:34:56<br>22.10.2026</div>';if(w.type==='wifiStatus')return '<div class="wifi-lines"></div>';if(w.type==='strings')return '<div class="strings-lines"></div>';return '<div class="value">'+(demoValues[w.type]||'DEMO')+'</div>'}
 function renderTabs(){
  const tabs=$('pageTabs');tabs.innerHTML='';
  pages.forEach((p,i)=>{const b=document.createElement('button');b.className='page-tab'+(i===editorPage?' active':'')+(i===devicePage?' device':'');b.textContent=(i+1)+'. '+p.title;b.title=i===devicePage?'Сейчас на физическом дисплее':'Выбрать для редактирования';b.onclick=()=>{editorPage=i;followDevice=false;selectedWidget=-1;renderAll()};tabs.appendChild(b)});
@@ -77,13 +77,13 @@ function renderTabs(){
 }
 function renderCanvas(){
  const c=$('preview');c.querySelectorAll('.widget').forEach(n=>n.remove());
- $('prevTitle').textContent=pages[editorPage].title||('Страница '+(editorPage+1));$('prevTitle').style.fontSize='16px';const palette=['#FFFFFF','#00D5FF','#39E75F','#FFD400','#FF4D4D','#FF8C00'];const headingSizes=[9,11,13,16,19],contentSizes=[9,12,15,19,24];
+ $('prevTitle').textContent=pages[editorPage].title||('Страница '+(editorPage+1));$('prevTitle').style.display=pages[editorPage].showTitle?'block':'none';$('prevTitle').style.fontSize='16px';const palette=['#FFFFFF','#00D5FF','#39E75F','#FFD400','#FF4D4D','#FF8C00'];const headingSizes=[9,11,13,16,19,22],contentSizes=[9,12,15,19,24,29];
  $('prevNetwork').textContent=networkLabel;$('prevPage').textContent='Стр. '+(editorPage+1);
  pages[editorPage].widgets.forEach((w,i)=>{
   if(!w.enabled)return;
   const node=document.createElement('div');node.className='widget'+(selectedWidget===i?' selected':'')+(w.locked?' locked':'');node.dataset.index=i;
-  node.style.left=w.x+'px';node.style.top=w.y+'px';node.style.width=w.w+'px';node.style.height=w.h+'px';node.style.backgroundColor=backgroundPalette[w.backgroundColor??0];
-  const name=document.createElement('div');name.className='name';name.contentEditable='true';name.spellcheck=false;name.textContent=w.label;name.title='Щёлкните и измените подпись';
+  node.style.left=w.x+'px';node.style.top=w.y+'px';node.style.width=w.w+'px';node.style.height=w.h+'px';node.style.backgroundColor=backgroundPalette[w.backgroundColor??0];node.style.border=w.showBorder===false?'none':'1px solid #52616d';
+  const name=document.createElement('div');name.className='name';name.style.display=w.showHeading?'block':'none';name.contentEditable='true';name.spellcheck=false;name.textContent=w.label;name.title='Щёлкните и измените подпись';
   name.style.fontSize=headingSizes[w.headingSize]+'px';name.style.textAlign=['left','center','right'][w.headingAlign];name.style.color=palette[w.headingColor];
   name.addEventListener('pointerdown',e=>e.stopPropagation());
   name.addEventListener('input',()=>{w.label=name.textContent.slice(0,54);renderTabs()});
@@ -91,9 +91,13 @@ function renderCanvas(){
   node.appendChild(name);
   const lockButton=document.createElement('button');lockButton.type='button';lockButton.className='lock-toggle';lockButton.textContent=w.locked?'🔒':'🔓';lockButton.title=w.locked?'Разблокировать перемещение и размер':'Зафиксировать положение и размер';lockButton.setAttribute('aria-label',lockButton.title);
   lockButton.addEventListener('pointerdown',e=>e.stopPropagation());lockButton.addEventListener('click',e=>{e.stopPropagation();w.locked=!w.locked;selectedWidget=i;renderAll()});node.appendChild(lockButton);
-  if(w.type==='wifiStatus'){
+  if(w.type==='wifiControl'){
+   const lines=document.createElement('div');lines.className='wifi-lines';lines.textContent='Роутер: '+(wifiMode.router?'ВКЛ':'ВЫКЛ')+'\\nТочка: '+(wifiMode.ap?'ВКЛ':'ВЫКЛ')+'\\nПульт: SETUP, затем 1/2';lines.style.whiteSpace='pre-line';lines.style.fontSize=contentSizes[w.contentSize]+'px';lines.style.color=palette[w.contentColor];node.appendChild(lines);
+  }else if(w.type==='wifiStatus'){
    const lines=document.createElement('div');lines.className='wifi-lines';lines.textContent=networkStatus||'Состояние сети появится здесь';node.appendChild(lines);
    lines.style.fontSize=contentSizes[w.contentSize]+'px';lines.style.textAlign=['left','center','right'][w.contentAlign];lines.style.color=palette[w.contentColor];
+  }else if(w.type==='clock'){
+   const value=document.createElement('div');value.className='value';value.textContent='12:34:56\n22.10.2026';value.style.whiteSpace='pre-line';value.style.fontSize=contentSizes[w.contentSize]+'px';value.style.textAlign=['left','center','right'][w.contentAlign];value.style.color=palette[w.contentColor];node.appendChild(value);
   }else if(w.type==='strings'){
    const lines=document.createElement('div');lines.className='strings-lines';lines.textContent=Array.from({length:w.stringCount||2},(_,n)=>'Стринг '+(n+1)+': -- В').join('\n');node.appendChild(lines);
    lines.style.fontSize=contentSizes[w.contentSize]+'px';lines.style.lineHeight='1.2';lines.style.whiteSpace='pre-line';lines.style.textAlign=['left','center','right'][w.contentAlign];lines.style.color=palette[w.contentColor];
@@ -122,11 +126,12 @@ function renderCanvas(){
   node.addEventListener('click',e=>{if(e.target.closest('.name'))return;selectedWidget=i;renderAll()});c.appendChild(node);
  });
 }
-function syncStyleControls(){const p=pages[editorPage],w=p&&p.widgets[selectedWidget],target=$('styleTarget').value;const keys=[target+'Size',target+'Align',target+'Color'];$('styleSize').disabled=!w;$('styleAlign').disabled=!w;$('styleColor').disabled=!w;$('backgroundColor').disabled=!w;if(!w)return;$('styleSize').value=String(w[keys[0]]);$('styleAlign').value=String(w[keys[1]]);$('styleColor').value=String(w[keys[2]]);$('backgroundColor').value=String(w.backgroundColor??0);}
-function renderAll(){renderTabs();$('pageTitle').value=pages[editorPage].title;const p=pages[editorPage],w=p.widgets[selectedWidget];$('widgetText').disabled=!w||w.type!=='text';$('widgetText').value=w&&w.type==='text'?w.text:'';$('stringCountWrap').style.display=w&&w.type==='strings'?'block':'none';$('stringCount').disabled=!w||w.type!=='strings';if(w&&w.type==='strings')$('stringCount').value=String(w.stringCount||2);syncStyleControls();renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
+function syncStyleControls(){const p=pages[editorPage],w=p&&p.widgets[selectedWidget],target=$('styleTarget').value;const keys=[target+'Size',target+'Align',target+'Color'];$('styleSize').disabled=!w;$('styleAlign').disabled=!w;$('styleColor').disabled=!w;$('backgroundColor').disabled=!w;$('showWidgetBorder').disabled=!w;if(!w)return;$('styleSize').value=String(w[keys[0]]);$('styleAlign').value=String(w[keys[1]]);$('styleColor').value=String(w[keys[2]]);$('backgroundColor').value=String(w.backgroundColor??0);$('showWidgetBorder').checked=w.showBorder!==false;}
+function renderAll(){renderTabs();$('pageTitle').value=pages[editorPage].title;$('showPageTitle').checked=pages[editorPage].showTitle!==false;const p=pages[editorPage],w=p.widgets[selectedWidget];$('showWidgetHeading').disabled=!w;$('showWidgetHeading').checked=!!(w&&w.showHeading!==false);$('widgetText').disabled=!w||w.type!=='text';$('widgetText').value=w&&w.type==='text'?w.text:'';$('stringCountWrap').style.display=w&&w.type==='strings'?'block':'none';$('stringCount').disabled=!w||w.type!=='strings';if(w&&w.type==='strings')$('stringCount').value=String(w.stringCount||2);syncStyleControls();renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
 function loadConfig(c){
  $('netStatus').textContent=c.networkStatus||'Wi-Fi не подключён';
- networkStatus=c.networkStatus||'';networkLabel=c.networkLabel||'Wi-Fi: —';savedNetworks=c.savedNetworks||[];
+ if(c.clock){$('clockDate').value=c.clock.date||'';$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
+ networkStatus=c.networkStatus||'';networkLabel=c.networkLabel||'Wi-Fi: —';savedNetworks=c.savedNetworks||[];wifiMode=c.wifiMode||wifiMode;renderWiFiMode();$('defaultRouter').checked=!!wifiMode.defaultRouter;$('defaultAp').checked=!!wifiMode.defaultAp;renderWiFiDefaults();
  if(Array.isArray(c.pages)&&c.pages.length){pages=c.pages.map(normalizePage)}else{pages=[];ensurePages()}
  devicePage=Math.max(0,Math.min((Number(c.tftPage)||1)-1,pages.length-1));
  if(followDevice)editorPage=devicePage;
@@ -135,13 +140,14 @@ function loadConfig(c){
 }
 function updateDeviceStatus(){ $('deviceStatus').textContent='Физический дисплей: страница '+(devicePage+1)+' из '+pages.length+'. Редактор: страница '+(editorPage+1)+'.'; }
 function collectData(){
- return {title:'SOLAR PV',fontScale:1,pageCount:pages.length,pages:pages.map(p=>({title:p.title,widgets:p.widgets.map(w=>({type:w.type,label:w.label,text:w.text||'',headingSize:w.headingSize,contentSize:w.contentSize,headingAlign:w.headingAlign,contentAlign:w.contentAlign,headingColor:w.headingColor,contentColor:w.contentColor,backgroundColor:w.backgroundColor??0,stringCount:w.stringCount||2,locked:w.locked===true,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
+ return {title:'SOLAR PV',fontScale:1,pageCount:pages.length,pages:pages.map(p=>({title:p.title,showTitle:p.showTitle!==false,widgets:p.widgets.map(w=>({type:w.type,label:w.label,text:w.text||'',headingSize:w.headingSize,contentSize:w.contentSize,headingAlign:w.headingAlign,contentAlign:w.contentAlign,headingColor:w.headingColor,contentColor:w.contentColor,backgroundColor:w.backgroundColor??0,stringCount:w.stringCount||2,locked:w.locked===true,showHeading:w.showHeading!==false,showBorder:w.showBorder!==false,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
 }
 async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
   const p=Math.max(0,Math.min((Number(c.tftPage)||1)-1,Math.max(0,pages.length-1)));
   if(p!==devicePage){devicePage=p;if(followDevice)editorPage=Math.min(devicePage,pages.length-1);renderAll()}
-  networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;$('netStatus').textContent=networkStatus;$('preview').querySelectorAll('.wifi-lines').forEach(el=>el.textContent=networkStatus||'Состояние сети появится здесь');$('prevNetwork').textContent=networkLabel;updateDeviceStatus();
+  if(c.clock){if(document.activeElement!==$('clockDate'))$('clockDate').value=c.clock.date||'';if(document.activeElement!==$('clockTime'))$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
+  networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;$('netStatus').textContent=networkStatus;$('preview').querySelectorAll('.wifi-lines').forEach(el=>{if(!el.closest('.widget')||pages[editorPage].widgets[Number(el.closest('.widget').dataset.index)]?.type!=='wifiControl')el.textContent=networkStatus||'Состояние сети появится здесь';else el.textContent='Роутер: '+(wifiMode.router?'ВКЛ':'ВЫКЛ')+'\\nТочка: '+(wifiMode.ap?'ВКЛ':'ВЫКЛ')+'\\nПульт: SETUP, затем 1/2';});$('prevNetwork').textContent=networkLabel;updateDeviceStatus();
  }catch(e){}
 }
 $('styleTarget').addEventListener('change',syncStyleControls);
@@ -151,6 +157,9 @@ $('styleAlign').addEventListener('change',()=>applyStyleControl('Align',$('style
 $('styleColor').addEventListener('change',()=>applyStyleControl('Color',$('styleColor').value));
 $('backgroundColor').addEventListener('change',()=>{const w=pages[editorPage].widgets[selectedWidget];if(!w)return;w.backgroundColor=Number($('backgroundColor').value);renderAll()});
 $('pageTitle').addEventListener('input',()=>{pages[editorPage].title=$('pageTitle').value.slice(0,54);renderTabs();renderCanvas()});
+$('showPageTitle').addEventListener('change',()=>{pages[editorPage].showTitle=$('showPageTitle').checked;renderCanvas()});
+$('showWidgetHeading').addEventListener('change',()=>{const w=pages[editorPage].widgets[selectedWidget];if(!w)return;w.showHeading=$('showWidgetHeading').checked;renderCanvas()});
+$('showWidgetBorder').addEventListener('change',()=>{const w=pages[editorPage].widgets[selectedWidget];if(!w)return;w.showBorder=$('showWidgetBorder').checked;renderCanvas()});
 $('newPage').addEventListener('click',async()=>{
  if(pages.length>=MAX_PAGES)return;
  try{const r=await fetch('/api/page?action=create&t='+Date.now(),{cache:'no-store'});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Не удалось создать страницу');
@@ -166,8 +175,8 @@ $('followDevice').addEventListener('click',()=>{followDevice=true;editorPage=Mat
 $('addWidget').addEventListener('click',()=>{
  const p=pages[editorPage];if(p.widgets.length>=MAX_WIDGETS){alert('На одной странице максимум '+MAX_WIDGETS+' блоков.');return}
  const type=$('widgetType').value;const n=p.widgets.length;
- const wide=type==='wifiStatus'||type==='text'||type==='strings';
- p.widgets.push({type,label:typeLabels[type],text:'',headingSize:1,contentSize:type==='wifiStatus'?1:2,stringCount:2,locked:false,headingAlign:0,contentAlign:0,headingColor:0,contentColor:type==='wifiStatus'?0:3,backgroundColor:0,x:wide?8:8+(n%3)*76,y:wide?55+(n%3)*50:55+Math.floor(n/3)*58,w:wide?224:72,h:type==='wifiStatus'?120:(type==='text'?80:(type==='strings'?110:58)),enabled:true});
+ const wide=type==='wifiStatus'||type==='wifiControl'||type==='text'||type==='strings'||type==='clock';
+ p.widgets.push({type,label:typeLabels[type],text:'',headingSize:1,contentSize:type==='wifiStatus'?1:2,stringCount:2,locked:false,showHeading:true,headingAlign:0,contentAlign:0,headingColor:0,contentColor:type==='wifiStatus'?0:3,backgroundColor:0,showBorder:true,x:wide?8:8+(n%3)*76,y:wide?55+(n%3)*50:55+Math.floor(n/3)*58,w:wide?224:72,h:(type==='wifiStatus'||type==='wifiControl')?120:(type==='text'?80:(type==='strings'?110:(type==='clock'?80:58))),enabled:true});
  selectedWidget=p.widgets.length-1;renderAll();
 });
 $('deleteWidget').addEventListener('click',()=>{const p=pages[editorPage];if(selectedWidget<0||selectedWidget>=p.widgets.length){alert('Сначала выбери блок на холсте.');return}p.widgets.splice(selectedWidget,1);selectedWidget=-1;renderAll()});
@@ -184,6 +193,12 @@ $('showOnTft').addEventListener('click',async()=>{
 });
 $('resetLayout').addEventListener('click',()=>{if(!confirm('Восстановить исходный макет первой страницы?'))return;pages[editorPage].widgets=editorPage===0?clone(defaults):[];selectedWidget=-1;renderAll()});
 function renderSavedNetworks(networks){const list=$('networkList');list.innerHTML='';list.add(new Option('— Выберите сеть —',''));networks.forEach(n=>list.add(new Option('★ '+n.ssid+' · сохранена',n.ssid)))}
+function renderWiFiDefaults(){ $('wifiDefaultsStatus').textContent='После перезагрузки: роутер '+($('defaultRouter').checked?'ВКЛ':'ВЫКЛ')+' · точка '+($('defaultAp').checked?'ВКЛ':'ВЫКЛ');}
+async function saveWiFiDefaults(){try{const router=$('defaultRouter').checked,ap=$('defaultAp').checked;const r=await fetch('/api/wifi-defaults',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({router,ap})});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Ошибка сохранения');$('wifiDefaultsStatus').textContent=j.message;await refreshDeviceState();}catch(e){alert('Не удалось сохранить настройки запуска: '+e.message)}}
+$('defaultRouter').addEventListener('change',renderWiFiDefaults);$('defaultAp').addEventListener('change',renderWiFiDefaults);$('saveWiFiDefaults').addEventListener('click',saveWiFiDefaults);
+function renderWiFiMode(){ $('toggleRouter').textContent='Роутер: '+(wifiMode.router?'ВКЛ':'ВЫКЛ');$('toggleAp').textContent='Точка: '+(wifiMode.ap?'ВКЛ':'ВЫКЛ');$('wifiModeStatus').textContent='Роутер: '+(wifiMode.router?'включён':'выключен')+' · Точка доступа: '+(wifiMode.ap?'включена':'выключена')+(wifiMode.apActive?' · активна':'');}
+async function setWiFiMode(router,ap){if(!router&&!ap&&!confirm('Выключить обе сети? Админка станет недоступна, пока Wi-Fi не будет включён другим способом.'))return;try{const r=await fetch('/api/wifi-mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({router,ap})});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Ошибка режима Wi-Fi');wifiMode={router,ap,apActive:ap};renderWiFiMode();$('wifiModeStatus').textContent=j.message;await refreshDeviceState();}catch(e){alert('Не удалось применить режим: '+e.message)}}
+$('toggleRouter').addEventListener('click',()=>setWiFiMode(!wifiMode.router,wifiMode.ap));$('toggleAp').addEventListener('click',()=>setWiFiMode(wifiMode.router,!wifiMode.ap));$('wifiOff').addEventListener('click',()=>setWiFiMode(false,false));
 $('networkList').addEventListener('change',()=>{if($('networkList').value)$('ssid').value=$('networkList').value});
 $('scanNetworks').addEventListener('click',async()=>{
  $('scanNetworks').disabled=true;$('scanStatus').textContent='Идёт поиск сетей…';
@@ -198,6 +213,7 @@ $('saveWifi').addEventListener('click',async()=>{
  try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});const j=await r.json();alert(j.message);if(j.ok)$('password').value=''}catch(e){alert('Устройство может перезапускаться. Подожди и открой страницу снова.')}
 });
 fetch('/api/config?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(loadConfig).catch(()=>$('netStatus').textContent='Нет связи с ESP32');
+$('setClock').addEventListener('click',async()=>{const date=$('clockDate').value,time=$('clockTime').value;if(!date||!time){alert('Укажи дату и время.');return}try{const r=await fetch('/api/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,time})});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Не удалось передать команду');$('clockStatus').textContent=j.message||'Команда передана шлюзу';}catch(e){$('clockStatus').textContent='Ошибка: '+e.message}});
 setInterval(refreshDeviceState,2000);
 </script></body></html>
 )rawliteral";
