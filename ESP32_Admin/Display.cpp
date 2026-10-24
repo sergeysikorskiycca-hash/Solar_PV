@@ -19,8 +19,8 @@ static void setWidgetFont(uint8_t size) {
   }
 }
 static uint16_t widgetColor(uint8_t color) { return WIDGET_COLORS[color <= 5 ? color : 0]; }
-static const uint16_t WIDGET_BACKGROUNDS[6] = { 0x0841, 0x001B, 0x0326, 0x3009, 0x4804, 0x3186 };
-static uint16_t widgetBackground(uint8_t color) { return WIDGET_BACKGROUNDS[color <= 5 ? color : 0]; }
+static const uint16_t WIDGET_BACKGROUNDS[7] = { 0x0841, 0x001B, 0x0326, 0x3009, 0x4804, 0x3186, ST77XX_BLACK };
+static uint16_t widgetBackground(uint8_t color) { return WIDGET_BACKGROUNDS[color <= 6 ? color : 0]; }
 static void drawAlignedText(const String& text, int x, int y, int w, uint8_t size, uint8_t align, uint8_t color) {
   setWidgetFont(size);
   u8g2Fonts.setForegroundColor(widgetColor(color));
@@ -76,7 +76,8 @@ static void drawWrappedText(const WidgetConfig& widget, const String& rawText, i
 void drawWidget(const WidgetConfig& widget) {
   if (!widget.enabled) return;
   const int x=widget.x, y=widget.y, w=widget.w, h=widget.h;
-  tft.fillRoundRect(x,y,w,h,5,widgetBackground(widget.backgroundColor)); tft.drawRoundRect(x,y,w,h,5,0x5B6D);
+  tft.fillRoundRect(x,y,w,h,5,widgetBackground(widget.backgroundColor));
+  if (widget.showBorder) tft.drawRoundRect(x,y,w,h,5,0x5B6D);
   uint8_t hs=widget.headingSize<=5?widget.headingSize:1, cs=widget.contentSize<=5?widget.contentSize:2;
   int headingBaseline=y+FONT_HEIGHTS[hs]+3;
   if (widget.showHeading) drawAlignedText(widget.label,x,headingBaseline,w,hs,widget.headingAlign,widget.headingColor);
