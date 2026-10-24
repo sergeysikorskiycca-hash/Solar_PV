@@ -227,7 +227,7 @@ void handleSaveDisplay() {
       w.label = sanitizeTitle(String(source["label"] | "Блок"));
       w.text = String(source["text"] | "");
       if (w.text.length() > 240) w.text = w.text.substring(0, 240);
-      w.headingSize = clampInt(source["headingSize"] | 1, 0, 4); w.contentSize = clampInt(source["contentSize"] | 2, 0, 4);
+      w.headingSize = clampInt(source["headingSize"] | 1, 0, 5); w.contentSize = clampInt(source["contentSize"] | 2, 0, 5);
       w.stringCount = clampInt(source["stringCount"] | 2, 1, 6); w.locked = source["locked"] | false; w.showHeading = source["showHeading"] | true;
       w.headingAlign = clampInt(source["headingAlign"] | 0, 0, 2); w.contentAlign = clampInt(source["contentAlign"] | 0, 0, 2);
       w.headingColor = clampInt(source["headingColor"] | 0, 0, 5); w.contentColor = clampInt(source["contentColor"] | 3, 0, 5); w.backgroundColor = clampInt(source["backgroundColor"] | 0, 0, 5);
@@ -898,20 +898,23 @@ void loop() {
 
   static uint8_t lastClockSecond = 255;
   if (rtMode == RT_CLOSED && gatewayTimeValid && gatewaySecond != lastClockSecond && cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
-    lastClockSecond = gatewaySecond; PageConfig& cp = cfg.pages[cfg.tftPage - 1];
-    for (uint8_t i = 0; i < cp.widgetCount; ++i) if (cp.widgets[i].enabled && cp.widgets[i].type == "clock") { renderTFT(); break; }
+    lastClockSecond = gatewaySecond;
+    PageConfig& cp = cfg.pages[cfg.tftPage - 1];
+    for (uint8_t i = 0; i < cp.widgetCount; ++i) {
+      if (cp.widgets[i].enabled && cp.widgets[i].type == "clock") drawWidget(cp.widgets[i]);
+    }
   }
 
-  // Refresh live Wi-Fi widgets periodically; otherwise update only the footer.
+  // Refresh only Wi-Fi widget regions, not the entire TFT page.
   if (millis() - lastStatusDraw >= 15000UL) {
     lastStatusDraw = millis();
     bool hasDynamicWidget = false;
     if (cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
       PageConfig& page = cfg.pages[cfg.tftPage - 1];
       for (uint8_t i = 0; i < page.widgetCount; i++) {
-        if (page.widgets[i].enabled && page.widgets[i].type == "wifiStatus") hasDynamicWidget = true;
+        if (page.widgets[i].enabled && page.widgets[i].type == "wifiStatus") drawWidget(page.widgets[i]);
       }
     }
-    if (hasDynamicWidget) renderTFT();
+    (void)hasDynamicWidget;
   }
 }
