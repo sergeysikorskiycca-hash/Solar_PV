@@ -10,6 +10,7 @@ void handleSaveDisplay();
 void handleSetPage();
 void handleScanWiFi();
 void handleSaveWiFi();
+void handleWiFiMode();
 void handleSetClock();
 void handleNotFound();
 
@@ -22,6 +23,7 @@ void setupWebServer() {
   server.on("/api/page", HTTP_GET, handleSetPage);
   server.on("/api/page", HTTP_POST, handleSetPage);
   server.on("/api/wifi", HTTP_POST, handleSaveWiFi);
+  server.on("/api/wifi-mode", HTTP_POST, handleWiFiMode);
   server.onNotFound(handleNotFound);
   server.begin();
   webStarted = true;
