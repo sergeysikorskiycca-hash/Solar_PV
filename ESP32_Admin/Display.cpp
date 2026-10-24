@@ -137,6 +137,9 @@ void drawWidget(const WidgetConfig& widget) {
   drawAlignedText(value,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
 }
 extern bool gatewayOnline;
+extern bool gatewaySensorValid;
+extern int8_t gatewayEspNowRssi;
+extern bool gatewayEspNowRssiValid;
 
 void updateClockWidget(const WidgetConfig& widget) {
   if (!widget.enabled || widget.type != "clock") return;
