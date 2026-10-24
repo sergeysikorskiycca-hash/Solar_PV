@@ -560,29 +560,31 @@ static int rtIndex(uint8_t wanted){
 }
 static String rtKeyAt(uint8_t row, uint8_t col) {
   if (rtSymbolsPage && row < 5) {
-    static const char* symbols[5] = {"0123456789","!@#$%^&*()","-_=+[]{}<>", ".,;:'\\\"~", "/?\\\\|%&^"};
+    static const char* symbols[5] = {"0123456789","!@#$%^&*()","-_=+[]{}<>", ".,;:\'\\\"~", "/?\\\\|%&^"};
     return String(symbols[row]).substring(col, col + 1);
   }
-  if (row < 4) {
-    static const char* enUpper[4] = {"ABCDEFGHIJ","KLMNOPQRST","UVWXYZ    ","          "};
-    static const char* enLower[4] = {"abcdefghij","klmnopqrst","uvwxyz    ","          "};
-    static const char* ruUpper[4] = {"АБВГДЕЁЖЗИ","ЙКЛМНОПРСТ","УФХЦЧШЩЪЫЬ","ЭЮЯ       "};
-    static const char* ruLower[4] = {"абвгдеёжзи","йклмнопрст","уфхцчшщъыь","эюя       "};
+  if (!rtSymbolsPage && row < 3) {
+    static const char* enUpper[3] = {"ABCDEFGHIJ","KLMNOPQRST","UVWXYZ    "};
+    static const char* enLower[3] = {"abcdefghij","klmnopqrst","uvwxyz    "};
+    static const char* ruUpper[3] = {"АБВГДЕЁЖЗИ","ЙКЛМНОПРСТ","УФХЦЧШЩЪЫЬ"};
+    static const char* ruLower[3] = {"абвгдеёжзи","йклмнопрст","уфхцчшщъыь"};
     String keys = rtRussian ? (rtUpper ? String(ruUpper[row]) : String(ruLower[row])) : (rtUpper ? String(enUpper[row]) : String(enLower[row]));
     size_t pos=0; for(uint8_t n=0;n<col&&pos<keys.length();n++)pos+=rtBytes(keys,pos);
     String key=rtChar(keys,pos); return key==" " ? String("") : key;
   }
-  if ((row == 4 && !rtSymbolsPage) || (row == 5 && rtSymbolsPage)) {
-    static const char* textActions[10] = {"123","SP","DEL","NL","RU","Aa","","","","SAVE"};
-    static const char* symbolActions[10] = {"ABC","SP","DEL","NL","RU","Aa","","","","SAVE"};
+  if ((!rtSymbolsPage && row == 3) || (rtSymbolsPage && row == 5)) {
+    static const char* textActions[10] = {"123","SP","DEL","NL","RU","Aa","","","SAVE",""};
+    static const char* symbolActions[10] = {"ABC","SP","DEL","NL","RU","Aa","","","SAVE",""};
     return rtSymbolsPage ? symbolActions[col] : textActions[col];
   }
   return String("");
 }
 static void rtMoveSelection(int rowDelta, int colDelta) {
-  for (uint8_t tries = 0; tries < 60; ++tries) {
-    rtKeyRow = (uint8_t)((rtKeyRow + 6 + rowDelta) % 6);
-    rtKeyCol = (uint8_t)((rtKeyCol + 10 + colDelta) % 10);
+  const int maxRows = rtSymbolsPage ? 6 : 4;
+  for (int tries = 0; tries < maxRows * 10; ++tries) {
+    int row = ((int)rtKeyRow + rowDelta + maxRows) % maxRows;
+    int col = ((int)rtKeyCol + colDelta + 10) % 10;
+    rtKeyRow = (uint8_t)row; rtKeyCol = (uint8_t)col;
     if (rtKeyAt(rtKeyRow, rtKeyCol).length()) return;
   }
 }
@@ -620,7 +622,8 @@ static void rtDrawEditor(){
   if(lines<4&&line.length())drawCyrillicText(line,5,y,ST77XX_WHITE,false);
 
   const int x0=2, y0=96, cellW=23, cellH=29;
-  for(uint8_t row=0;row<6;row++){
+  const uint8_t keyboardRows = rtSymbolsPage ? 6 : 4;
+  for(uint8_t row=0;row<keyboardRows;row++){
     for(uint8_t col=0;col<10;col++){
       int x=x0+col*cellW, yk=y0+row*cellH;
       String key=rtKeyAt(row,col);
