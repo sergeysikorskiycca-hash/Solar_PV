@@ -742,6 +742,16 @@ static void rtOpenClockEditor(){
   rtClockHour=gatewayTimeValid?gatewayHour:0; rtClockMinute=gatewayTimeValid?gatewayMinute:0; rtClockSecond=gatewayTimeValid?gatewaySecond:0;
   rtClockField=0; rtMode=RT_CLOCK; rtDrawClockEditor();
 }
+static uint8_t rtDaysInMonth(uint16_t year, uint8_t month) {
+  static const uint8_t days[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
+  if (month < 1 || month > 12) return 31;
+  if (month == 2 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)) return 29;
+  return days[month - 1];
+}
+static void rtClampClockDay() {
+  uint8_t maxDay = rtDaysInMonth(rtClockYear, rtClockMonth);
+  if (rtClockDay > maxDay) rtClockDay = maxDay;
+}
 static void rtHandleClock(uint32_t k){
   if(rtMode==RT_CLOCK_CONFIRM){
     if(k==IR_CODE_OK){
@@ -757,12 +767,13 @@ static void rtHandleClock(uint32_t k){
   if(k==IR_CODE_LEFT){rtClockField=(rtClockField+5)%6;rtDrawClockEditor();return;}
   if(k==IR_CODE_RIGHT){rtClockField=(rtClockField+1)%6;rtDrawClockEditor();return;}
   if(k==IR_CODE_UP||k==IR_CODE_DOWN){int d=k==IR_CODE_UP?1:-1;
-    if(rtClockField==0)rtClockYear=constrain((int)rtClockYear+d,2000,2099);
-    else if(rtClockField==1)rtClockMonth=(uint8_t)constrain((int)rtClockMonth+d,1,12);
-    else if(rtClockField==2)rtClockDay=(uint8_t)constrain((int)rtClockDay+d,1,31);
+    if(rtClockField==0)rtClockYear=(uint16_t)constrain((int)rtClockYear+d,2000,2099);
+    else if(rtClockField==1)rtClockMonth=(uint8_t)((rtClockMonth-1+d+12)%12+1);
+    else if(rtClockField==2){int maxDay=rtDaysInMonth(rtClockYear,rtClockMonth);rtClockDay=(uint8_t)((rtClockDay-1+d+maxDay)%maxDay+1);}
     else if(rtClockField==3)rtClockHour=(uint8_t)((rtClockHour+24+d)%24);
     else if(rtClockField==4)rtClockMinute=(uint8_t)((rtClockMinute+60+d)%60);
     else rtClockSecond=(uint8_t)((rtClockSecond+60+d)%60);
+    rtClampClockDay();
     rtDrawClockEditor();return;
   }
   if(k==IR_CODE_OK){
