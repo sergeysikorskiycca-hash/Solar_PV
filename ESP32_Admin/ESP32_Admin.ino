@@ -488,13 +488,20 @@ static void gatewayOnReceive(int count) {
 
   // Prepare the acknowledgement in the receive callback, before the master
   // immediately requests it. Keep all heavier state updates in loop().
-  bool valid = received == sizeof(GatewayPacket);
+  bool valid = received == sizeof(GatewayPacket) || received == 31;
   if (valid) {
-    GatewayPacket packet;
-    memcpy(&packet, raw, sizeof(packet));
-    valid = packet.magic == GATEWAY_FRAME_MAGIC &&
-            packet.version == GATEWAY_FRAME_VERSION &&
-            gatewayCrc8(raw, sizeof(packet) - 1) == packet.crc;
+    GatewayPacket packet = {};
+    if (received == 31) {
+      // Backward compatibility until the gateway is updated to send RSSI.
+      memcpy(&packet, raw, 30);
+      packet.espNowRssi = -127;
+      valid = gatewayCrc8(raw, 30) == raw[30];
+    } else {
+      memcpy(&packet, raw, sizeof(packet));
+      valid = gatewayCrc8(raw, sizeof(packet) - 1) == packet.crc;
+    }
+    valid = valid && packet.magic == GATEWAY_FRAME_MAGIC &&
+            packet.version == GATEWAY_FRAME_VERSION;
     gatewayAckSequence = packet.sequence;
   } else if (received >= 3) {
     gatewayAckSequence = raw[2];
@@ -522,12 +529,20 @@ static void processGatewayPacket() {
   }
   interrupts();
   if (pending) {
-    GatewayPacket packet;
-    bool valid = length == sizeof(packet);
+    GatewayPacket packet = {};
+    bool valid = length == sizeof(packet) || length == 31;
     if (valid) {
-      memcpy(&packet, raw, sizeof(packet));
-      valid = packet.magic == GATEWAY_FRAME_MAGIC && packet.version == GATEWAY_FRAME_VERSION &&
-              gatewayCrc8(raw, sizeof(packet) - 1) == packet.crc;
+      if (length == 31) {
+        // Legacy 31-byte frame: its final byte is CRC, not RSSI.
+        memcpy(&packet, raw, 30);
+        packet.espNowRssi = -127;
+        valid = gatewayCrc8(raw, 30) == raw[30];
+      } else {
+        memcpy(&packet, raw, sizeof(packet));
+        valid = gatewayCrc8(raw, sizeof(packet) - 1) == packet.crc;
+      }
+      valid = valid && packet.magic == GATEWAY_FRAME_MAGIC &&
+              packet.version == GATEWAY_FRAME_VERSION;
     }
     if (valid) {
       gatewayAckSequence = packet.sequence;
