@@ -343,27 +343,43 @@ void resetIncrementalWidgetCache() {
 }
 
 void drawTFTIndicators() {
-  // Reserve the top-right corner for independent Wi-Fi and gateway status.
+  // Three independent indicators: ESP32 Wi-Fi, I2C gateway link, ESP-NOW RSSI.
   tft.fillRect(186, 0, 54, 23, ST77XX_BLACK);
+
   const bool wifiConnected = WiFi.status() == WL_CONNECTED;
   const uint16_t wifiColor = wifiConnected ? 0x07E0 : 0xF800;
-  int bars = 0;
+  int wifiBars = 0;
   if (wifiConnected) {
-    int rssi = WiFi.RSSI();
-    bars = rssi >= -55 ? 4 : (rssi >= -67 ? 3 : (rssi >= -78 ? 2 : 1));
+    const int rssi = WiFi.RSSI();
+    wifiBars = rssi >= -55 ? 4 : (rssi >= -67 ? 3 : (rssi >= -78 ? 2 : 1));
   }
   for (int i = 0; i < 4; ++i) {
-    int h = 4 + i * 3;
-    uint16_t c = (wifiConnected && i < bars) || !wifiConnected ? wifiColor : 0x4208;
+    const int h = 4 + i * 3;
+    const uint16_t c = wifiConnected ? (i < wifiBars ? wifiColor : 0x4208) : wifiColor;
     tft.fillRect(188 + i * 4, 19 - h, 3, h, c);
   }
 
+  // Gateway icon reports the freshness of the ESP8266 -> ESP32 I2C frames.
   const uint16_t linkColor = gatewayOnline ? 0x07E0 : 0xF800;
-  tft.drawRoundRect(207, 5, 10, 12, 2, linkColor);
-  tft.drawRoundRect(225, 5, 10, 12, 2, linkColor);
-  tft.drawLine(217, 11, 225, 11, linkColor);
-  tft.drawLine(219, 8, 223, 8, linkColor);
-  tft.drawLine(219, 14, 223, 14, linkColor);
+  tft.drawRoundRect(204, 5, 8, 12, 2, linkColor);
+  tft.drawRoundRect(212, 5, 8, 12, 2, linkColor);
+  tft.drawLine(210, 11, 214, 11, linkColor);
+  tft.drawLine(211, 8, 213, 8, linkColor);
+  tft.drawLine(211, 14, 213, 14, linkColor);
+
+  // ESP-NOW bars use the RSSI supplied by the gateway; no fabricated estimate.
+  const bool rssiValid = gatewayEspNowRssiValid && gatewaySensorValid && gatewayOnline;
+  const uint16_t rssiColor = rssiValid ? 0x07E0 : 0xF800;
+  int nowBars = 0;
+  if (rssiValid) {
+    const int rssi = gatewayEspNowRssi;
+    nowBars = rssi >= -55 ? 4 : (rssi >= -67 ? 3 : (rssi >= -78 ? 2 : 1));
+  }
+  for (int i = 0; i < 4; ++i) {
+    const int h = 4 + i * 3;
+    const uint16_t c = rssiValid ? (i < nowBars ? rssiColor : 0x4208) : rssiColor;
+    tft.fillRect(222 + i * 4, 19 - h, 3, h, c);
+  }
 }
 
 void renderTFT() {
