@@ -51,6 +51,16 @@ struct SensorSlot {
   float shuntVoltage;
   uint32_t packetNumber;
   uint32_t lastSeenMs;
+  uint8_t sourceMac[6];
+  int8_t espNowRssi;
+  bool rssiValid;
+  bool valid;
+};
+
+struct RssiSample {
+  uint8_t mac[6];
+  int8_t rssi;
+  uint32_t lastSeenMs;
   bool valid;
 };
 
@@ -59,18 +69,20 @@ struct GatewayPacket {
   uint8_t magic;
   uint8_t version;
   uint8_t sequence;
-  uint8_t flags;             // bit 0: RTC valid, bit 1: sensor data valid
+  uint8_t flags;             // bit 0: RTC valid, bit 1: sensor valid, bit 2: RSSI valid
   uint16_t year;
   uint8_t month, day, hour, minute, second;
   uint8_t sensorId;
   float voltage, current, power, shuntVoltage;
   uint16_t sensorPacketNumber;
+  int8_t espNowRssi;          // RSSI in dBm, from 802.11 receive metadata
   uint8_t crc;
 };
 #pragma pack(pop)
-static_assert(sizeof(GatewayPacket) == 31, "GatewayPacket size mismatch; keep frame <= 32 bytes");
+static_assert(sizeof(GatewayPacket) == 32, "GatewayPacket size mismatch; I2C frame must be 32 bytes or less");
 
 static SensorSlot sensorSlots[MAX_SENSORS] = {};
+static RssiSample rssiSamples[MAX_SENSORS] = {};
 static GatewayPacket packet = {};
 static uint8_t sequenceNumber = 0;
 static uint8_t nextSensorIndex = 0;
@@ -160,8 +172,43 @@ static bool readRtc() {
   return true;
 }
 
+// ESP-NOW's legacy ESP8266 callback has no RSSI argument. Cache 802.11 RSSI by MAC.
+static void onPromiscuousPacket(uint8_t* buf, uint16_t len) {
+  if (!buf || len < sizeof(struct RxControl) + 16) return;
+  const struct RxControl* control = (const struct RxControl*)buf;
+  const uint8_t* frame = buf + sizeof(struct RxControl);
+  const uint8_t* sourceMac = frame + 10; // 802.11 transmitter/source address
+  const int8_t rssi = (int8_t)control->rssi;
+  const uint32_t now = millis();
+  int8_t target = -1;
+  for (uint8_t i = 0; i < MAX_SENSORS; ++i) {
+    if (rssiSamples[i].valid && memcmp(rssiSamples[i].mac, sourceMac, 6) == 0) {
+      target = (int8_t)i;
+      break;
+    }
+    if (target < 0 && (!rssiSamples[i].valid || now - rssiSamples[i].lastSeenMs > 5000UL)) target = (int8_t)i;
+  }
+  if (target >= 0) {
+    RssiSample& sample = rssiSamples[(uint8_t)target];
+    memcpy(sample.mac, sourceMac, 6);
+    sample.rssi = rssi;
+    sample.lastSeenMs = now;
+    sample.valid = true;
+  }
+}
+
+static bool readRecentRssi(const uint8_t* mac, int8_t& rssi) {
+  const uint32_t now = millis();
+  for (uint8_t i = 0; i < MAX_SENSORS; ++i) {
+    if (rssiSamples[i].valid && memcmp(rssiSamples[i].mac, mac, 6) == 0 && now - rssiSamples[i].lastSeenMs <= 3000UL) {
+      rssi = rssiSamples[i].rssi;
+      return true;
+    }
+  }
+  return false;
+}
+
 static void onSensorData(uint8_t* mac, uint8_t* data, uint8_t len) {
-  (void)mac;
   if (len != sizeof(SensorPacket)) return;
   SensorPacket incoming;
   memcpy(&incoming, data, sizeof(incoming));
@@ -176,6 +223,8 @@ static void onSensorData(uint8_t* mac, uint8_t* data, uint8_t len) {
   slot.power = incoming.power;
   slot.shuntVoltage = incoming.shuntVoltage;
   slot.packetNumber = incoming.packetNumber;
+  memcpy(slot.sourceMac, mac, sizeof(slot.sourceMac));
+  slot.rssiValid = readRecentRssi(mac, slot.espNowRssi);
   slot.lastSeenMs = millis();
   slot.valid = true;
 }
@@ -194,6 +243,7 @@ static bool exchangePacket() {
   packet.version = FRAME_VERSION;
   packet.sequence = sequenceNumber++;
   packet.flags = rtcPresent ? 0x01 : 0x00;
+  packet.espNowRssi = -127;
 
   if (sensorIndex >= 0) {
     const SensorSlot& slot = sensorSlots[(uint8_t)sensorIndex];
@@ -204,6 +254,13 @@ static bool exchangePacket() {
     packet.power = slot.power;
     packet.shuntVoltage = slot.shuntVoltage;
     packet.sensorPacketNumber = (uint16_t)(slot.packetNumber & 0xFFFF);
+    int8_t latestRssi = slot.espNowRssi;
+    if (slot.rssiValid && readRecentRssi(slot.sourceMac, latestRssi)) {
+      packet.espNowRssi = latestRssi;
+      packet.flags |= 0x04;
+    } else {
+      packet.espNowRssi = -127;
+    }
   } else {
     packet.sensorId = 0;
     packet.voltage = 0.0f;
@@ -211,6 +268,7 @@ static bool exchangePacket() {
     packet.power = 0.0f;
     packet.shuntVoltage = 0.0f;
     packet.sensorPacketNumber = 0;
+    packet.espNowRssi = -127;
   }
 
   packet.crc = crc8((const uint8_t*)&packet, sizeof(packet) - 1);
@@ -271,8 +329,11 @@ void setup() {
   if (esp_now_init() == 0) {
     esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
     esp_now_register_recv_cb(onSensorData);
+    // ESP-NOW callback omits RSSI, so collect 802.11 receive metadata separately.
+    wifi_set_promiscuous_rx_cb(onPromiscuousPacket);
+    wifi_promiscuous_enable(1);
     espNowReady = true;
-    Serial.println(F("ESP-NOW ready on channel 1; waiting for sensor packets."));
+    Serial.println(F("ESP-NOW ready on channel 1; RSSI monitor enabled."));
   } else {
     Serial.println(F("ERROR: ESP-NOW init failed."));
   }
