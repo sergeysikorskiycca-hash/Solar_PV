@@ -99,8 +99,16 @@ static uint8_t crc8(const uint8_t* data, size_t length) {
 
 static uint8_t toBcd(uint8_t value) { return (uint8_t)(((value / 10) << 4) | (value % 10)); }
 
+static bool validCalendarDate(uint16_t year, uint8_t month, uint8_t day) {
+  if (year < 2000 || year > 2099 || month < 1 || month > 12 || day < 1) return false;
+  static const uint8_t daysInMonth[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
+  uint8_t maxDay = daysInMonth[month - 1];
+  if (month == 2 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)) maxDay = 29;
+  return day <= maxDay;
+}
+
 static bool writeRtc(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
-  if (year < 2000 || year > 2099 || month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) return false;
+  if (!validCalendarDate(year, month, day) || hour > 23 || minute > 59 || second > 59) return false;
   Wire.beginTransmission(RTC_ADDRESS);
   Wire.write((uint8_t)0x00);
   Wire.write(toBcd(second)); Wire.write(toBcd(minute)); Wire.write(toBcd(hour));
