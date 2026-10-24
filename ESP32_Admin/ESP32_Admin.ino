@@ -39,6 +39,42 @@ bool apActive = false;
 extern bool routerModeEnabled;
 extern bool setupApEnabled;
 void applyWiFiMode();
+
+bool wifiControlPendingRouter = false;
+bool wifiControlPendingAp = true;
+bool wifiControlApplyPending = false;
+uint8_t wifiControlSelectedRow = 0;
+uint32_t wifiControlApplyAt = 0;
+static bool hasWifiControlOnCurrentPage() {
+  if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return false;
+  PageConfig& page = cfg.pages[cfg.tftPage - 1];
+  for (uint8_t i = 0; i < page.widgetCount; ++i)
+    if (page.widgets[i].enabled && page.widgets[i].type == "wifiControl") return true;
+  return false;
+}
+static void refreshWifiControlWidget() {
+  if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return;
+  PageConfig& page = cfg.pages[cfg.tftPage - 1];
+  for (uint8_t i = 0; i < page.widgetCount; ++i)
+    if (page.widgets[i].enabled && page.widgets[i].type == "wifiControl") drawWidget(page.widgets[i]);
+}
+static void handleInlineWifiControl(uint32_t code) {
+  if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
+    wifiControlSelectedRow = wifiControlSelectedRow ? 0 : 1;
+    refreshWifiControlWidget();
+  } else if (code == IR_CODE_OK) {
+    if (!wifiControlApplyPending) {
+      wifiControlPendingRouter = routerModeEnabled;
+      wifiControlPendingAp = setupApEnabled;
+    }
+    if (wifiControlSelectedRow == 0) wifiControlPendingRouter = !wifiControlPendingRouter;
+    else wifiControlPendingAp = !wifiControlPendingAp;
+    wifiControlApplyPending = true;
+    wifiControlApplyAt = millis() + 5000UL;
+    refreshWifiControlWidget();
+  }
+}
+
 static volatile uint8_t clockCommandSequence = 0;
 static volatile uint8_t clockCommandType = 0;
 static volatile uint16_t clockCommandYear = 2026;
@@ -854,6 +890,7 @@ static void handleIRRemote() {
   const uint32_t code = IR_RemoteUpdate();
   if (code == 0) return;
   if (rtMode != RT_CLOSED) { rtHandle(code); return; }
+  if (hasWifiControlOnCurrentPage() && (code == IR_CODE_UP || code == IR_CODE_DOWN || code == IR_CODE_OK)) { handleInlineWifiControl(code); return; }
   if (code == IR_CODE_SETUP) rtOpenWifi();
   else if (code == IR_CODE_MENU) rtOpen();
   else if (code == IR_CODE_LEFT || code == IR_CODE_BACK) showTFTPage(cfg.tftPage > 1 ? cfg.tftPage - 1 : cfg.pageCount);
@@ -924,6 +961,15 @@ void loop() {
   if (restartAt != 0 && (long)(millis() - restartAt) >= 0) {
     delay(100);
     ESP.restart();
+  }
+
+  if (wifiControlApplyPending && (long)(millis() - wifiControlApplyAt) >= 0) {
+    routerModeEnabled = wifiControlPendingRouter;
+    setupApEnabled = wifiControlPendingAp;
+    applyWiFiMode();
+    wifiControlApplyPending = false;
+    refreshWifiControlWidget();
+    Serial.println(F("Inline Wi-Fi control applied after 5 seconds."));
   }
 
   // Runtime switches are authoritative; never auto-enable a disabled interface.
