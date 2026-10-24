@@ -42,6 +42,8 @@ int clampInt(int value, int low, int high) {
 }
 
 void setDefaults() {
+  cfg.defaultRouterMode = false;
+  cfg.defaultSetupAp = true;
   cfg.ssid = "";
   cfg.password = "";
   cfg.title = "SOLAR PV";
@@ -180,7 +182,9 @@ void loadConfig() {
     if (eq < 1) continue;
     String key = line.substring(0, eq);
     String value = line.substring(eq + 1);
-    if (key == "ssid") cfg.ssid = value;
+    if (key == "defaultRouterMode") cfg.defaultRouterMode = value == "1";
+    else if (key == "defaultSetupAp") cfg.defaultSetupAp = value == "1";
+    else if (key == "ssid") cfg.ssid = value;
     else if (key == "password") cfg.password = value;
     else if (key == "title") cfg.title = sanitizeTitle(value);
     else if (key == "powerLabel") cfg.powerLabel = sanitizeTitle(value);
@@ -251,6 +255,8 @@ bool saveConfig() {
   if (!fsReady) return false;
   File f = LittleFS.open(CONFIG_PATH, "w");
   if (!f) return false;
+  f.println(String("defaultRouterMode=") + (cfg.defaultRouterMode ? "1" : "0"));
+  f.println(String("defaultSetupAp=") + (cfg.defaultSetupAp ? "1" : "0"));
   f.println("ssid=" + cfg.ssid);
   f.println("password=" + cfg.password);
   f.println("title=" + sanitizeTitle(cfg.title));
