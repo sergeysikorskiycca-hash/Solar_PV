@@ -220,7 +220,7 @@ String makeConfigJson() {
     j += "]}";
   }
   j += "]}";
-  j.remove(j.length() - 1); j += ",\"wifiMode\":{\"router\":" + String(routerModeEnabled ? "true" : "false") + ",\"ap\":" + String(setupApEnabled ? "true" : "false") + ",\"apActive\":" + String(apActive ? "true" : "false") + "}}";
+  j.remove(j.length() - 1); j += ",\"wifiMode\":{\"router\":" + String(routerModeEnabled ? "true" : "false") + ",\"ap\":" + String(setupApEnabled ? "true" : "false") + ",\"apActive\":" + String(apActive ? "true" : "false") + ",\"defaultRouter\":" + String(cfg.defaultRouterMode ? "true" : "false") + ",\"defaultAp\":" + String(cfg.defaultSetupAp ? "true" : "false") + "}}";
   return j;
 }
 
@@ -340,7 +340,7 @@ void handleScanWiFi() {
   server.send(200, "application/json; charset=utf-8", json);
 }
 
-void handleWiFiMode() {
+void handleSaveWiFiDefaults() {\n  DynamicJsonDocument doc(256);\n  if (deserializeJson(doc, server.arg("plain"))) { server.send(400, "application/json; charset=utf-8", "{\\\"ok\\\":false,\\\"message\\\":\\\"Некорректные настройки.\\\"}"); return; }\n  cfg.defaultRouterMode = doc["router"] | cfg.defaultRouterMode;\n  cfg.defaultSetupAp = doc["ap"] | cfg.defaultSetupAp;\n  if (!saveConfig()) { server.send(500, "application/json; charset=utf-8", "{\\\"ok\\\":false,\\\"message\\\":\\\"Не удалось сохранить настройки.\\\"}"); return; }\n  server.send(200, "application/json; charset=utf-8", "{\\\"ok\\\":true,\\\"message\\\":\\\"Настройки запуска сохранены. Текущий режим не изменён; новые значения применятся после перезагрузки.\\\"}");\n}\n\nvoid handleWiFiMode() {
   DynamicJsonDocument doc(256);
   if (deserializeJson(doc, server.arg("plain"))) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректные настройки Wi-Fi.\"}"); return; }
   routerModeEnabled = doc["router"] | routerModeEnabled;
