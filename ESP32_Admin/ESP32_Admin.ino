@@ -29,13 +29,16 @@ void drawWidget(const WidgetConfig& widget);
 #include "WebPage.h"
 #include "IR_Remote.h"
 
-static const char* AP_SSID = "SolarPV-Setup";
-static const char* AP_PASS = "SolarPV8266";
+const char* AP_SSID = "SolarPV-Setup";
+const char* AP_PASS = "SolarPV8266";
 Adafruit_ST7789 tft(TFT_CS_PIN, TFT_DC_PIN, TFT_RST_PIN);
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 WebServer server(80);
 
 bool apActive = false;
+extern bool routerModeEnabled;
+extern bool setupApEnabled;
+void applyWiFiMode();
 static volatile uint8_t clockCommandSequence = 0;
 static volatile uint8_t clockCommandType = 0;
 static volatile uint16_t clockCommandYear = 2026;
@@ -181,6 +184,7 @@ String makeConfigJson() {
     j += "]}";
   }
   j += "]}";
+  j.remove(j.length() - 1); j += ",\"wifiMode\":{\"router\":" + String(routerModeEnabled ? "true" : "false") + ",\"ap\":" + String(setupApEnabled ? "true" : "false") + ",\"apActive\":" + String(apActive ? "true" : "false") + "}}";
   return j;
 }
 
@@ -301,6 +305,15 @@ void handleScanWiFi() {
   json += "]}";
   WiFi.scanDelete();
   server.send(200, "application/json; charset=utf-8", json);
+}
+
+void handleWiFiMode() {
+  DynamicJsonDocument doc(256);
+  if (deserializeJson(doc, server.arg("plain"))) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректные настройки Wi-Fi.\"}"); return; }
+  routerModeEnabled = doc["router"] | routerModeEnabled;
+  setupApEnabled = doc["ap"] | setupApEnabled;
+  applyWiFiMode();
+  server.send(200, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Временный режим применён. После перезагрузки включится только точка SolarPV-Setup.\"}");
 }
 
 void handleSaveWiFi() {
@@ -627,6 +640,8 @@ static void rtDrawEditor(){
 static void rtWifiDrawMenu(const String& message = "") {
   tft.fillScreen(ST77XX_BLACK);
   drawCyrillicText("УПРАВЛЕНИЕ WI-FI",5,20,0x07FF,true);
+  drawCyrillicText("1: роутер  2: точка",5,63,0xFFE0,false);
+  drawCyrillicText("3: выключить обе",5,82,0xFFE0,false);
   if(message.length()) drawCyrillicText(message.substring(0,31),5,43,ST77XX_WHITE,false);
   else if(WiFi.status()==WL_CONNECTED) drawCyrillicText("Подключено: "+WiFi.SSID().substring(0,20),5,43,ST77XX_WHITE,false);
   else drawCyrillicText("Нет подключения к роутеру",5,43,ST77XX_WHITE,false);
@@ -769,6 +784,9 @@ static void rtHandle(uint32_t k){
   }
   if(rtMode==RT_WIFI_MENU){
     if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtMode=RT_CLOSED;renderTFT();return;}
+    if(k==IR_CODE_1){routerModeEnabled=!routerModeEnabled;applyWiFiMode();rtWifiDrawMenu(routerModeEnabled?"Роутер: ВКЛ":"Роутер: ВЫКЛ");return;}
+    if(k==IR_CODE_2){setupApEnabled=!setupApEnabled;applyWiFiMode();rtWifiDrawMenu(setupApEnabled?"Точка: ВКЛ":"Точка: ВЫКЛ");return;}
+    if(k==IR_CODE_3){routerModeEnabled=false;setupApEnabled=false;applyWiFiMode();rtWifiDrawMenu("Обе сети выключены");return;}
     if(k==IR_CODE_SEARCH){rtWifiScan();return;}
     if(k==IR_CODE_UP&&rtWifiCount){rtWifiPick=rtWifiPick?rtWifiPick-1:rtWifiCount-1;rtWifiDrawMenu();return;}
     if(k==IR_CODE_DOWN&&rtWifiCount){rtWifiPick=(rtWifiPick+1)%rtWifiCount;rtWifiDrawMenu();return;}
@@ -866,8 +884,6 @@ void setup() {
   if (Wire.begin(GATEWAY_I2C_ADDRESS, 21, 22, 100000)) Serial.println(F("I2C gateway slave ready at 0x42 (SDA=21, SCL=22)."));
   else Serial.println(F("ERROR: I2C gateway slave initialization failed."));
 
-  WiFi.persistent(false);
-  WiFi.setAutoReconnect(true);
   connectWiFiAtBoot();
   setupWebServer();
   renderTFT();
@@ -889,15 +905,8 @@ void loop() {
     ESP.restart();
   }
 
-  if (cfg.ssid.length() > 0) {
-    if (WiFi.status() == WL_CONNECTED) {
-      disconnectedSince = 0;
-      // Keep both router and setup AP available; do not spam Serial.
-    } else {
-      if (disconnectedSince == 0) disconnectedSince = millis();
-      if (!apActive && millis() - disconnectedSince >= 30000UL) startAccessPoint();
-    }
-  }
+  // Runtime switches are authoritative; never auto-enable a disabled interface.
+  if (routerModeEnabled && WiFi.status() == WL_CONNECTED) disconnectedSince = 0;
 
   static uint8_t lastClockSecond = 255;
   if (rtMode == RT_CLOSED && gatewayTimeValid && gatewaySecond != lastClockSecond && cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
