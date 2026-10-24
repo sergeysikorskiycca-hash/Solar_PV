@@ -140,20 +140,108 @@ extern bool gatewayOnline;
 
 void updateClockWidget(const WidgetConfig& widget) {
   if (!widget.enabled || widget.type != "clock") return;
-  const int x=widget.x, y=widget.y, w=widget.w, h=widget.h;
-  uint8_t hs=widget.headingSize<=5?widget.headingSize:1, cs=widget.contentSize<=5?widget.contentSize:2;
-  int headingBaseline=y+FONT_HEIGHTS[hs]+3;
-  int contentBaseline=widget.showHeading ? headingBaseline+FONT_HEIGHTS[hs]/2+FONT_HEIGHTS[cs]+3 : y+FONT_HEIGHTS[cs]+5;
-  // Refresh only the clock text area. Keep the widget frame and heading untouched
-  // to avoid a visible flash every second.
-  int textTop=contentBaseline-FONT_HEIGHTS[cs]+1;
-  int textBottom=contentBaseline+2*FONT_HEIGHTS[cs]+4;
-  tft.fillRect(x+2,textTop,w-4,textBottom-textTop,widgetBackground(widget.backgroundColor));
-  extern bool gatewayTimeValid; extern uint16_t gatewayYear; extern uint8_t gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond;
-  String timeText = gatewayTimeValid ? (String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" + String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" + String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond)) : String("--:--:--");
-  String dateText = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : String("--.--.----");
-  drawAlignedText(timeText,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
-  drawAlignedText(dateText,x,contentBaseline+FONT_HEIGHTS[cs]+4,w,cs,widget.contentAlign,widget.contentColor);
+
+  extern bool gatewayTimeValid;
+  extern uint16_t gatewayYear;
+  extern uint8_t gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond;
+
+  const int x = widget.x, y = widget.y, w = widget.w;
+  const uint8_t hs = widget.headingSize <= 5 ? widget.headingSize : 1;
+  const uint8_t cs = widget.contentSize <= 5 ? widget.contentSize : 2;
+  const int headingBaseline = y + FONT_HEIGHTS[hs] + 3;
+  const int contentBaseline = widget.showHeading
+      ? headingBaseline + FONT_HEIGHTS[hs] / 2 + FONT_HEIGHTS[cs] + 3
+      : y + FONT_HEIGHTS[cs] + 5;
+  const int dateBaseline = contentBaseline + FONT_HEIGHTS[cs] + 4;
+
+  String timeText = gatewayTimeValid
+      ? (String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" +
+         String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" +
+         String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond))
+      : String("--:--:--");
+  String dateText = gatewayTimeValid
+      ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." +
+         String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." +
+         String(gatewayYear))
+      : String("--.--.----");
+
+  // Keep a separate cache for each clock widget. Redraw only changed glyphs:
+  // seconds normally change just two digits, while the date stays untouched.
+  struct ClockCache {
+    int x, y, w, contentBaseline, dateBaseline;
+    uint8_t size, align, color, background;
+    String timeText, dateText;
+    bool initialized;
+  };
+  static ClockCache caches[MAX_PAGES * MAX_WIDGETS_PER_PAGE] = {};
+  static int cacheSlot = 0;
+  // A widget's stable screen position is used to locate its cache slot.
+  int slot = -1;
+  for (int i = 0; i < MAX_PAGES * MAX_WIDGETS_PER_PAGE; ++i) {
+    if (caches[i].initialized && caches[i].x == x && caches[i].y == y &&
+        caches[i].w == w && caches[i].size == cs) { slot = i; break; }
+  }
+  if (slot < 0) {
+    slot = cacheSlot++ % (MAX_PAGES * MAX_WIDGETS_PER_PAGE);
+    caches[slot].initialized = false;
+  }
+
+  setWidgetFont(cs);
+  u8g2Fonts.setForegroundColor(widgetColor(widget.contentColor));
+  auto drawChangedLine = [&](const String& oldText, const String& newText, int baseline) {
+    const int available = w - 12;
+    const int newWidth = u8g2Fonts.getUTF8Width(newText.c_str());
+    int startX = x + 6;
+    if (widget.contentAlign == 1) startX += (available - newWidth) / 2;
+    else if (widget.contentAlign == 2) startX += available - newWidth;
+    if (startX < x + 3) startX = x + 3;
+
+    if (oldText.length() != newText.length()) {
+      tft.fillRect(x + 2, baseline - FONT_HEIGHTS[cs] + 1, w - 4,
+                   FONT_HEIGHTS[cs] + 4, widgetBackground(widget.backgroundColor));
+      drawAlignedText(newText, x, baseline, w, cs, widget.contentAlign, widget.contentColor);
+      return;
+    }
+
+    for (size_t i = 0; i < newText.length(); ++i) {
+      if (oldText[i] == newText[i]) continue;
+      String prefix = newText.substring(0, i);
+      String oldGlyph = oldText.substring(i, i + 1);
+      String newGlyph = newText.substring(i, i + 1);
+      const int glyphX = startX + u8g2Fonts.getUTF8Width(prefix.c_str());
+      const int oldWidth = u8g2Fonts.getUTF8Width(oldGlyph.c_str());
+      const int newGlyphWidth = u8g2Fonts.getUTF8Width(newGlyph.c_str());
+      const int clearWidth = max(oldWidth, newGlyphWidth) + 2;
+      tft.fillRect(glyphX - 1, baseline - FONT_HEIGHTS[cs] + 1,
+                   clearWidth, FONT_HEIGHTS[cs] + 4,
+                   widgetBackground(widget.backgroundColor));
+      u8g2Fonts.setCursor(glyphX, baseline);
+      u8g2Fonts.print(newGlyph);
+    }
+  };
+
+  ClockCache& cache = caches[slot];
+  const bool layoutChanged = !cache.initialized || cache.x != x || cache.y != y ||
+      cache.w != w || cache.contentBaseline != contentBaseline ||
+      cache.dateBaseline != dateBaseline || cache.size != cs ||
+      cache.align != widget.contentAlign || cache.color != widget.contentColor ||
+      cache.background != widget.backgroundColor;
+  if (layoutChanged) {
+    tft.fillRect(x + 2, contentBaseline - FONT_HEIGHTS[cs] + 1, w - 4,
+                 (dateBaseline - contentBaseline) + FONT_HEIGHTS[cs] + 4,
+                 widgetBackground(widget.backgroundColor));
+    drawAlignedText(timeText, x, contentBaseline, w, cs, widget.contentAlign, widget.contentColor);
+    drawAlignedText(dateText, x, dateBaseline, w, cs, widget.contentAlign, widget.contentColor);
+  } else {
+    if (cache.timeText != timeText) drawChangedLine(cache.timeText, timeText, contentBaseline);
+    if (cache.dateText != dateText) drawChangedLine(cache.dateText, dateText, dateBaseline);
+  }
+
+  cache.x = x; cache.y = y; cache.w = w;
+  cache.contentBaseline = contentBaseline; cache.dateBaseline = dateBaseline;
+  cache.size = cs; cache.align = widget.contentAlign; cache.color = widget.contentColor;
+  cache.background = widget.backgroundColor;
+  cache.timeText = timeText; cache.dateText = dateText; cache.initialized = true;
 }
 void drawTFTIndicators() {
   // Reserve the top-right corner for independent Wi-Fi and gateway status.
