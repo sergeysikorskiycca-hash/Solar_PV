@@ -207,7 +207,17 @@ $('toggleRouter').addEventListener('click',()=>setWiFiMode(!wifiMode.router,wifi
 $('networkList').addEventListener('change',()=>{if($('networkList').value)$('ssid').value=$('networkList').value});
 $('scanNetworks').addEventListener('click',async()=>{
  $('scanNetworks').disabled=true;$('scanStatus').textContent='Идёт поиск сетей…';
- try{const r=await fetch('/api/scan?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Ошибка сканирования');
+ try{
+  let r=await fetch('/api/scan?t='+Date.now(),{cache:'no-store'});let j=await r.json();
+  if(!r.ok||!j.ok)throw new Error(j.message||'Ошибка запуска сканирования');
+  const started=Date.now();
+  while(j.status==='scanning'||j.status==='idle'){
+   if(Date.now()-started>25000)throw new Error('Сканирование занимает слишком много времени');
+   await new Promise(resolve=>setTimeout(resolve,350));
+   r=await fetch('/api/scan-status?t='+Date.now(),{cache:'no-store'});j=await r.json();
+   if(!r.ok||!j.ok)throw new Error(j.message||'Ошибка сканирования');
+  }
+  if(j.status!=='complete')throw new Error(j.message||'Не удалось выполнить сканирование Wi-Fi');
   const list=$('networkList');list.innerHTML='';list.add(new Option('— Выберите сеть —',''));savedNetworks.forEach(n=>list.add(new Option('★ '+n.ssid+' · сохранена',n.ssid)));
   (j.networks||[]).forEach(n=>{if(Array.from(list.options).some(o=>o.value===n.ssid))return;list.add(new Option(n.ssid+' · '+n.rssi+' dBm'+(n.secure?' · защищена':' · открыта'),n.ssid))});
   $('scanStatus').textContent='Найдено сетей: '+(j.networks||[]).length+'.';
