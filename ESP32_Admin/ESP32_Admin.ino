@@ -319,7 +319,7 @@ void handleSetPage() {
   cfg.tftPage = page;
   if (!saveConfig()) { server.send(500, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Не удалось сохранить страницу в LittleFS.\"}"); return; }
   server.send(200, "application/json; charset=utf-8", String("{\"ok\":true,\"message\":\"На дисплее страница ") + String(page) + "\"}");
-  delay(20); renderTFT();
+  renderTFT();
 }
 void handleScanWiFi() {
   // Scanning must not silently override the temporary router/AP switches.
@@ -441,7 +441,7 @@ void handleNotFound() {
 }
 
 
-enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU, RT_CLOCK, RT_CLOCK_CONFIRM };
+enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU, RT_CLOCK, RT_CLOCK_CONFIRM, RT_EMPTY_MESSAGE };
 
 // Wire protocol shared with ESP8266_Gateway. The ESP8266 is the I2C master;
 // ESP32 is the slave at 0x42. All multi-byte fields are little-endian.
@@ -603,6 +603,7 @@ static void processGatewayPacket() {
   if (gatewayLastPacketMs == 0 || millis() - gatewayLastPacketMs > 500UL) gatewayOnline = false;
 }
 static RemoteTextMode rtMode = RT_CLOSED;
+static uint32_t rtEmptyMessageUntil = 0;
 static uint8_t rtPick = 0;
 static int8_t rtWidget = -1;
 static String rtBuffer;
@@ -788,7 +789,14 @@ static void rtWifiChoose() {
 }
 
 static void rtOpen(){
-  if(!rtCount()){tft.fillScreen(ST77XX_BLACK);drawCyrillicText("Нет текстовых блоков",8,35,ST77XX_WHITE,true);drawCyrillicText("Добавь блок в веб-админке",8,62,0xBDF7,false);delay(900);renderTFT();return;}
+  if(!rtCount()){
+    rtMode=RT_EMPTY_MESSAGE;
+    rtEmptyMessageUntil=millis()+900UL;
+    tft.fillScreen(ST77XX_BLACK);
+    drawCyrillicText("Нет текстовых блоков",8,35,ST77XX_WHITE,true);
+    drawCyrillicText("Добавь блок в веб-админке",8,62,0xBDF7,false);
+    return;
+  }
   rtMode=RT_PICKER;rtPick=0;rtDrawPicker();
 }
 static void rtOpenClockEditor();
@@ -962,7 +970,6 @@ static void handleIRRemote() {
 
 void setup() {
   Serial.begin(115200);
-  delay(100);
   Serial.println();
   Serial.println(F("Solar_PV ESP32 Admin MVP"));
 
@@ -1007,6 +1014,10 @@ void setup() {
 void loop() {
   handleIRRemote();
   processGatewayPacket();
+  if (rtMode == RT_EMPTY_MESSAGE && (int32_t)(millis() - rtEmptyMessageUntil) >= 0) {
+    rtMode = RT_CLOSED;
+    renderTFT();
+  }
   if (rtMode == RT_CLOSED && millis() - lastIndicatorDraw >= 250UL) {
     lastIndicatorDraw = millis();
     drawTFTIndicators();
@@ -1014,7 +1025,6 @@ void loop() {
   if (webStarted) server.handleClient();
 
   if (restartAt != 0 && (long)(millis() - restartAt) >= 0) {
-    delay(100);
     ESP.restart();
   }
 
