@@ -99,7 +99,6 @@ uint32_t stringSensorLastSeenMs[MAX_STRING_SENSORS] = {};
 float stringSensorVoltage[MAX_STRING_SENSORS] = {};
 float stringSensorCurrent[MAX_STRING_SENSORS] = {};
 float stringSensorPower[MAX_STRING_SENSORS] = {};
-uint16_t stringSensorPacketNumber[MAX_STRING_SENSORS] = {};
 static const uint32_t STRING_SENSOR_TIMEOUT_MS = 3500UL;
 
 static uint32_t lastIndicatorDraw = 0;
@@ -575,7 +574,6 @@ static void processGatewayPacket() {
         stringSensorVoltage[index] = packet.voltage;
         stringSensorCurrent[index] = packet.current;
         stringSensorPower[index] = packet.power;
-        stringSensorPacketNumber[index] = packet.sensorPacketNumber;
       }
       gatewayOnline = true;
       if (millis() - lastGatewayLogMs >= 1000UL) {
