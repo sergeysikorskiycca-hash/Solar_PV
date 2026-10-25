@@ -30,7 +30,6 @@ void applyWiFiMode() {
   Serial.printf("Wi-Fi mode: router=%s, setupAP=%s\n", routerModeEnabled?"ON":"OFF", setupApEnabled?"ON":"OFF");
   if (wasAp != apActive) renderTFT();
 }
-void startAccessPoint() { if (setupApEnabled && !apActive) applyWiFiMode(); }
 void connectWiFiAtBoot() {
   routerModeEnabled = cfg.defaultRouterMode; setupApEnabled = cfg.defaultSetupAp;
   WiFi.persistent(false); WiFi.setAutoReconnect(false); applyWiFiMode();
