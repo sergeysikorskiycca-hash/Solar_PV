@@ -106,6 +106,17 @@ static uint32_t lastGatewayLogMs = 0;
 bool webStarted = false;
 unsigned long restartAt = 0;
 
+// Shared asynchronous Wi-Fi scan state. HTTP handlers never wait for the scan.
+enum WifiScanOwner : uint8_t { WIFI_SCAN_NONE, WIFI_SCAN_WEB, WIFI_SCAN_REMOTE };
+static bool wifiScanActive = false, wifiScanReady = false, wifiScanFailed = false;
+static WifiScanOwner wifiScanOwner = WIFI_SCAN_NONE;
+static uint8_t wifiScanCount = 0;
+static String wifiScanSsids[20];
+static int wifiScanRssi[20];
+static bool wifiScanSecure[20];
+static bool startWiFiScan(WifiScanOwner owner);
+static void updateWiFiScan();
+
 
 
 
@@ -250,6 +261,43 @@ void handleApiConfig() {
   server.send(200, "application/json; charset=utf-8", makeConfigJson());
 }
 
+static bool startWiFiScan(WifiScanOwner owner) {
+  if (wifiScanActive) return true;
+  WiFi.scanDelete();
+  wifiScanReady = false;
+  wifiScanFailed = false;
+  wifiScanCount = 0;
+  wifiScanOwner = owner;
+  int result = WiFi.scanNetworks(true, true); // async=true, include hidden SSIDs
+  if (result == WIFI_SCAN_FAILED) {
+    wifiScanFailed = true;
+    wifiScanReady = true;
+    wifiScanOwner = WIFI_SCAN_NONE;
+    return false;
+  }
+  wifiScanActive = true;
+  return true;
+}
+
+static String makeWiFiScanStatusJson() {
+  if (wifiScanActive) return "{\"ok\":true,\"status\":\"scanning\"}";
+  if (!wifiScanReady) return "{\"ok\":true,\"status\":\"idle\"}";
+  if (wifiScanFailed) return "{\"ok\":false,\"status\":\"failed\",\"message\":\"Не удалось выполнить сканирование Wi-Fi.\"}";
+  String json = "{\"ok\":true,\"status\":\"complete\",\"networks\":[";
+  for (uint8_t i = 0; i < wifiScanCount; ++i) {
+    if (i) json += ",";
+    json += "{\"ssid\":\"" + jsonEscape(wifiScanSsids[i]) + "\",";
+    json += "\"rssi\":" + String(wifiScanRssi[i]) + ",";
+    json += "\"secure\":" + String(wifiScanSecure[i] ? "true" : "false") + "}";
+  }
+  json += "]}";
+  return json;
+}
+
+void handleWiFiScanStatus() {
+  server.send(200, "application/json; charset=utf-8", makeWiFiScanStatusJson());
+}
+
 void handleSaveDisplay() {
   DynamicJsonDocument doc(32768);
   DeserializationError error = deserializeJson(doc, server.arg("plain"));
@@ -321,35 +369,17 @@ void handleSetPage() {
   renderTFT();
 }
 void handleScanWiFi() {
-  // Scanning must not silently override the temporary router/AP switches.
+  // Starting a scan is quick; loop() collects its result asynchronously.
   if (!routerModeEnabled && !setupApEnabled) {
     server.send(409, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Сначала включите роутер или точку доступа.\"}");
     return;
   }
   Serial.println(F("Wi-Fi scan requested from admin page."));
-  int count = WiFi.scanNetworks(false, true);
-  if (count < 0) {
-    server.send(500, "application/json; charset=utf-8",
-                "{\"ok\":false,\"message\":\"Не удалось выполнить сканирование Wi-Fi.\"}");
+  if (!wifiScanActive && !startWiFiScan(WIFI_SCAN_WEB)) {
+    server.send(500, "application/json; charset=utf-8", makeWiFiScanStatusJson());
     return;
   }
-
-  String json = "{\"ok\":true,\"networks\":[";
-  bool first = true;
-  for (int i = 0; i < count; i++) {
-    String networkName = WiFi.SSID(i);
-    if (networkName.length() == 0) continue; // Ignore hidden SSIDs.
-    if (!first) json += ",";
-    first = false;
-    int rssi = WiFi.RSSI(i);
-    bool secure = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
-    json += "{\"ssid\":\"" + jsonEscape(networkName) + "\",";
-    json += "\"rssi\":" + String(rssi) + ",";
-    json += "\"secure\":" + String(secure ? "true" : "false") + "}";
-  }
-  json += "]}";
-  WiFi.scanDelete();
-  server.send(200, "application/json; charset=utf-8", json);
+  server.send(202, "application/json; charset=utf-8", makeWiFiScanStatusJson());
 }
 
 void handleSaveWiFiDefaults() {
@@ -616,6 +646,7 @@ static uint8_t rtWifiCount = 0, rtWifiPick = 0;
 static uint8_t rtWifiModeRow = 0;
 static bool rtPendingRouter = false, rtPendingAp = true;
 static String rtWifiSelectedSSID;
+static bool rtWifiShowingNetworks = false;
 static uint16_t rtClockYear=2026;
 static uint8_t rtClockMonth=1, rtClockDay=1, rtClockHour=0, rtClockMinute=0, rtClockSecond=0, rtClockField=0;
 
@@ -732,9 +763,24 @@ static void rtDrawEditor(){
 static void rtWifiDrawMenu(const String& message = "") {
   tft.fillScreen(ST77XX_BLACK);
   drawCyrillicText("УПРАВЛЕНИЕ WI-FI",5,22,0x07FF,true);
+  if (rtWifiShowingNetworks) {
+    drawCyrillicText("Выбери сеть: UP/DOWN, OK",5,45,0xBDF7,false);
+    const uint8_t first = (rtWifiPick / 5) * 5;
+    for (uint8_t row = 0; row < 5 && first + row < rtWifiCount; ++row) {
+      const uint8_t index = first + row;
+      const int y = 77 + row * 39;
+      if (index == rtWifiPick) tft.fillRoundRect(3,y-17,234,33,4,0x03EF);
+      String label = rtWifiNetworks[index];
+      if (label.length() > 23) label = label.substring(0,23);
+      drawCyrillicText(label,8,y,ST77XX_WHITE,false);
+      drawCyrillicText(rtWifiSecure[index] ? "LOCK" : "OPEN",8,y+13,0xBDF7,false);
+    }
+    if (message.length()) drawCyrillicText(message.substring(0,30),5,285,ST77XX_YELLOW,false);
+    drawCyrillicText("SEARCH: повтор  MENU: выход",5,307,0xBDF7,false);
+    return;
+  }
   drawCyrillicText("ВВЕРХ/ВНИЗ: строка",5,47,0xBDF7,false);
   drawCyrillicText("ВЛЕВО/ВПРАВО: изменить",5,64,0xBDF7,false);
-
   const char* labels[2] = {"СЕТЬ Роутер", "ТОЧКА ДОСТУПА"};
   bool values[2] = {rtPendingRouter, rtPendingAp};
   for (uint8_t row = 0; row < 2; ++row) {
@@ -747,22 +793,59 @@ static void rtWifiDrawMenu(const String& message = "") {
   else drawCyrillicText("OK: применить  SEARCH: сети",5,225,0xBDF7,false);
   drawCyrillicText("MENU/BACK: выход",5,307,0xBDF7,false);
 }
+
 static void rtWifiScan() {
   if(!routerModeEnabled && !setupApEnabled){rtWifiDrawMenu("Сначала включи Wi-Fi (1 или 2)");return;}
   WiFi.mode(setupApEnabled && routerModeEnabled ? WIFI_AP_STA : (setupApEnabled ? WIFI_AP : WIFI_STA));
-  drawCyrillicText("Поиск сетей Wi-Fi...",5,87,ST77XX_WHITE,false);
-  int count=WiFi.scanNetworks(false,true); rtWifiCount=0;
-  if(count>=0) for(int i=0;i<count&&rtWifiCount<20;i++){
-    String ssid=WiFi.SSID(i); if(!ssid.length())continue;
-    bool duplicate=false; for(uint8_t j=0;j<rtWifiCount;j++)if(rtWifiNetworks[j]==ssid)duplicate=true;
-    if(duplicate)continue;
-    rtWifiNetworks[rtWifiCount]=ssid;
-    rtWifiSecure[rtWifiCount]=(WiFi.encryptionType(i)!=WIFI_AUTH_OPEN);
-    rtWifiCount++;
+  rtWifiShowingNetworks = false;
+  rtWifiCount = 0;
+  if (!startWiFiScan(WIFI_SCAN_REMOTE)) {
+    rtWifiDrawMenu("Не удалось запустить поиск");
+    return;
   }
-  WiFi.scanDelete(); rtWifiPick=0;
-  rtWifiDrawMenu(rtWifiCount?("Найдено сетей: "+String(rtWifiCount)):"Сети не найдены");
+  rtWifiDrawMenu("Идёт поиск сетей Wi-Fi...");
 }
+
+static void updateWiFiScan() {
+  if (!wifiScanActive) return;
+  const int count = WiFi.scanComplete();
+  if (count == WIFI_SCAN_RUNNING) return;
+
+  wifiScanCount = 0;
+  wifiScanFailed = count == WIFI_SCAN_FAILED;
+  if (!wifiScanFailed) {
+    for (int i = 0; i < count && wifiScanCount < 20; ++i) {
+      String ssid = WiFi.SSID(i);
+      if (!ssid.length()) continue;
+      bool duplicate = false;
+      for (uint8_t j = 0; j < wifiScanCount; ++j)
+        if (wifiScanSsids[j] == ssid) { duplicate = true; break; }
+      if (duplicate) continue;
+      wifiScanSsids[wifiScanCount] = ssid;
+      wifiScanRssi[wifiScanCount] = WiFi.RSSI(i);
+      wifiScanSecure[wifiScanCount] = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
+      ++wifiScanCount;
+    }
+  }
+  WiFi.scanDelete();
+  wifiScanActive = false;
+  wifiScanReady = true;
+
+  if (wifiScanOwner == WIFI_SCAN_REMOTE) {
+    rtWifiCount = wifiScanCount;
+    for (uint8_t i = 0; i < rtWifiCount; ++i) {
+      rtWifiNetworks[i] = wifiScanSsids[i];
+      rtWifiSecure[i] = wifiScanSecure[i];
+    }
+    rtWifiPick = 0;
+    rtWifiShowingNetworks = !wifiScanFailed && rtWifiCount > 0;
+    if (wifiScanFailed) rtWifiDrawMenu("Ошибка сканирования Wi-Fi");
+    else if (rtWifiCount) rtWifiDrawMenu();
+    else rtWifiDrawMenu("Сети не найдены");
+  }
+  wifiScanOwner = WIFI_SCAN_NONE;
+}
+
 static void rtWifiConnect(const String& ssid,const String& password) {
   if(!ssid.length()){rtWifiDrawMenu("Пустое имя сети");return;}
   if(!addOrUpdateSavedNetwork(ssid,password)){rtWifiDrawMenu("Память сетей заполнена");return;}
@@ -779,6 +862,7 @@ static void rtOpenWifi() {
 }
 static void rtWifiChoose() {
   if(rtWifiPick>=rtWifiCount)return;
+  rtWifiShowingNetworks = false;
   rtWifiSelectedSSID=rtWifiNetworks[rtWifiPick];
   int saved=findSavedNetwork(rtWifiSelectedSSID);
   if(saved>=0){rtWifiConnect(rtWifiSelectedSSID,savedNetworks[saved].password);return;}
@@ -893,7 +977,14 @@ static void rtHandle(uint32_t k){
     return;
   }
   if(rtMode==RT_WIFI_MENU){
-    if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtMode=RT_CLOSED;renderTFT();return;}
+    if(k==IR_CODE_MENU||k==IR_CODE_BACK){rtWifiShowingNetworks=false;rtMode=RT_CLOSED;renderTFT();return;}
+    if (rtWifiShowingNetworks) {
+      if (k == IR_CODE_UP && rtWifiCount) { rtWifiPick = rtWifiPick ? rtWifiPick - 1 : rtWifiCount - 1; rtWifiDrawMenu(); return; }
+      if (k == IR_CODE_DOWN && rtWifiCount) { rtWifiPick = (rtWifiPick + 1) % rtWifiCount; rtWifiDrawMenu(); return; }
+      if (k == IR_CODE_OK) { rtWifiChoose(); return; }
+      if (k == IR_CODE_SEARCH) { rtWifiScan(); return; }
+      return;
+    }
     if(k==IR_CODE_UP){rtWifiModeRow=rtWifiModeRow?0:1;rtWifiDrawMenu();return;}
     if(k==IR_CODE_DOWN){rtWifiModeRow=(rtWifiModeRow+1)%2;rtWifiDrawMenu();return;}
     if(k==IR_CODE_LEFT||k==IR_CODE_RIGHT){
@@ -1021,6 +1112,7 @@ void loop() {
     drawTFTIndicators();
   }
   if (webStarted) server.handleClient();
+  updateWiFiScan();
 
   if (restartAt != 0 && (long)(millis() - restartAt) >= 0) {
     ESP.restart();
