@@ -105,10 +105,7 @@ static const uint32_t STRING_SENSOR_TIMEOUT_MS = 3500UL;
 static uint32_t lastIndicatorDraw = 0;
 static uint32_t lastGatewayLogMs = 0;
 bool webStarted = false;
-unsigned long disconnectedSince = 0;
 unsigned long restartAt = 0;
-unsigned long lastStatusDraw = 0;
-String lastStatusText = "";
 
 
 
@@ -245,12 +242,6 @@ String makeConfigJson() {
   j.remove(j.length() - 1); j += ",\"wifiMode\":{\"router\":" + String(routerModeEnabled ? "true" : "false") + ",\"ap\":" + String(setupApEnabled ? "true" : "false") + ",\"apActive\":" + String(apActive ? "true" : "false") + ",\"defaultRouter\":" + String(cfg.defaultRouterMode ? "true" : "false") + ",\"defaultAp\":" + String(cfg.defaultSetupAp ? "true" : "false") + "}}";
   return j;
 }
-
-void stopAccessPointIfConnected() {
-  // Intentionally keep the setup AP available while connected to the router.
-  // No repeated Serial logging from loop().
-}
-
 
 void handleRoot() {
   server.send_P(200, "text/html; charset=utf-8", INDEX_HTML);
@@ -1041,9 +1032,6 @@ void loop() {
     refreshWifiControlWidget();
     Serial.println(F("Inline Wi-Fi control applied after 5 seconds."));
   }
-
-  // Runtime switches are authoritative; never auto-enable a disabled interface.
-  if (routerModeEnabled && WiFi.status() == WL_CONNECTED) disconnectedSince = 0;
 
   // Common incremental renderer checks each visible widget; only changed lines are painted.
   static uint32_t lastIncrementalRefresh = 0;
