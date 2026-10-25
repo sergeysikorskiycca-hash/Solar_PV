@@ -3,7 +3,6 @@
 #include "AppConfig.h"
 #include "Display.h"
 extern bool apActive;
-extern unsigned long disconnectedSince;
 extern const char* AP_SSID;
 extern const char* AP_PASS;
 bool routerModeEnabled = false;
@@ -28,7 +27,6 @@ void applyWiFiMode() {
     if (apActive) WiFi.softAPdisconnect(true);
     apActive = false; WiFi.disconnect(true, false); WiFi.mode(WIFI_OFF);
   }
-  disconnectedSince = 0;
   Serial.printf("Wi-Fi mode: router=%s, setupAP=%s\n", routerModeEnabled?"ON":"OFF", setupApEnabled?"ON":"OFF");
   if (wasAp != apActive) renderTFT();
 }
