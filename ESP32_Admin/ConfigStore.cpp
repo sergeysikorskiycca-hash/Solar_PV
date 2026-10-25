@@ -71,7 +71,9 @@ void setDefaults() {
 
 bool isKnownWidgetType(const String& type) {
   return type == "power" || type == "voltage" || type == "current" ||
-         type == "battery" || type == "wifiStatus" || type == "wifiControl" || type == "text" || type == "strings" || type == "clock";
+         type == "battery" || type == "wifiStatus" || type == "wifiControl" ||
+         type == "text" || type == "strings" || type == "stringsVoltage" ||
+         type == "stringsCurrent" || type == "stringsPower" || type == "clock";
 }
 
 static String encodeWidgetText(const String& input) {
