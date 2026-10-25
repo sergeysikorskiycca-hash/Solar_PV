@@ -795,6 +795,7 @@ static void rtWifiDrawMenu(const String& message = "") {
 }
 
 static void rtWifiScan() {
+  if (wifiScanActive) { rtWifiDrawMenu("Поиск уже выполняется"); return; }
   if(!routerModeEnabled && !setupApEnabled){rtWifiDrawMenu("Сначала включи Wi-Fi (1 или 2)");return;}
   WiFi.mode(setupApEnabled && routerModeEnabled ? WIFI_AP_STA : (setupApEnabled ? WIFI_AP : WIFI_STA));
   rtWifiShowingNetworks = false;
