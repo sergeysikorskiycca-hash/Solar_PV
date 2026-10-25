@@ -91,6 +91,17 @@ uint8_t gatewaySensorId = 0;
 float gatewayVoltage = 0.0f, gatewayCurrent = 0.0f, gatewayPower = 0.0f, gatewayShuntVoltage = 0.0f;
 uint16_t gatewaySensorPacketNumber = 0;
 bool gatewaySensorValid = false;
+
+// Latest values for each ESP-NOW sensor ID (sensorId 1 maps to String 1).
+static const uint8_t MAX_STRING_SENSORS = 10;
+bool stringSensorValid[MAX_STRING_SENSORS] = {};
+uint32_t stringSensorLastSeenMs[MAX_STRING_SENSORS] = {};
+float stringSensorVoltage[MAX_STRING_SENSORS] = {};
+float stringSensorCurrent[MAX_STRING_SENSORS] = {};
+float stringSensorPower[MAX_STRING_SENSORS] = {};
+uint16_t stringSensorPacketNumber[MAX_STRING_SENSORS] = {};
+static const uint32_t STRING_SENSOR_TIMEOUT_MS = 3500UL;
+
 static uint32_t lastIndicatorDraw = 0;
 static uint32_t lastGatewayLogMs = 0;
 bool webStarted = false;
@@ -203,6 +214,17 @@ String makeConfigJson() {
   }
   j += "\"networkStatus\":\"" + jsonEscape(net) + "\",";
   j += "\"networkLabel\":\"" + jsonEscape(label) + "\",";
+  j += "\"stringTelemetry\":[";
+  for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) {
+    if (i) j += ",";
+    bool fresh = stringSensorValid[i] &&
+                 millis() - stringSensorLastSeenMs[i] <= STRING_SENSOR_TIMEOUT_MS;
+    j += "{\"id\":" + String(i + 1) + ",\"valid\":" + String(fresh ? "true" : "false") +
+         ",\"voltage\":" + String(stringSensorVoltage[i], 3) +
+         ",\"current\":" + String(stringSensorCurrent[i], 4) +
+         ",\"power\":" + String(stringSensorPower[i], 2) + "}";
+  }
+  j += "],";
   j += "\"tftPage\":" + String(cfg.tftPage) + ",";
   j += "\"pageCount\":" + String(cfg.pageCount) + ",\"pages\":[";
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
@@ -555,6 +577,15 @@ static void processGatewayPacket() {
       gatewayPower = packet.power;
       gatewayShuntVoltage = packet.shuntVoltage;
       gatewaySensorPacketNumber = packet.sensorPacketNumber;
+      if (gatewaySensorValid && packet.sensorId >= 1 && packet.sensorId <= MAX_STRING_SENSORS) {
+        const uint8_t index = packet.sensorId - 1;
+        stringSensorValid[index] = true;
+        stringSensorLastSeenMs[index] = millis();
+        stringSensorVoltage[index] = packet.voltage;
+        stringSensorCurrent[index] = packet.current;
+        stringSensorPower[index] = packet.power;
+        stringSensorPacketNumber[index] = packet.sensorPacketNumber;
+      }
       gatewayOnline = true;
       if (millis() - lastGatewayLogMs >= 1000UL) {
         lastGatewayLogMs = millis();
