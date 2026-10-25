@@ -9,6 +9,7 @@ void handleApiConfig();
 void handleSaveDisplay();
 void handleSetPage();
 void handleScanWiFi();
+void handleWiFiScanStatus();
 void handleSaveWiFi();
 void handleWiFiMode();
 void handleSaveWiFiDefaults();
@@ -19,6 +20,7 @@ void setupWebServer() {
   server.on("/", HTTP_GET, handleRoot);
   server.on("/api/config", HTTP_GET, handleApiConfig);
   server.on("/api/scan", HTTP_GET, handleScanWiFi);
+  server.on("/api/scan-status", HTTP_GET, handleWiFiScanStatus);
   server.on("/api/save", HTTP_POST, handleSaveDisplay);
   server.on("/api/clock", HTTP_POST, handleSetClock);
   server.on("/api/page", HTTP_GET, handleSetPage);
