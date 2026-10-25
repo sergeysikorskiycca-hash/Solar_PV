@@ -8,6 +8,14 @@ extern bool gatewaySensorValid;
 extern float gatewayVoltage, gatewayCurrent, gatewayPower, gatewayShuntVoltage;
 extern uint8_t gatewaySensorId;
 extern uint16_t gatewaySensorPacketNumber;
+extern bool stringSensorValid[10];
+extern uint32_t stringSensorLastSeenMs[10];
+extern float stringSensorVoltage[10], stringSensorCurrent[10], stringSensorPower[10];
+
+static bool stringSensorFresh(uint8_t index) {
+  return index < 10 && stringSensorValid[index] &&
+         millis() - stringSensorLastSeenMs[index] <= 3500UL;
+}
 
 extern bool routerModeEnabled;
 extern bool setupApEnabled;
@@ -109,14 +117,20 @@ void drawWidget(const WidgetConfig& widget) {
   }
   if(widget.type=="strings" || widget.type=="stringsVoltage" ||
      widget.type=="stringsCurrent" || widget.type=="stringsPower") {
-    // Per-string monitoring layouts; values remain placeholders until per-string telemetry is available.
     const char* unit = "В";
     if (widget.type == "stringsCurrent") unit = "А";
     else if (widget.type == "stringsPower") unit = "Вт";
     int lineY = contentBaseline, lineHeight = FONT_HEIGHTS[cs] + 4;
     uint8_t count = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
     for (uint8_t i = 0; i < count && lineY <= y + h - 4; i++) {
-      drawAlignedText("Стринг " + String(i + 1) + ": -- " + unit, x, lineY, w, cs, widget.contentAlign, widget.contentColor);
+      String reading = "--";
+      if (stringSensorFresh(i)) {
+        if (widget.type == "stringsCurrent") reading = String(stringSensorCurrent[i], 2);
+        else if (widget.type == "stringsPower") reading = String(stringSensorPower[i], 1);
+        else reading = String(stringSensorVoltage[i], 1);
+      }
+      drawAlignedText("Стринг " + String(i + 1) + ": " + reading + " " + unit,
+                      x, lineY, w, cs, widget.contentAlign, widget.contentColor);
       lineY += lineHeight;
     }
     return;
@@ -313,6 +327,21 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
       out[count] = "ВВЕРХ/ВНИЗ: выбор"; colors[count++] = 0xBDF7;
       out[count] = "OK: изменить (5 сек.)"; colors[count++] = 0xBDF7;
     }
+  } else if (widget.type == "strings" || widget.type == "stringsVoltage" ||
+             widget.type == "stringsCurrent" || widget.type == "stringsPower") {
+    const char* unit = widget.type == "stringsCurrent" ? "А" :
+                       (widget.type == "stringsPower" ? "Вт" : "В");
+    const uint8_t stringCount = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
+    for (uint8_t i = 0; i < stringCount && count < 6; ++i) {
+      String reading = "--";
+      if (stringSensorFresh(i)) {
+        if (widget.type == "stringsCurrent") reading = String(stringSensorCurrent[i], 2);
+        else if (widget.type == "stringsPower") reading = String(stringSensorPower[i], 1);
+        else reading = String(stringSensorVoltage[i], 1);
+      }
+      out[count] = "Стринг " + String(i + 1) + ": " + reading + " " + unit;
+      colors[count++] = widgetColor(widget.contentColor);
+    }
   } else if (widget.type == "power" || widget.type == "voltage" || widget.type == "current" || widget.type == "battery") {
     if (widget.type == "power") {
       out[count] = gatewayOnline && gatewaySensorValid ? String(gatewayPower, 1) + " W" : "-- W";
@@ -329,7 +358,7 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
 
 void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint8_t widgetIndex) {
   if (!widget.enabled || pageIndex >= MAX_PAGES || widgetIndex >= MAX_WIDGETS_PER_PAGE) return;
-  if (widget.type == "text" || widget.type == "strings") return;
+  if (widget.type == "text") return;
   String lines[6]; uint16_t colors[6]; uint8_t count = 0;
   makeDynamicLines(widget, lines, colors, count);
   if (!count) return;
