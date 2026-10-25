@@ -107,12 +107,16 @@ void drawWidget(const WidgetConfig& widget) {
     int avail=y+h-4-contentBaseline, lineHeight=FONT_HEIGHTS[cs]+3;
     drawWrappedText(widget,widget.text,contentBaseline,avail>0?avail/lineHeight+1:0); return;
   }
-  if(widget.type=="strings") {
-    // The layout supports multiple strings now; values remain placeholders until telemetry is connected.
+  if(widget.type=="strings" || widget.type=="stringsVoltage" ||
+     widget.type=="stringsCurrent" || widget.type=="stringsPower") {
+    // Per-string monitoring layouts; values remain placeholders until per-string telemetry is available.
+    const char* unit = "В";
+    if (widget.type == "stringsCurrent") unit = "А";
+    else if (widget.type == "stringsPower") unit = "Вт";
     int lineY = contentBaseline, lineHeight = FONT_HEIGHTS[cs] + 4;
     uint8_t count = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
     for (uint8_t i = 0; i < count && lineY <= y + h - 4; i++) {
-      drawAlignedText("Стринг " + String(i + 1) + ": -- В", x, lineY, w, cs, widget.contentAlign, widget.contentColor);
+      drawAlignedText("Стринг " + String(i + 1) + ": -- " + unit, x, lineY, w, cs, widget.contentAlign, widget.contentColor);
       lineY += lineHeight;
     }
     return;
