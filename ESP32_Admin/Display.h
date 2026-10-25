@@ -7,15 +7,10 @@
 extern Adafruit_ST7789 tft;
 extern U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 extern bool apActive;
-extern String lastStatusText;
 
 void drawCyrillicText(const String& text, int x, int baselineY, uint16_t color, bool large);
-void drawCard(const String& label, const String& value, int x, int y, int w, int h);
-String getTFTStatusText();
-void drawTFTStatus(bool force = false);
 void drawTFTIndicators();
 void renderTFT();
 void drawWidget(const WidgetConfig& widget);
-void updateClockWidget(const WidgetConfig& widget);
 void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint8_t widgetIndex);
 void resetIncrementalWidgetCache();
