@@ -5,9 +5,7 @@
 // Live telemetry received from the ESP8266 gateway over I2C.
 extern bool gatewayOnline;
 extern bool gatewaySensorValid;
-extern float gatewayVoltage, gatewayCurrent, gatewayPower, gatewayShuntVoltage;
-extern uint8_t gatewaySensorId;
-extern uint16_t gatewaySensorPacketNumber;
+extern float gatewayVoltage, gatewayCurrent, gatewayPower;
 extern bool stringSensorValid[10];
 extern uint32_t stringSensorLastSeenMs[10];
 extern float stringSensorVoltage[10], stringSensorCurrent[10], stringSensorPower[10];
