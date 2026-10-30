@@ -80,6 +80,7 @@ static volatile uint8_t clockCommandType = 0;
 static volatile uint16_t clockCommandYear = 2026;
 static volatile uint8_t clockCommandMonth = 1, clockCommandDay = 1, clockCommandHour = 0, clockCommandMinute = 0, clockCommandSecond = 0;
 static volatile bool clockCommandPending = false;
+static bool otaConfirmActive = false;
 
 // ESP8266 gateway telemetry arrives as a checked I2C frame.
 bool gatewayOnline = false;
@@ -1039,10 +1040,49 @@ static void showTFTPage(uint8_t page) {
   Serial.printf("IR remote: TFT page %u/%u\n", cfg.tftPage, cfg.pageCount);
 }
 
+static void drawOtaConfirm() {
+  tft.fillRect(10, 82, 220, 156, ST77XX_BLACK);
+  tft.drawRoundRect(10, 82, 220, 156, 7, ST77XX_YELLOW);
+  drawCyrillicText("ОБНОВЛЕНИЕ", 24, 108, ST77XX_YELLOW, true);
+  drawCyrillicText("Перейти в режим", 20, 139, ST77XX_WHITE, false);
+  drawCyrillicText("обновления прошивки", 20, 161, ST77XX_WHITE, false);
+  drawCyrillicText("контроллера стрингов?", 20, 183, ST77XX_WHITE, false);
+  drawCyrillicText("OK — ДА", 24, 218, ST77XX_GREEN, false);
+  drawCyrillicText("BACK — НЕТ", 126, 218, ST77XX_RED, false);
+}
+
 static void handleIRRemote() {
   const uint32_t code = IR_RemoteUpdate();
   if (code == 0) return;
+  if (otaConfirmActive) {
+    if (code == IR_CODE_OK) {
+      noInterrupts();
+      clockCommandYear = 1; // Sensor ID 1 is carried in the low byte for OTA command type 2.
+      clockCommandMonth = 0;
+      clockCommandDay = 0;
+      clockCommandHour = 0;
+      clockCommandMinute = 0;
+      clockCommandSecond = 0;
+      ++clockCommandSequence;
+      clockCommandType = 2;
+      clockCommandPending = true;
+      interrupts();
+      otaConfirmActive = false;
+      renderTFT();
+      Serial.println(F("IR: OTA request for string controller 1 queued to gateway."));
+    } else if (code == IR_CODE_BACK) {
+      otaConfirmActive = false;
+      renderTFT();
+      Serial.println(F("IR: OTA request cancelled."));
+    }
+    return;
+  }
   if (rtMode != RT_CLOSED) { rtHandle(code); return; }
+  if (code == IR_CODE_OSD) {
+    otaConfirmActive = true;
+    drawOtaConfirm();
+    return;
+  }
   if (hasWifiControlOnCurrentPage() && (code == IR_CODE_UP || code == IR_CODE_DOWN || code == IR_CODE_OK)) { handleInlineWifiControl(code); return; }
   if (code == IR_CODE_SETUP) rtOpenWifi();
   else if (code == IR_CODE_MENU) rtOpen();
