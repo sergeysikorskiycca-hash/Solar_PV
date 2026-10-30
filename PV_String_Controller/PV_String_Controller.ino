@@ -15,7 +15,10 @@ extern "C" {
 #include <espnow.h>
 }
 
-#define INA226_ADDR 0x44
+#define INA226_FIRST_ADDR  0x44
+#define INA226_SECOND_ADDR 0x40
+#define SENSOR_COUNT 2
+#define SENSOR_INTERVAL_MS 250UL
 
 #define SDA_PIN 14  // D5, GPIO14 — SDA
 #define SCL_PIN 12  // D6, GPIO12 — SCL
@@ -63,9 +66,11 @@ struct ESPNowCommand
     uint8_t sensorId;
 };
 
-SensorData data;
+SensorData sensorData[SENSOR_COUNT];
+uint32_t packetCounter[SENSOR_COUNT] = {0, 0};
 
-uint32_t packetCounter = 0;
+uint32_t lastSensorSendMs = 0;
+uint8_t nextSensorIndex = 0;
 
 volatile bool otaRequested = false;
 bool otaMode = false;
@@ -149,87 +154,66 @@ bool setCurrentCalibration(float newCalibration)
 }
 
 
-// Читает 16-битный регистр INA226
-uint16_t ina226Read16(uint8_t reg)
+// Читает 16-битный регистр выбранного INA226
+uint16_t ina226Read16(uint8_t address, uint8_t reg)
 {
-    Wire.beginTransmission(INA226_ADDR);
+    Wire.beginTransmission(address);
     Wire.write(reg);
-
-    if (Wire.endTransmission(false) != 0)
-        return 0;
-
-    Wire.requestFrom(
-        INA226_ADDR,
-        (uint8_t)2
-    );
-
-    if (Wire.available() < 2)
-        return 0;
-
-    uint16_t value = Wire.read() << 8;
+    if (Wire.endTransmission(false) != 0) return 0;
+    if (Wire.requestFrom(address, (uint8_t)2) != 2) return 0;
+    uint16_t value = (uint16_t)Wire.read() << 8;
     value |= Wire.read();
-
     return value;
 }
 
-
-// Инициализирует INA226
-void ina226Init()
+// Инициализирует выбранный INA226
+bool ina226Init(uint8_t address)
 {
-    uint16_t config = 0x4127;
-
-    Wire.beginTransmission(INA226_ADDR);
+    const uint16_t config = 0x4127;
+    Wire.beginTransmission(address);
     Wire.write(0x00);
     Wire.write(config >> 8);
     Wire.write(config & 0xFF);
-    Wire.endTransmission();
-
-    delay(10);
+    return Wire.endTransmission() == 0;
 }
 
-
-// Считывает измерения и корректирует ток
-void readINA226()
+// Считывает измерения выбранного датчика и формирует его пакет
+void readINA226(uint8_t index)
 {
-    uint16_t busRaw = ina226Read16(0x02);
+    const uint8_t address = (index == 0) ? INA226_FIRST_ADDR : INA226_SECOND_ADDR;
+    const uint8_t sensorId = index + 1;
+    SensorData &data = sensorData[index];
 
-    int16_t shuntRaw =
-        (int16_t)ina226Read16(0x01);
+    uint16_t busRaw = ina226Read16(address, 0x02);
+    int16_t shuntRaw = (int16_t)ina226Read16(address, 0x01);
+    float voltage = busRaw * 0.00125f;
+    float shuntVoltage = shuntRaw * 0.0000025f;
+    float current = (shuntVoltage / SHUNT_OHMS) * currentCalibration;
+    float power = voltage * current;
 
-    float voltage =
-        busRaw * 0.00125f;
-
-    float shuntVoltage =
-        shuntRaw * 0.0000025f;
-
-    // Ток с учётом коэффициента калибровки
-    float current =
-        (shuntVoltage / SHUNT_OHMS)
-        * currentCalibration;
-
-    // Мощность рассчитывается по скорректированному току
-    float power =
-        voltage * current;
-
-    strncpy(
-        data.name,
-        "SOLAR_STRING_1",
-        sizeof(data.name)
-    );
-
-    data.name[sizeof(data.name) - 1] = '\0';
-
-    data.sensorId = 1;
-
+    snprintf(data.name, sizeof(data.name), "SOLAR_STRING_%u", (unsigned)sensorId);
+    data.sensorId = sensorId;
     data.voltage = voltage;
     data.current = current;
     data.power = power;
+    data.shuntVoltage = shuntVoltage * 1000.0f;
+    data.packetNumber = packetCounter[index]++;
+}
 
-    data.shuntVoltage =
-        shuntVoltage * 1000.0f;
+// Печатает и отправляет пакет выбранного датчика
+void sendSensorData(uint8_t index)
+{
+    SensorData &data = sensorData[index];
+    Serial.print(data.name);
+    Serial.print("  U="); Serial.print(data.voltage, 3); Serial.print(" V  ");
+    Serial.print("I="); Serial.print(data.current, 3); Serial.print(" A  ");
+    Serial.print("P="); Serial.print(data.power, 2); Serial.print(" W  ");
+    Serial.print("Shunt="); Serial.print(data.shuntVoltage, 3); Serial.print(" mV  ");
+    Serial.print("K="); Serial.print(currentCalibration, 3); Serial.print("  Packet=");
+    Serial.println(data.packetNumber);
 
-    data.packetNumber =
-        packetCounter++;
+    uint8_t sendResult = esp_now_send(receiverMac, (uint8_t *)&data, sizeof(data));
+    Serial.printf("ESP-NOW SEND RESULT = %d\n", sendResult);
 }
 
 
@@ -287,8 +271,6 @@ void startOTAMode()
 
     esp_now_deinit();
 
-    delay(100);
-
     wifiStartOTA();
 
     otaMode = true;
@@ -302,8 +284,6 @@ void startOTAMode()
 void setup()
 {
     Serial.begin(115200);
-
-    delay(500);
 
     Serial.println();
     Serial.println("SOLAR_STRING_1");
@@ -325,7 +305,8 @@ void setup()
 
     Wire.setClock(100000);
 
-    ina226Init();
+    Serial.printf("INA226 0x%02X: %s\n", INA226_FIRST_ADDR, ina226Init(INA226_FIRST_ADDR) ? "READY" : "NOT FOUND");
+    Serial.printf("INA226 0x%02X: %s\n", INA226_SECOND_ADDR, ina226Init(INA226_SECOND_ADDR) ? "READY" : "NOT FOUND");
 
     WiFi.mode(WIFI_STA);
 
@@ -391,44 +372,15 @@ void loop()
         return;
     }
 
-    readINA226();
+    uint32_t now = millis();
 
-    Serial.print(data.name);
-    Serial.print("  ");
-
-    Serial.print("U=");
-    Serial.print(data.voltage, 3);
-    Serial.print(" V  ");
-
-    Serial.print("I=");
-    Serial.print(data.current, 3);
-    Serial.print(" A  ");
-
-    Serial.print("P=");
-    Serial.print(data.power, 2);
-    Serial.print(" W  ");
-
-    Serial.print("Shunt=");
-    Serial.print(data.shuntVoltage, 3);
-    Serial.print(" mV  ");
-
-    Serial.print("K=");
-    Serial.print(currentCalibration, 3);
-    Serial.print("  ");
-
-    Serial.print("Packet=");
-    Serial.println(data.packetNumber);
-
-    uint8_t sendResult = esp_now_send(
-        receiverMac,
-        (uint8_t *)&data,
-        sizeof(data)
-    );
-
-    Serial.printf(
-        "ESP-NOW SEND RESULT = %d\n",
-        sendResult
-    );
-
-    delay(500);
+    // Датчики отправляются по очереди; каждый передаёт данные раз в 500 мс.
+    if (now - lastSensorSendMs >= SENSOR_INTERVAL_MS)
+    {
+        lastSensorSendMs = now;
+        readINA226(nextSensorIndex);
+        sendSensorData(nextSensorIndex);
+        nextSensorIndex++;
+        if (nextSensorIndex >= SENSOR_COUNT) nextSensorIndex = 0;
+    }
 }
