@@ -166,15 +166,28 @@ uint16_t ina226Read16(uint8_t address, uint8_t reg)
     return value;
 }
 
-// Инициализирует выбранный INA226
+// Инициализирует INA226 и проверяет запись конфигурации
 bool ina226Init(uint8_t address)
 {
     const uint16_t config = 0x4127;
-    Wire.beginTransmission(address);
-    Wire.write(0x00);
-    Wire.write(config >> 8);
-    Wire.write(config & 0xFF);
-    return Wire.endTransmission() == 0;
+
+    for (uint8_t attempt = 0; attempt < 3; attempt++)
+    {
+        Wire.beginTransmission(address);
+        Wire.write(0x00);
+        Wire.write(config >> 8);
+        Wire.write(config & 0xFF);
+
+        if (Wire.endTransmission() != 0)
+            continue;
+
+        uint16_t readBack = ina226Read16(address, 0x00);
+
+        if (readBack == config)
+            return true;
+    }
+
+    return false;
 }
 
 // Считывает измерения выбранного датчика и формирует его пакет
@@ -292,12 +305,17 @@ void setup()
     // Восстанавливаем калибровку из EEPROM
     loadCurrentCalibration();
 
+    // Сначала настраиваем Wi-Fi и фиксируем канал ESP-NOW
+    WiFi.mode(WIFI_STA);
+    wifi_set_channel(WIFI_CHANNEL);
+
     Serial.print("MAC: ");
     Serial.println(WiFi.macAddress());
 
     Serial.print("WiFi channel: ");
     Serial.println(WiFi.channel());
 
+    // После настройки Wi-Fi запускаем I2C
     Wire.begin(
         SDA_PIN,
         SCL_PIN
@@ -305,12 +323,8 @@ void setup()
 
     Wire.setClock(100000);
 
-    Serial.printf("INA226 0x%02X: %s\n", INA226_FIRST_ADDR, ina226Init(INA226_FIRST_ADDR) ? "READY" : "NOT FOUND");
-    Serial.printf("INA226 0x%02X: %s\n", INA226_SECOND_ADDR, ina226Init(INA226_SECOND_ADDR) ? "READY" : "NOT FOUND");
-
-    WiFi.mode(WIFI_STA);
-
-    wifi_set_channel(WIFI_CHANNEL);
+    Serial.printf("INA226 0x%02X: %s\\n", INA226_FIRST_ADDR, ina226Init(INA226_FIRST_ADDR) ? "READY" : "NOT FOUND");
+    Serial.printf("INA226 0x%02X: %s\\n", INA226_SECOND_ADDR, ina226Init(INA226_SECOND_ADDR) ? "READY" : "NOT FOUND");
 
     if (esp_now_init() != 0)
     {
