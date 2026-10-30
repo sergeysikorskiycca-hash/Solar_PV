@@ -259,14 +259,14 @@ static bool exchangePacket() {
   lastAckOk = ackMagic == ACK_MAGIC && ackSequence == packet.sequence && ackStatus == 0;
   if (commandType == 1 && commandSequence != lastClockCommandSequence) {
     bool clockWritten = writeRtc(commandYear, commandMonth, commandDay, commandHour, commandMinute, commandSecond);
-    if (clockWritten) { lastClockCommandSequence = commandSequence; rtcPresent = readRtc(); Serial.printf("RTC set from ESP32: %04u-%02u-%02u %02u:%02u:%02u\\n", (unsigned)commandYear, (unsigned)commandMonth, (unsigned)commandDay, (unsigned)commandHour, (unsigned)commandMinute, (unsigned)commandSecond); }
+    if (clockWritten) { lastClockCommandSequence = commandSequence; rtcPresent = readRtc(); Serial.printf("RTC set from ESP32: %04u-%02u-%02u %02u:%02u:%02u\n", (unsigned)commandYear, (unsigned)commandMonth, (unsigned)commandDay, (unsigned)commandHour, (unsigned)commandMinute, (unsigned)commandSecond); }
     else Serial.println(F("ERROR: RTC write command failed."));
   } else if (commandType == 2 && commandSequence != lastOtaCommandSequence) {
     lastOtaCommandSequence = commandSequence;
     otaTargetSensorId = (uint8_t)(commandYear & 0xFF);
     otaDispatchPending = otaTargetSensorId >= 1 && otaTargetSensorId <= MAX_SENSORS;
     lastOtaDispatchMs = 0;
-    Serial.printf("OTA request received from ESP32 for sensor %u.\\n", (unsigned)otaTargetSensorId);
+    Serial.printf("OTA request received from ESP32 for sensor %u.\n", (unsigned)otaTargetSensorId);
   }
   return lastAckOk;
 }
@@ -289,7 +289,7 @@ static void processOtaDispatch() {
   if (!esp_now_is_peer_exist(slot.mac)) {
     int peerResult = esp_now_add_peer(slot.mac, ESP_NOW_ROLE_COMBO, ESP_NOW_CHANNEL, NULL, 0);
     if (peerResult != 0 && !esp_now_is_peer_exist(slot.mac)) {
-      Serial.printf("OTA peer add failed: %d\\n", peerResult);
+      Serial.printf("OTA peer add failed: %d\n", peerResult);
       return;
     }
   }
@@ -298,12 +298,12 @@ static void processOtaDispatch() {
   int sendResult = esp_now_send(slot.mac, (uint8_t*)&command, sizeof(command));
   if (sendResult == 0) {
     otaDispatchPending = false;
-    Serial.printf("OTA command sent to sensor %u (%02X:%02X:%02X:%02X:%02X:%02X).\\n",
+    Serial.printf("OTA command sent to sensor %u (%02X:%02X:%02X:%02X:%02X:%02X).\n",
                   (unsigned)otaTargetSensorId,
                   slot.mac[0], slot.mac[1], slot.mac[2],
                   slot.mac[3], slot.mac[4], slot.mac[5]);
   } else {
-    Serial.printf("OTA send failed: %d; will retry.\\n", sendResult);
+    Serial.printf("OTA send failed: %d; will retry.\n", sendResult);
   }
 }
 
