@@ -146,8 +146,7 @@ void drawWidget(const WidgetConfig& widget) {
   if (widget.type == "power") {
     float totalPower = 0.0f;
     bool hasSensorValue = false;
-    const uint8_t selectedStrings = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
-    for (uint8_t i = 0; i < selectedStrings; ++i) {
+    for (uint8_t i = 0; i < 10; ++i) {
       if (stringSensorValid[i]) {
         totalPower += stringSensorPower[i];
         hasSensorValue = true;
@@ -229,8 +228,7 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
     if (widget.type == "power") {
       float totalPower = 0.0f;
       bool hasSensorValue = false;
-      const uint8_t selectedStrings = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
-      for (uint8_t i = 0; i < selectedStrings; ++i) {
+      for (uint8_t i = 0; i < 10; ++i) {
         if (stringSensorValid[i]) {
           totalPower += stringSensorPower[i];
           hasSensorValue = true;
