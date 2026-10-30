@@ -377,7 +377,7 @@ void setup()
     }
 
     esp_now_set_self_role(
-        ESP_NOW_ROLE_CONTROLLER
+        ESP_NOW_ROLE_COMBO
     );
 
     esp_now_register_send_cb(
@@ -390,7 +390,7 @@ void setup()
 
     uint8_t peerResult = esp_now_add_peer(
         receiverMac,
-        ESP_NOW_ROLE_SLAVE,
+        ESP_NOW_ROLE_COMBO,
         WIFI_CHANNEL,
         NULL,
         0
