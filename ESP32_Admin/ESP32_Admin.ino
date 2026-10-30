@@ -1148,7 +1148,7 @@ void loop() {
     rtMode = RT_CLOSED;
     renderTFT();
   }
-  if (rtMode == RT_CLOSED && millis() - lastIndicatorDraw >= 250UL) {
+  if (rtMode == RT_CLOSED && !otaConfirmActive && millis() - lastIndicatorDraw >= 250UL) {
     lastIndicatorDraw = millis();
     drawTFTIndicators();
   }
@@ -1176,7 +1176,7 @@ void loop() {
 
   // Common incremental renderer checks each visible widget; only changed lines are painted.
   static uint32_t lastIncrementalRefresh = 0;
-  if (rtMode == RT_CLOSED && millis() - lastIncrementalRefresh >= 500UL &&
+  if (rtMode == RT_CLOSED && !otaConfirmActive && millis() - lastIncrementalRefresh >= 500UL &&
       cfg.tftPage >= 1 && cfg.tftPage <= cfg.pageCount) {
     lastIncrementalRefresh = millis();
     PageConfig& visiblePage = cfg.pages[cfg.tftPage - 1];
