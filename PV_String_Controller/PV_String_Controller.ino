@@ -16,7 +16,7 @@ extern "C" {
 }
 
 #define INA226_FIRST_ADDR  0x44
-#define INA226_SECOND_ADDR 0x40
+#define INA226_SECOND_ADDR 0x45
 #define SENSOR_COUNT 2
 #define SENSOR_INTERVAL_MS 250UL
 
@@ -40,6 +40,7 @@ struct CalibrationRecord
 };
 
 const float DEFAULT_CURRENT_CALIBRATION = 1.15f;
+const float SECOND_CURRENT_CALIBRATION = 0.61f;
 
 float currentCalibration = DEFAULT_CURRENT_CALIBRATION;
 
@@ -241,7 +242,10 @@ void readINA226(uint8_t index)
     int16_t shuntRaw = (int16_t)ina226Read16(address, 0x01);
     float voltage = busRaw * 0.00125f;
     float shuntVoltage = shuntRaw * 0.0000025f;
-    float current = (shuntVoltage / SHUNT_OHMS) * currentCalibration;
+    const float sensorCalibration = (index == 0)
+        ? currentCalibration
+        : SECOND_CURRENT_CALIBRATION;
+    float current = (shuntVoltage / SHUNT_OHMS) * sensorCalibration;
     float power = voltage * current;
 
     snprintf(data.name, sizeof(data.name), "SOLAR_STRING_%u", (unsigned)sensorId);
@@ -262,7 +266,7 @@ void sendSensorData(uint8_t index)
     Serial.print("I="); Serial.print(data.current, 3); Serial.print(" A  ");
     Serial.print("P="); Serial.print(data.power, 2); Serial.print(" W  ");
     Serial.print("Shunt="); Serial.print(data.shuntVoltage, 3); Serial.print(" mV  ");
-    Serial.print("K="); Serial.print(currentCalibration, 3); Serial.print("  Packet=");
+    Serial.print("K="); Serial.print((index == 0) ? currentCalibration : SECOND_CURRENT_CALIBRATION, 3); Serial.print("  Packet=");
     Serial.println(data.packetNumber);
 
     uint8_t sendResult = esp_now_send(receiverMac, (uint8_t *)&data, sizeof(data));
