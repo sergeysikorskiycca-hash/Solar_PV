@@ -42,7 +42,13 @@ struct SensorPacket {
   uint32_t packetNumber;
 };
 
+struct ESPNowCommand {
+  uint8_t command;
+  uint8_t sensorId;
+};
+
 struct SensorSlot {
+  uint8_t mac[6];
   char name[20];
   uint8_t sensorId;
   float voltage;
@@ -86,6 +92,10 @@ static uint8_t lastAckMagicSeen = 0;
 static uint8_t lastAckSequenceSeen = 0;
 static bool espNowReady = false;
 static uint8_t lastClockCommandSequence = 0xFF;
+static uint8_t lastOtaCommandSequence = 0xFF;
+static bool otaDispatchPending = false;
+static uint8_t otaTargetSensorId = 1;
+static uint32_t lastOtaDispatchMs = 0;
 
 static uint8_t crc8(const uint8_t* data, size_t length) {
   uint8_t crc = 0;
@@ -161,13 +171,13 @@ static bool readRtc() {
 }
 
 static void onSensorData(uint8_t* mac, uint8_t* data, uint8_t len) {
-  (void)mac;
   if (len != sizeof(SensorPacket)) return;
   SensorPacket incoming;
   memcpy(&incoming, data, sizeof(incoming));
   if (incoming.sensorId < 1 || incoming.sensorId > MAX_SENSORS) return;
 
   SensorSlot& slot = sensorSlots[incoming.sensorId - 1];
+  memcpy(slot.mac, mac, sizeof(slot.mac));
   memcpy(slot.name, incoming.name, sizeof(slot.name));
   slot.name[sizeof(slot.name) - 1] = '\0';
   slot.sensorId = incoming.sensorId;
@@ -249,10 +259,52 @@ static bool exchangePacket() {
   lastAckOk = ackMagic == ACK_MAGIC && ackSequence == packet.sequence && ackStatus == 0;
   if (commandType == 1 && commandSequence != lastClockCommandSequence) {
     bool clockWritten = writeRtc(commandYear, commandMonth, commandDay, commandHour, commandMinute, commandSecond);
-    if (clockWritten) { lastClockCommandSequence = commandSequence; rtcPresent = readRtc(); Serial.printf("RTC set from ESP32: %04u-%02u-%02u %02u:%02u:%02u\n", (unsigned)commandYear, (unsigned)commandMonth, (unsigned)commandDay, (unsigned)commandHour, (unsigned)commandMinute, (unsigned)commandSecond); }
+    if (clockWritten) { lastClockCommandSequence = commandSequence; rtcPresent = readRtc(); Serial.printf("RTC set from ESP32: %04u-%02u-%02u %02u:%02u:%02u\\n", (unsigned)commandYear, (unsigned)commandMonth, (unsigned)commandDay, (unsigned)commandHour, (unsigned)commandMinute, (unsigned)commandSecond); }
     else Serial.println(F("ERROR: RTC write command failed."));
+  } else if (commandType == 2 && commandSequence != lastOtaCommandSequence) {
+    lastOtaCommandSequence = commandSequence;
+    otaTargetSensorId = (uint8_t)(commandYear & 0xFF);
+    otaDispatchPending = otaTargetSensorId >= 1 && otaTargetSensorId <= MAX_SENSORS;
+    lastOtaDispatchMs = 0;
+    Serial.printf("OTA request received from ESP32 for sensor %u.\\n", (unsigned)otaTargetSensorId);
   }
   return lastAckOk;
+}
+
+static void processOtaDispatch() {
+  if (!otaDispatchPending) return;
+  uint32_t now = millis();
+  if (now - lastOtaDispatchMs < 250UL) return;
+  lastOtaDispatchMs = now;
+
+  if (otaTargetSensorId < 1 || otaTargetSensorId > MAX_SENSORS) {
+    otaDispatchPending = false;
+    Serial.println(F("OTA request rejected: invalid sensor ID."));
+    return;
+  }
+
+  SensorSlot& slot = sensorSlots[otaTargetSensorId - 1];
+  if (!slot.valid || now - slot.lastSeenMs > 3000UL) return;
+
+  if (!esp_now_is_peer_exist(slot.mac)) {
+    int peerResult = esp_now_add_peer(slot.mac, ESP_NOW_ROLE_COMBO, ESP_NOW_CHANNEL, NULL, 0);
+    if (peerResult != 0 && !esp_now_is_peer_exist(slot.mac)) {
+      Serial.printf("OTA peer add failed: %d\\n", peerResult);
+      return;
+    }
+  }
+
+  ESPNowCommand command = { 0x01, otaTargetSensorId };
+  int sendResult = esp_now_send(slot.mac, (uint8_t*)&command, sizeof(command));
+  if (sendResult == 0) {
+    otaDispatchPending = false;
+    Serial.printf("OTA command sent to sensor %u (%02X:%02X:%02X:%02X:%02X:%02X).\\n",
+                  (unsigned)otaTargetSensorId,
+                  slot.mac[0], slot.mac[1], slot.mac[2],
+                  slot.mac[3], slot.mac[4], slot.mac[5]);
+  } else {
+    Serial.printf("OTA send failed: %d; will retry.\\n", sendResult);
+  }
 }
 
 void setup() {
@@ -286,6 +338,7 @@ void setup() {
 
 void loop() {
   uint32_t now = millis();
+  processOtaDispatch();
 
   if (now - lastRtcMs >= RTC_INTERVAL_MS) {
     lastRtcMs = now;
