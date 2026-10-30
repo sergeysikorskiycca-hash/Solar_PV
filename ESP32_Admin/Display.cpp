@@ -144,7 +144,15 @@ void drawWidget(const WidgetConfig& widget) {
   }
   String value = "--";
   if (widget.type == "power") {
-    value = gatewayOnline && gatewaySensorValid ? String(gatewayPower, 1) + " W" : "-- W";
+    float totalPower = 0.0f;
+    bool hasFreshSensor = false;
+    for (uint8_t i = 0; i < 10; ++i) {
+      if (stringSensorFresh(i)) {
+        totalPower += stringSensorPower[i];
+        hasFreshSensor = true;
+      }
+    }
+    value = gatewayOnline && hasFreshSensor ? String(totalPower, 1) + " W" : "-- W";
   } else if (widget.type == "voltage") {
     value = gatewayOnline && gatewaySensorValid ? String(gatewayVoltage, 1) + " V" : "-- V";
   } else if (widget.type == "current") {
@@ -218,7 +226,15 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
     }
   } else if (widget.type == "power" || widget.type == "voltage" || widget.type == "current" || widget.type == "battery") {
     if (widget.type == "power") {
-      out[count] = gatewayOnline && gatewaySensorValid ? String(gatewayPower, 1) + " W" : "-- W";
+      float totalPower = 0.0f;
+      bool hasFreshSensor = false;
+      for (uint8_t i = 0; i < 10; ++i) {
+        if (stringSensorFresh(i)) {
+          totalPower += stringSensorPower[i];
+          hasFreshSensor = true;
+        }
+      }
+      out[count] = gatewayOnline && hasFreshSensor ? String(totalPower, 1) + " W" : "-- W";
     } else if (widget.type == "voltage") {
       out[count] = gatewayOnline && gatewaySensorValid ? String(gatewayVoltage, 1) + " V" : "-- V";
     } else if (widget.type == "current") {
