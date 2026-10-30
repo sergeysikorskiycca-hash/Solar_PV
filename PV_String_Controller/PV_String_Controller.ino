@@ -182,7 +182,7 @@ bool ina226Init(uint8_t address)
         if (writeResult != 0)
         {
             Serial.printf(
-                "INA226 0x%02X write error=%u attempt=%u\\n",
+                "INA226 0x%02X write error=%u attempt=%u\n",
                 address, writeResult, attempt + 1
             );
             continue;
@@ -195,7 +195,7 @@ bool ina226Init(uint8_t address)
         if (selectResult != 0)
         {
             Serial.printf(
-                "INA226 0x%02X register select error=%u attempt=%u\\n",
+                "INA226 0x%02X register select error=%u attempt=%u\n",
                 address, selectResult, attempt + 1
             );
             continue;
@@ -209,7 +209,7 @@ bool ina226Init(uint8_t address)
                 Wire.read();
 
             Serial.printf(
-                "INA226 0x%02X read bytes=%u attempt=%u\\n",
+                "INA226 0x%02X read bytes=%u attempt=%u\n",
                 address, received, attempt + 1
             );
             continue;
@@ -219,7 +219,7 @@ bool ina226Init(uint8_t address)
         readBack |= Wire.read();
 
         Serial.printf(
-            "INA226 0x%02X config readback=0x%04X attempt=%u\\n",
+            "INA226 0x%02X config readback=0x%04X attempt=%u\n",
             address, readBack, attempt + 1
         );
 
@@ -363,8 +363,8 @@ void setup()
 
     Wire.setClock(100000);
 
-    Serial.printf("INA226 0x%02X: %s\\n", INA226_FIRST_ADDR, ina226Init(INA226_FIRST_ADDR) ? "READY" : "NOT FOUND");
-    Serial.printf("INA226 0x%02X: %s\\n", INA226_SECOND_ADDR, ina226Init(INA226_SECOND_ADDR) ? "READY" : "NOT FOUND");
+    Serial.printf("INA226 0x%02X: %s\n", INA226_FIRST_ADDR, ina226Init(INA226_FIRST_ADDR) ? "READY" : "NOT FOUND");
+    Serial.printf("INA226 0x%02X: %s\n", INA226_SECOND_ADDR, ina226Init(INA226_SECOND_ADDR) ? "READY" : "NOT FOUND");
 
     if (esp_now_init() != 0)
     {
