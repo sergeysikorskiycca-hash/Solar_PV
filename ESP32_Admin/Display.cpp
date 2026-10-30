@@ -145,14 +145,15 @@ void drawWidget(const WidgetConfig& widget) {
   String value = "--";
   if (widget.type == "power") {
     float totalPower = 0.0f;
-    bool hasFreshSensor = false;
-    for (uint8_t i = 0; i < 10; ++i) {
-      if (stringSensorFresh(i)) {
+    bool hasSensorValue = false;
+    const uint8_t selectedStrings = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
+    for (uint8_t i = 0; i < selectedStrings; ++i) {
+      if (stringSensorValid[i]) {
         totalPower += stringSensorPower[i];
-        hasFreshSensor = true;
+        hasSensorValue = true;
       }
     }
-    value = gatewayOnline && hasFreshSensor ? String(totalPower, 1) + " W" : "-- W";
+    value = gatewayOnline && hasSensorValue ? String(totalPower, 1) + " W" : "-- W";
   } else if (widget.type == "voltage") {
     value = gatewayOnline && gatewaySensorValid ? String(gatewayVoltage, 1) + " V" : "-- V";
   } else if (widget.type == "current") {
@@ -227,14 +228,15 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
   } else if (widget.type == "power" || widget.type == "voltage" || widget.type == "current" || widget.type == "battery") {
     if (widget.type == "power") {
       float totalPower = 0.0f;
-      bool hasFreshSensor = false;
-      for (uint8_t i = 0; i < 10; ++i) {
-        if (stringSensorFresh(i)) {
+      bool hasSensorValue = false;
+      const uint8_t selectedStrings = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
+      for (uint8_t i = 0; i < selectedStrings; ++i) {
+        if (stringSensorValid[i]) {
           totalPower += stringSensorPower[i];
-          hasFreshSensor = true;
+          hasSensorValue = true;
         }
       }
-      out[count] = gatewayOnline && hasFreshSensor ? String(totalPower, 1) + " W" : "-- W";
+      out[count] = gatewayOnline && hasSensorValue ? String(totalPower, 1) + " W" : "-- W";
     } else if (widget.type == "voltage") {
       out[count] = gatewayOnline && gatewaySensorValid ? String(gatewayVoltage, 1) + " V" : "-- V";
     } else if (widget.type == "current") {
