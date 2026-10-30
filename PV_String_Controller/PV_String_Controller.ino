@@ -166,7 +166,7 @@ uint16_t ina226Read16(uint8_t address, uint8_t reg)
     return value;
 }
 
-// Инициализирует INA226 и проверяет запись конфигурации
+// Инициализирует INA226 и подробно проверяет запись конфигурации
 bool ina226Init(uint8_t address)
 {
     const uint16_t config = 0x4127;
@@ -177,11 +177,51 @@ bool ina226Init(uint8_t address)
         Wire.write(0x00);
         Wire.write(config >> 8);
         Wire.write(config & 0xFF);
+        uint8_t writeResult = Wire.endTransmission();
 
-        if (Wire.endTransmission() != 0)
+        if (writeResult != 0)
+        {
+            Serial.printf(
+                "INA226 0x%02X write error=%u attempt=%u\\n",
+                address, writeResult, attempt + 1
+            );
             continue;
+        }
 
-        uint16_t readBack = ina226Read16(address, 0x00);
+        Wire.beginTransmission(address);
+        Wire.write(0x00);
+        uint8_t selectResult = Wire.endTransmission(false);
+
+        if (selectResult != 0)
+        {
+            Serial.printf(
+                "INA226 0x%02X register select error=%u attempt=%u\\n",
+                address, selectResult, attempt + 1
+            );
+            continue;
+        }
+
+        uint8_t received = Wire.requestFrom(address, (uint8_t)2);
+
+        if (received != 2)
+        {
+            while (Wire.available())
+                Wire.read();
+
+            Serial.printf(
+                "INA226 0x%02X read bytes=%u attempt=%u\\n",
+                address, received, attempt + 1
+            );
+            continue;
+        }
+
+        uint16_t readBack = (uint16_t)Wire.read() << 8;
+        readBack |= Wire.read();
+
+        Serial.printf(
+            "INA226 0x%02X config readback=0x%04X attempt=%u\\n",
+            address, readBack, attempt + 1
+        );
 
         if (readBack == config)
             return true;
