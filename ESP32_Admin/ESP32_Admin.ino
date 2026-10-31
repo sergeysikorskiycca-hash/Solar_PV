@@ -85,7 +85,7 @@ struct CalibrationCommand {
   float currentFactor;
   float voltageFactor;
 };
-static CalibrationCommand calibrationQueue[6] = {};
+static CalibrationCommand calibrationQueue[7] = {};
 static volatile uint8_t calibrationQueueHead = 0;
 static volatile uint8_t calibrationQueueTail = 0;
 static CalibrationCommand calibrationCommandInFlight = {};
