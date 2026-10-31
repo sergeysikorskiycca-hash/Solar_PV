@@ -44,6 +44,8 @@ struct AppConfig {
   String title;
   uint8_t pageCount;
   uint8_t tftPage;   // 1-based physical display page
+  float currentCalibration[2];
+  float voltageCalibration[2];
   PageConfig pages[MAX_PAGES];
 
   // Legacy fields are retained only to migrate existing /solarpv.cfg files.

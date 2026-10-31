@@ -87,6 +87,12 @@ void drawWidget(const WidgetConfig& widget) {
   int headingBaseline=y+FONT_HEIGHTS[hs]+3;
   if (widget.showHeading) drawAlignedText(widget.label,x,headingBaseline,w,hs,widget.headingAlign,widget.headingColor);
   int contentBaseline=widget.showHeading ? headingBaseline+FONT_HEIGHTS[hs]/2+FONT_HEIGHTS[cs]+3 : y+FONT_HEIGHTS[cs]+5;
+  if(widget.type=="calibration") {
+    drawAlignedText("Ток", x, contentBaseline, w, cs, widget.contentAlign, widget.contentColor);
+    drawAlignedText("Стринг 1", x, contentBaseline + FONT_HEIGHTS[cs] + 4, w, cs, widget.contentAlign, widget.contentColor);
+    drawAlignedText(String(cfg.currentCalibration[0], 3), x, contentBaseline + 2 * (FONT_HEIGHTS[cs] + 4), w, cs, widget.contentAlign, widget.contentColor);
+    return;
+  }
   if(widget.type=="clock") {
     extern bool gatewayTimeValid; extern uint16_t gatewayYear; extern uint8_t gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond;
     String timeText = gatewayTimeValid ? (String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" + String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" + String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond)) : String("--:--:--");
@@ -178,6 +184,10 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
     colors[count++] = widgetColor(widget.contentColor);
     out[count] = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : "--.--.----";
     colors[count++] = widgetColor(widget.contentColor);
+  } else if (widget.type == "calibration") {
+    out[count] = "Ток"; colors[count++] = widgetColor(widget.contentColor);
+    out[count] = "Стринг 1"; colors[count++] = widgetColor(widget.contentColor);
+    out[count] = String(cfg.currentCalibration[0], 3); colors[count++] = widgetColor(widget.contentColor);
   } else if (widget.type == "wifiStatus") {
     if (WiFi.status() == WL_CONNECTED) {
       out[count] = "Сеть: " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);

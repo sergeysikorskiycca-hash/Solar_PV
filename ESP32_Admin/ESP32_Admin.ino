@@ -233,6 +233,8 @@ String makeConfigJson() {
          ",\"power\":" + String(stringSensorPower[i], 2) + "}";
   }
   j += "],";
+  j += "\"currentCalibration\":[" + String(cfg.currentCalibration[0], 3) + "," + String(cfg.currentCalibration[1], 3) + "],";
+  j += "\"voltageCalibration\":[" + String(cfg.voltageCalibration[0], 3) + "," + String(cfg.voltageCalibration[1], 3) + "],";
   j += "\"tftPage\":" + String(cfg.tftPage) + ",";
   j += "\"pageCount\":" + String(cfg.pageCount) + ",\"pages\":[";
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
@@ -308,6 +310,12 @@ void handleSaveDisplay() {
   }
   if (doc.containsKey("title")) cfg.title = sanitizeTitle(String(doc["title"] | "SOLAR PV"));
   if (doc.containsKey("fontScale")) cfg.fontScale = (doc["fontScale"] | 1) == 2 ? 2 : 1;
+  JsonArray currentCal = doc["currentCalibration"].as<JsonArray>();
+  JsonArray voltageCal = doc["voltageCalibration"].as<JsonArray>();
+  for (uint8_t i = 0; i < 2; ++i) {
+    if (currentCal.size() > i) cfg.currentCalibration[i] = constrain(currentCal[i].as<float>(), 0.001f, 9.999f);
+    if (voltageCal.size() > i) cfg.voltageCalibration[i] = constrain(voltageCal[i].as<float>(), 0.001f, 9.999f);
+  }
   JsonArray sourcePages = doc["pages"].as<JsonArray>();
   uint8_t requestedCount = clampInt(doc["pageCount"] | sourcePages.size(), 1, MAX_PAGES);
   if (sourcePages.isNull() || sourcePages.size() < requestedCount) {
@@ -1051,6 +1059,52 @@ static void drawOtaConfirm() {
   drawCyrillicText("BACK — НЕТ", 126, 218, ST77XX_RED, false);
 }
 
+
+static bool calibrationRemoteActive = false;
+static uint8_t calibrationLevel = 0, calibrationParameter = 0, calibrationString = 0, calibrationDigit = 0;
+static bool hasCalibrationWidgetOnCurrentPage() {
+  if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return false;
+  PageConfig& page = cfg.pages[cfg.tftPage - 1];
+  for (uint8_t i = 0; i < page.widgetCount; ++i)
+    if (page.widgets[i].enabled && page.widgets[i].type == "calibration") return true;
+  return false;
+}
+static float& selectedCalibrationValue() {
+  return calibrationParameter == 0 ? cfg.currentCalibration[calibrationString] : cfg.voltageCalibration[calibrationString];
+}
+static void drawCalibrationRemote() {
+  tft.fillScreen(ST77XX_BLACK);
+  drawCyrillicText(calibrationParameter == 0 ? "КОРРЕКТИРОВКА ТОКА" : "КОРРЕКТИРОВКА НАПРЯЖЕНИЯ", 4, 28, ST77XX_CYAN, true);
+  drawCyrillicText(String(calibrationLevel == 1 ? "> " : "  ") + "Стринг " + String(calibrationString + 1), 8, 100, calibrationLevel == 1 ? ST77XX_YELLOW : ST77XX_WHITE, true);
+  char value[12]; snprintf(value, sizeof(value), "%.3f", selectedCalibrationValue());
+  drawCyrillicText(String(calibrationLevel == 2 ? "> " : "  ") + String(value), 8, 158, calibrationLevel == 2 ? ST77XX_YELLOW : ST77XX_WHITE, true);
+  if (calibrationLevel == 2) { const uint8_t x[4] = {26, 50, 62, 74}; tft.drawRoundRect(x[calibrationDigit], 137, 13, 25, 2, ST77XX_YELLOW); }
+}
+static void handleCalibrationRemote(uint32_t code) {
+  if (code == IR_CODE_BACK || code == IR_CODE_MENU) {
+    if (calibrationLevel) --calibrationLevel;
+    else { calibrationRemoteActive = false; renderTFT(); return; }
+  } else if (calibrationLevel == 0) {
+    if (code == IR_CODE_UP || code == IR_CODE_DOWN) calibrationParameter = calibrationParameter ? 0 : 1;
+    else if (code == IR_CODE_OK) calibrationLevel = 1;
+  } else if (calibrationLevel == 1) {
+    if (code == IR_CODE_UP || code == IR_CODE_DOWN) calibrationString = calibrationString ? 0 : 1;
+    else if (code == IR_CODE_OK) { calibrationDigit = 0; calibrationLevel = 2; }
+  } else {
+    if (code == IR_CODE_LEFT && calibrationDigit) --calibrationDigit;
+    else if (code == IR_CODE_RIGHT && calibrationDigit < 3) ++calibrationDigit;
+    else if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
+      const float step[4] = {1.0f, 0.1f, 0.01f, 0.001f};
+      float v = selectedCalibrationValue() + (code == IR_CODE_UP ? step[calibrationDigit] : -step[calibrationDigit]);
+      selectedCalibrationValue() = constrain(roundf(v * 1000.0f) / 1000.0f, 0.001f, 9.999f);
+    } else if (code == IR_CODE_OK) {
+      if (saveConfig()) calibrationLevel = 1;
+      else Serial.println(F("ERROR: calibration settings could not be saved."));
+    }
+  }
+  drawCalibrationRemote();
+}
+
 static void handleIRRemote() {
   const uint32_t code = IR_RemoteUpdate();
   if (code == 0) return;
@@ -1077,7 +1131,9 @@ static void handleIRRemote() {
     }
     return;
   }
+  if (calibrationRemoteActive) { handleCalibrationRemote(code); return; }
   if (rtMode != RT_CLOSED) { rtHandle(code); return; }
+  if (code == IR_CODE_OK && hasCalibrationWidgetOnCurrentPage()) { calibrationRemoteActive = true; calibrationLevel = 0; calibrationParameter = 0; calibrationString = 0; drawCalibrationRemote(); return; }
   if (code == IR_CODE_OSD) {
     otaConfirmActive = true;
     drawOtaConfirm();
