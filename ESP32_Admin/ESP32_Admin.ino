@@ -95,7 +95,7 @@ static bool otaConfirmActive = false;
 
 static void queueCalibrationCommand(uint8_t index) {
   if (index >= 6) return;
-  uint8_t next = (uint8_t)((calibrationQueueHead + 1) % 6);
+  uint8_t next = (uint8_t)((calibrationQueueHead + 1) % 7);
   if (next == calibrationQueueTail) calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % 6);
   calibrationQueue[calibrationQueueHead].sensorId = index + 1;
   calibrationQueue[calibrationQueueHead].currentFactor = cfg.currentCalibration[index];
