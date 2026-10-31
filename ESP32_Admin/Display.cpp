@@ -88,7 +88,7 @@ void drawWidget(const WidgetConfig& widget) {
   if (widget.showHeading) drawAlignedText(widget.label,x,headingBaseline,w,hs,widget.headingAlign,widget.headingColor);
   int contentBaseline=widget.showHeading ? headingBaseline+FONT_HEIGHTS[hs]/2+FONT_HEIGHTS[cs]+3 : y+FONT_HEIGHTS[cs]+5;
   if(widget.type=="calibration") {
-    const uint8_t strings = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
+    const uint8_t strings = widget.stringCount >= 2 && widget.stringCount <= 6 ? widget.stringCount : 2;
     const int lineHeight = 12; int lineY = contentBaseline;
     for (uint8_t s = 0; s < strings; ++s) {
       drawAlignedText("Стринг " + String(s + 1), x, lineY, w, 0, 0, widget.headingColor); lineY += lineHeight;
@@ -189,7 +189,7 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
     out[count] = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : "--.--.----";
     colors[count++] = widgetColor(widget.contentColor);
   } else if (widget.type == "calibration") {
-    const uint8_t strings = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
+    const uint8_t strings = widget.stringCount >= 2 && widget.stringCount <= 6 ? widget.stringCount : 2;
     for (uint8_t s = 0; s < strings && count + 3 <= 18; ++s) {
       out[count] = "Стринг " + String(s + 1); colors[count++] = widgetColor(widget.headingColor);
       out[count] = "Ток = " + String(cfg.currentCalibration[s], 3); colors[count++] = widgetColor(widget.contentColor);
