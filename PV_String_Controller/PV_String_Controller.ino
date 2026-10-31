@@ -27,22 +27,16 @@ extern "C" {
 #define SHUNT_OHMS 0.0031734f
 
 #define ESPNOW_CMD_OTA 0x01
+#define ESPNOW_CMD_CALIBRATION 0x02
+#define EEPROM_MAGIC_V2 0x53484332UL
+#define EEPROM_MAGIC 0x53484333UL
 
-// Параметры энергонезависимого хранения калибровки
-//#define EEPROM_MAGIC 0x53484331UL
-#define EEPROM_MAGIC 0x53484332UL
-
-
-struct CalibrationRecord
-{
-    uint32_t magic;
-    float currentCalibration;
-};
-
+struct CalibrationRecord { uint32_t magic; float currentCalibration[SENSOR_COUNT]; float voltageCalibration[SENSOR_COUNT]; };
+struct LegacyCalibrationRecord { uint32_t magic; float currentCalibration; };
 const float DEFAULT_CURRENT_CALIBRATION = 1.15f;
 const float SECOND_CURRENT_CALIBRATION = 0.61f;
-
-float currentCalibration = DEFAULT_CURRENT_CALIBRATION;
+float currentCalibration[SENSOR_COUNT] = { DEFAULT_CURRENT_CALIBRATION, SECOND_CURRENT_CALIBRATION };
+float voltageCalibration[SENSOR_COUNT] = { 1.0f, 1.0f };
 
 uint8_t receiverMac[] = {
     0xBC, 0xFF, 0x4D, 0xF9, 0x96, 0x5D
@@ -61,11 +55,8 @@ struct SensorData
     uint32_t packetNumber;
 };
 
-struct ESPNowCommand
-{
-    uint8_t command;
-    uint8_t sensorId;
-};
+struct ESPNowCommand { uint8_t command; uint8_t sensorId; };
+struct ESPNowCalibrationCommand { uint8_t command; uint8_t sensorId; float currentFactor; float voltageFactor; };
 
 SensorData sensorData[SENSOR_COUNT];
 uint32_t packetCounter[SENSOR_COUNT] = {0, 0};
@@ -77,83 +68,52 @@ volatile bool otaRequested = false;
 bool otaMode = false;
 
 
-// Сохраняет коэффициент калибровки в EEPROM
-bool saveCurrentCalibration()
-{
-    CalibrationRecord record;
-
+// Сохраняет коэффициенты обоих каналов в EEPROM.
+bool saveCalibration() {
+    CalibrationRecord record = {};
     record.magic = EEPROM_MAGIC;
-    record.currentCalibration = currentCalibration;
-
+    memcpy(record.currentCalibration, currentCalibration, sizeof(currentCalibration));
+    memcpy(record.voltageCalibration, voltageCalibration, sizeof(voltageCalibration));
     EEPROM.put(0, record);
-
-    if (!EEPROM.commit())
-    {
-        Serial.println("EEPROM SAVE ERROR");
-        return false;
-    }
-
-    Serial.printf(
-        "Calibration saved: %.6f\n",
-        currentCalibration
-    );
-
+    if (!EEPROM.commit()) { Serial.println("EEPROM SAVE ERROR"); return false; }
+    Serial.println("Calibration factors saved to EEPROM");
     return true;
 }
 
-
-// Загружает коэффициент при запуске датчика
-void loadCurrentCalibration()
-{
+// Загружает новую запись или переносит прежнюю калибровку v2.
+void loadCurrentCalibration() {
     EEPROM.begin(sizeof(CalibrationRecord));
-
-    CalibrationRecord record;
-
-    EEPROM.get(0, record);
-
-    if (record.magic == EEPROM_MAGIC &&
-        record.currentCalibration >= 0.1f &&
-        record.currentCalibration <= 10.0f)
-    {
-        currentCalibration = record.currentCalibration;
-
-        Serial.printf(
-            "Calibration loaded: %.6f\n",
-            currentCalibration
-        );
+    uint32_t storedMagic = 0;
+    EEPROM.get(0, storedMagic);
+    if (storedMagic == EEPROM_MAGIC) {
+        CalibrationRecord record = {};
+        EEPROM.get(0, record);
+        for (uint8_t i = 0; i < SENSOR_COUNT; ++i) {
+            if (isfinite(record.currentCalibration[i]) && record.currentCalibration[i] >= 0.001f && record.currentCalibration[i] <= 9.999f) currentCalibration[i] = record.currentCalibration[i];
+            if (isfinite(record.voltageCalibration[i]) && record.voltageCalibration[i] >= 0.001f && record.voltageCalibration[i] <= 9.999f) voltageCalibration[i] = record.voltageCalibration[i];
+        }
+        Serial.println("Calibration v3 loaded");
+        return;
     }
-    else
-    {
-        currentCalibration = DEFAULT_CURRENT_CALIBRATION;
-
-        Serial.println("Calibration not found");
-        Serial.println("Using default: 1.000");
-
-        saveCurrentCalibration();
-    }
+    if (storedMagic == EEPROM_MAGIC_V2) {
+        LegacyCalibrationRecord legacy = {};
+        EEPROM.get(0, legacy);
+        if (isfinite(legacy.currentCalibration) && legacy.currentCalibration >= 0.1f && legacy.currentCalibration <= 10.0f) currentCalibration[0] = legacy.currentCalibration;
+        Serial.println("Legacy calibration migrated to v3");
+    } else Serial.println("Calibration not found; using defaults");
+    saveCalibration();
 }
 
-
-// Устанавливает новый коэффициент и сохраняет его
-bool setCurrentCalibration(float newCalibration)
-{
-    if (!(newCalibration >= 0.1f &&
-          newCalibration <= 10.0f))
-    {
-        Serial.println("Calibration value out of range");
-        return false;
-    }
-
-    if (newCalibration == currentCalibration)
-    {
-        return true;
-    }
-
-    currentCalibration = newCalibration;
-
-    return saveCurrentCalibration();
+static bool setCalibration(uint8_t sensorId, float currentFactor, float voltageFactor) {
+    if (sensorId < 1 || sensorId > SENSOR_COUNT || !isfinite(currentFactor) || !isfinite(voltageFactor) ||
+        currentFactor < 0.001f || currentFactor > 9.999f || voltageFactor < 0.001f || voltageFactor > 9.999f) return false;
+    uint8_t index = sensorId - 1;
+    currentCalibration[index] = currentFactor;
+    voltageCalibration[index] = voltageFactor;
+    if (!saveCalibration()) return false;
+    Serial.printf("Calibration sensor %u: I=%.3f U=%.3f\n", (unsigned)sensorId, currentFactor, voltageFactor);
+    return true;
 }
-
 
 // Читает 16-битный регистр выбранного INA226
 uint16_t ina226Read16(uint8_t address, uint8_t reg)
@@ -242,10 +202,8 @@ void readINA226(uint8_t index)
     int16_t shuntRaw = (int16_t)ina226Read16(address, 0x01);
     float voltage = busRaw * 0.00125f;
     float shuntVoltage = shuntRaw * 0.0000025f;
-    const float sensorCalibration = (index == 0)
-        ? currentCalibration
-        : SECOND_CURRENT_CALIBRATION;
-    float current = (shuntVoltage / SHUNT_OHMS) * sensorCalibration;
+    voltage *= voltageCalibration[index];
+    float current = (shuntVoltage / SHUNT_OHMS) * currentCalibration[index];
     float power = voltage * current;
 
     snprintf(data.name, sizeof(data.name), "SOLAR_STRING_%u", (unsigned)sensorId);
@@ -266,7 +224,7 @@ void sendSensorData(uint8_t index)
     Serial.print("I="); Serial.print(data.current, 3); Serial.print(" A  ");
     Serial.print("P="); Serial.print(data.power, 2); Serial.print(" W  ");
     Serial.print("Shunt="); Serial.print(data.shuntVoltage, 3); Serial.print(" mV  ");
-    Serial.print("K="); Serial.print((index == 0) ? currentCalibration : SECOND_CURRENT_CALIBRATION, 3); Serial.print("  Packet=");
+    Serial.print("K="); Serial.print(currentCalibration[index], 3); Serial.print(" KU="); Serial.print(voltageCalibration[index], 3); Serial.print("  Packet=");
     Serial.println(data.packetNumber);
 
     uint8_t sendResult = esp_now_send(receiverMac, (uint8_t *)&data, sizeof(data));
@@ -296,26 +254,20 @@ void receiveCallback(
     uint8_t len
 )
 {
-    if (len != sizeof(ESPNowCommand))
-        return;
-
+    if (len == sizeof(ESPNowCalibrationCommand)) {
+        ESPNowCalibrationCommand calibration = {};
+        memcpy(&calibration, incomingData, sizeof(calibration));
+        if (calibration.command == ESPNOW_CMD_CALIBRATION) {
+            setCalibration(calibration.sensorId, calibration.currentFactor, calibration.voltageFactor);
+            return;
+        }
+    }
+    if (len != sizeof(ESPNowCommand)) return;
     ESPNowCommand command;
-
-    memcpy(
-        &command,
-        incomingData,
-        sizeof(command)
-    );
-
-    if (command.command != ESPNOW_CMD_OTA)
-        return;
-
-    if (command.sensorId != 1)
-        return;
-
+    memcpy(&command, incomingData, sizeof(command));
+    if (command.command != ESPNOW_CMD_OTA || command.sensorId != 1) return;
     Serial.println();
     Serial.println("OTA COMMAND RECEIVED");
-
     otaRequested = true;
 }
 
