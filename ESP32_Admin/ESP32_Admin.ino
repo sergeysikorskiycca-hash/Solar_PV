@@ -348,8 +348,8 @@ void handleSaveDisplay() {
   JsonArray currentCal = doc["currentCalibration"].as<JsonArray>();
   JsonArray voltageCal = doc["voltageCalibration"].as<JsonArray>();
   for (uint8_t i = 0; i < 6; ++i) {
-    if (currentCal.size() > i) cfg.currentCalibration[i] = constrain(currentCal[i].as<float>(), 0.001f, 9.999f);
-    if (voltageCal.size() > i) cfg.voltageCalibration[i] = constrain(voltageCal[i].as<float>(), 0.001f, 9.999f);
+    if (currentCal.size() > i) cfg.currentCalibration[i] = constrain(currentCal[i].as<float>(), 0.001f, 99.999f);
+    if (voltageCal.size() > i) cfg.voltageCalibration[i] = constrain(voltageCal[i].as<float>(), 0.001f, 99.999f);
   }
   JsonArray sourcePages = doc["pages"].as<JsonArray>();
   uint8_t requestedCount = clampInt(doc["pageCount"] | sourcePages.size(), 1, MAX_PAGES);
@@ -1156,8 +1156,8 @@ static void handleInlineCalibration(uint32_t code) {
       calibrationEditing = true;
     }
   } else {
-    if (code == IR_CODE_LEFT) calibrationDigit = (calibrationDigit + 3) % 4;
-    else if (code == IR_CODE_RIGHT) calibrationDigit = (calibrationDigit + 1) % 4;
+    if (code == IR_CODE_LEFT) calibrationDigit = (calibrationDigit + 4) % 5;
+    else if (code == IR_CODE_RIGHT) calibrationDigit = (calibrationDigit + 1) % 5;
     else {
       int8_t enteredDigit = -1;
       if (code == IR_CODE_0) enteredDigit = 0;
@@ -1173,18 +1173,18 @@ static void handleInlineCalibration(uint32_t code) {
 
       if (enteredDigit >= 0) {
         // Replace only the selected decimal digit; keep all other digits unchanged.
-        const int32_t placeValues[4] = {1000, 100, 10, 1};
+        const int32_t placeValues[5] = {10000, 1000, 100, 10, 1};
         int32_t scaled = (int32_t)roundf(selectedCalibrationValue() * 1000.0f);
         const int32_t place = placeValues[calibrationDigit];
         const int32_t oldDigit = (scaled / place) % 10;
         scaled += ((int32_t)enteredDigit - oldDigit) * place;
-        scaled = constrain(scaled, 1, 9999);
+        scaled = constrain(scaled, 1, 99999);
         selectedCalibrationValue() = scaled / 1000.0f;
       } else if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
-        const float steps[4] = {1.0f, 0.1f, 0.01f, 0.001f};
+        const float steps[5] = {10.0f, 1.0f, 0.1f, 0.01f, 0.001f};
         const float value = selectedCalibrationValue() +
                             (code == IR_CODE_UP ? steps[calibrationDigit] : -steps[calibrationDigit]);
-        selectedCalibrationValue() = constrain(roundf(value * 1000.0f) / 1000.0f, 0.001f, 9.999f);
+        selectedCalibrationValue() = constrain(roundf(value * 1000.0f) / 1000.0f, 0.001f, 99.999f);
       } else if (code == IR_CODE_OK) {
         if (saveConfig()) {
           queueCalibrationCommand(calibrationRow / 2);
