@@ -239,9 +239,9 @@ static bool exchangePacket() {
   // Give the ESP32 slave receive callback a brief chance to validate the frame
   // and prepare the matching acknowledgement before the immediate read.
   delay(2);
-  uint8_t count = Wire.requestFrom(ESP32_ADDRESS, (uint8_t)23);
+  uint8_t count = Wire.requestFrom(ESP32_ADDRESS, (uint8_t)21);
   lastI2CReadCount = count;
-  if (count != 23) {
+  if (count != 21) {
     while (Wire.available()) Wire.read();
     lastAckOk = false;
     lastAckStatus = 0xFE;
