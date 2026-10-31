@@ -66,6 +66,8 @@ uint8_t nextSensorIndex = 0;
 
 volatile bool otaRequested = false;
 bool otaMode = false;
+static volatile bool calibrationCommandPending = false;
+static ESPNowCalibrationCommand pendingCalibrationCommand = {};
 
 
 // Сохраняет коэффициенты обоих каналов в EEPROM.
@@ -258,7 +260,8 @@ void receiveCallback(
         ESPNowCalibrationCommand calibration = {};
         memcpy(&calibration, incomingData, sizeof(calibration));
         if (calibration.command == ESPNOW_CMD_CALIBRATION) {
-            setCalibration(calibration.sensorId, calibration.currentFactor, calibration.voltageFactor);
+            pendingCalibrationCommand = calibration;
+            calibrationCommandPending = true;
             return;
         }
     }
@@ -369,6 +372,15 @@ void setup()
 
 void loop()
 {
+    if (calibrationCommandPending) {
+        ESPNowCalibrationCommand command;
+        noInterrupts();
+        command = pendingCalibrationCommand;
+        calibrationCommandPending = false;
+        interrupts();
+        setCalibration(command.sensorId, command.currentFactor, command.voltageFactor);
+    }
+
     if (otaRequested && !otaMode)
     {
         otaRequested = false;
