@@ -144,15 +144,11 @@ void drawWidget(const WidgetConfig& widget) {
   }
   String value = "--";
   if (widget.type == "power") {
-    float totalPower = 0.0f;
-    bool hasSensorValue = false;
-    for (uint8_t i = 0; i < 10; ++i) {
-      if (stringSensorValid[i]) {
-        totalPower += stringSensorPower[i];
-        hasSensorValue = true;
-      }
-    }
-    value = gatewayOnline && hasSensorValue ? String(totalPower, 1) + " W" : "-- W";
+    // Show the sum of the latest received values from String 1 and String 2.
+    // Keep the last readings until a new packet updates the corresponding string.
+    value = (stringSensorValid[0] || stringSensorValid[1])
+                ? String(stringSensorPower[0] + stringSensorPower[1], 1) + " W"
+                : "-- W";
   } else if (widget.type == "voltage") {
     value = gatewayOnline && gatewaySensorValid ? String(gatewayVoltage, 1) + " V" : "-- V";
   } else if (widget.type == "current") {
@@ -226,15 +222,10 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
     }
   } else if (widget.type == "power" || widget.type == "voltage" || widget.type == "current" || widget.type == "battery") {
     if (widget.type == "power") {
-      float totalPower = 0.0f;
-      bool hasSensorValue = false;
-      for (uint8_t i = 0; i < 10; ++i) {
-        if (stringSensorValid[i]) {
-          totalPower += stringSensorPower[i];
-          hasSensorValue = true;
-        }
-      }
-      out[count] = gatewayOnline && hasSensorValue ? String(totalPower, 1) + " W" : "-- W";
+      // Sum the latest stored power values; do not expire a string between packets.
+      out[count] = (stringSensorValid[0] || stringSensorValid[1])
+                       ? String(stringSensorPower[0] + stringSensorPower[1], 1) + " W"
+                       : "-- W";
     } else if (widget.type == "voltage") {
       out[count] = gatewayOnline && gatewaySensorValid ? String(gatewayVoltage, 1) + " V" : "-- V";
     } else if (widget.type == "current") {
