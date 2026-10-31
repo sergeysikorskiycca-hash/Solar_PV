@@ -96,7 +96,7 @@ static bool otaConfirmActive = false;
 static void queueCalibrationCommand(uint8_t index) {
   if (index >= 6) return;
   uint8_t next = (uint8_t)((calibrationQueueHead + 1) % 7);
-  if (next == calibrationQueueTail) calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % 6);
+  if (next == calibrationQueueTail) calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % 7);
   calibrationQueue[calibrationQueueHead].sensorId = index + 1;
   calibrationQueue[calibrationQueueHead].currentFactor = cfg.currentCalibration[index];
   calibrationQueue[calibrationQueueHead].voltageFactor = cfg.voltageCalibration[index];
@@ -596,7 +596,7 @@ static void gatewayOnRequest() {
   // ACK, RTC/OTA command and optional calibration payload.
   if (!clockCommandPending && !calibrationCommandPending && calibrationQueueTail != calibrationQueueHead) {
     calibrationCommandInFlight = calibrationQueue[calibrationQueueTail];
-    calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % 6);
+    calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % 7);
     calibrationCommandPending = true;
     ++calibrationCommandSequence;
   }
