@@ -609,8 +609,6 @@ static void gatewayOnRequest() {
     calibrationCommandInFlight.sensorId };
   memcpy(response + 13, &calibrationCommandInFlight.currentFactor, sizeof(float));
   memcpy(response + 17, &calibrationCommandInFlight.voltageFactor, sizeof(float));
-  response[21] = 0;
-  response[22] = 0;
   Wire.write(response, sizeof(response));
   if (clockCommandPending) clockCommandPending = false;
   else if (calibrationCommandPending) calibrationCommandPending = false;
