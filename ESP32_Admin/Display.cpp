@@ -44,10 +44,13 @@ static void setWidgetFont(uint8_t size) {
 static uint16_t widgetColor(uint8_t color) { return WIDGET_COLORS[color <= 5 ? color : 0]; }
 static String calibrationValueText(float value, bool editing, bool selected) {
   char number[12];
-  snprintf(number, sizeof(number), "%.3f", value);
+  // Always show two integer digits and three fractional digits: 01.000 .. 99.999.
+  snprintf(number, sizeof(number), "%06.3f", value);
   String result(number);
-  if (!editing || !selected || calibrationDigit > 3) return result;
-  const uint8_t position = calibrationDigit == 0 ? 0 : calibrationDigit + 1;
+  if (!editing || !selected || calibrationDigit > 4) return result;
+
+  // Editable digit order skips the decimal point: 0, 1, 3, 4, 5.
+  const uint8_t position = calibrationDigit < 2 ? calibrationDigit : calibrationDigit + 1;
   result = result.substring(0, position) + "[" + result.charAt(position) + "]" + result.substring(position + 1);
   return result;
 }
