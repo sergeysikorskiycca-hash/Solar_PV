@@ -1110,8 +1110,8 @@ static void handleInlineCalibration(uint32_t code) {
       calibrationEditing = true;
     }
   } else {
-    if (code == IR_CODE_LEFT && calibrationDigit > 0) --calibrationDigit;
-    else if (code == IR_CODE_RIGHT && calibrationDigit < 3) ++calibrationDigit;
+    if (code == IR_CODE_LEFT) calibrationDigit = (calibrationDigit + 3) % 4;
+    else if (code == IR_CODE_RIGHT) calibrationDigit = (calibrationDigit + 1) % 4;
     else if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
       const float steps[4] = {1.0f, 0.1f, 0.01f, 0.001f};
       const float value = selectedCalibrationValue() +
