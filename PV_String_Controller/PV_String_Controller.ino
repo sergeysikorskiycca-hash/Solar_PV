@@ -33,10 +33,8 @@ extern "C" {
 
 struct CalibrationRecord { uint32_t magic; float currentCalibration[SENSOR_COUNT]; float voltageCalibration[SENSOR_COUNT]; };
 struct LegacyCalibrationRecord { uint32_t magic; float currentCalibration; };
-const float DEFAULT_CURRENT_CALIBRATION = 1.15f;
-const float SECOND_CURRENT_CALIBRATION = 0.61f;
-float currentCalibration[SENSOR_COUNT] = { DEFAULT_CURRENT_CALIBRATION, SECOND_CURRENT_CALIBRATION };
-float voltageCalibration[SENSOR_COUNT] = { 1.0f, 1.0f };
+float currentCalibration[SENSOR_COUNT] = { 1.00f, 1.00f };
+float voltageCalibration[SENSOR_COUNT] = { 1.00f, 1.00f };
 
 uint8_t receiverMac[] = {
     0xBC, 0xFF, 0x4D, 0xF9, 0x96, 0x5D
@@ -91,7 +89,7 @@ void loadCurrentCalibration() {
         CalibrationRecord record = {};
         EEPROM.get(0, record);
         for (uint8_t i = 0; i < SENSOR_COUNT; ++i) {
-            if (isfinite(record.currentCalibration[i]) && record.currentCalibration[i] >= 0.001f && record.currentCalibration[i] <= 9.999f) currentCalibration[i] = record.currentCalibration[i];
+            if (isfinite(record.currentCalibration[i]) && record.currentCalibration[i] >= 0.001f && record.currentCalibration[i] <= 99.999f) currentCalibration[i] = record.currentCalibration[i];
             if (isfinite(record.voltageCalibration[i]) && record.voltageCalibration[i] >= 0.001f && record.voltageCalibration[i] <= 9.999f) voltageCalibration[i] = record.voltageCalibration[i];
         }
         Serial.println("Calibration v3 loaded");
@@ -108,7 +106,7 @@ void loadCurrentCalibration() {
 
 static bool setCalibration(uint8_t sensorId, float currentFactor, float voltageFactor) {
     if (sensorId < 1 || sensorId > SENSOR_COUNT || !isfinite(currentFactor) || !isfinite(voltageFactor) ||
-        currentFactor < 0.001f || currentFactor > 9.999f || voltageFactor < 0.001f || voltageFactor > 9.999f) return false;
+        currentFactor < 0.001f || currentFactor > 99.999f || voltageFactor < 0.001f || voltageFactor > 99.999f) return false;
     uint8_t index = sensorId - 1;
     currentCalibration[index] = currentFactor;
     voltageCalibration[index] = voltageFactor;
