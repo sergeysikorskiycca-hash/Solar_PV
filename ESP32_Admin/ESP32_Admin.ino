@@ -80,7 +80,35 @@ static volatile uint8_t clockCommandType = 0;
 static volatile uint16_t clockCommandYear = 2026;
 static volatile uint8_t clockCommandMonth = 1, clockCommandDay = 1, clockCommandHour = 0, clockCommandMinute = 0, clockCommandSecond = 0;
 static volatile bool clockCommandPending = false;
+struct CalibrationCommand {
+  uint8_t sensorId;
+  float currentFactor;
+  float voltageFactor;
+};
+static CalibrationCommand calibrationQueue[6] = {};
+static volatile uint8_t calibrationQueueHead = 0;
+static volatile uint8_t calibrationQueueTail = 0;
+static CalibrationCommand calibrationCommandInFlight = {};
+static volatile bool calibrationCommandPending = false;
+static volatile uint8_t calibrationCommandSequence = 0;
 static bool otaConfirmActive = false;
+
+static void queueCalibrationCommand(uint8_t index) {
+  if (index >= 6) return;
+  uint8_t next = (uint8_t)((calibrationQueueHead + 1) % 6);
+  if (next == calibrationQueueTail) calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % 6);
+  calibrationQueue[calibrationQueueHead].sensorId = index + 1;
+  calibrationQueue[calibrationQueueHead].currentFactor = cfg.currentCalibration[index];
+  calibrationQueue[calibrationQueueHead].voltageFactor = cfg.voltageCalibration[index];
+  calibrationQueueHead = next;
+}
+static void queueChangedCalibrations(const float oldCurrent[6], const float oldVoltage[6]) {
+  for (uint8_t i = 0; i < 6; ++i) {
+    if (fabsf(cfg.currentCalibration[i] - oldCurrent[i]) > 0.0005f ||
+        fabsf(cfg.voltageCalibration[i] - oldVoltage[i]) > 0.0005f)
+      queueCalibrationCommand(i);
+  }
+}
 
 // ESP8266 gateway telemetry arrives as a checked I2C frame.
 bool gatewayOnline = false;
@@ -313,6 +341,9 @@ void handleSaveDisplay() {
   }
   if (doc.containsKey("title")) cfg.title = sanitizeTitle(String(doc["title"] | "SOLAR PV"));
   if (doc.containsKey("fontScale")) cfg.fontScale = (doc["fontScale"] | 1) == 2 ? 2 : 1;
+  float oldCurrentCalibration[6], oldVoltageCalibration[6];
+  memcpy(oldCurrentCalibration, cfg.currentCalibration, sizeof(oldCurrentCalibration));
+  memcpy(oldVoltageCalibration, cfg.voltageCalibration, sizeof(oldVoltageCalibration));
   JsonArray currentCal = doc["currentCalibration"].as<JsonArray>();
   JsonArray voltageCal = doc["voltageCalibration"].as<JsonArray>();
   for (uint8_t i = 0; i < 6; ++i) {
@@ -361,7 +392,9 @@ void handleSaveDisplay() {
     else if (w.type == "battery") { cfg.batteryLabel=w.label; cfg.showBattery=w.enabled; cfg.batteryX=w.x; cfg.batteryY=w.y; cfg.batteryW=w.w; cfg.batteryH=w.h; }
   }
   cfg.tftPage = clampInt(cfg.tftPage, 1, cfg.pageCount);
-  bool ok = saveConfig(); renderTFT();
+  bool ok = saveConfig();
+  if (ok) queueChangedCalibrations(oldCurrentCalibration, oldVoltageCalibration);
+  renderTFT();
   String message = ok ? "Макет страниц сохранён и применён." : "Макет применён, но не сохранён: файловая система недоступна.";
   server.send(ok ? 200 : 500, "application/json; charset=utf-8", String("{\"ok\":") + (ok ? "true" : "false") + ",\"message\":\"" + message + "\"}");
 }
@@ -560,13 +593,27 @@ static void gatewayOnReceive(int count) {
   gatewayAckStatus = valid ? 0 : 1;
 }
 static void gatewayOnRequest() {
-  // ACK plus one-shot RTC command. The gateway de-duplicates by command sequence.
-  uint8_t response[12] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus,
-    (uint8_t)(clockCommandPending ? clockCommandType : 0), clockCommandSequence,
+  // ACK, RTC/OTA command and optional calibration payload.
+  if (!clockCommandPending && !calibrationCommandPending && calibrationQueueTail != calibrationQueueHead) {
+    calibrationCommandInFlight = calibrationQueue[calibrationQueueTail];
+    calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % 6);
+    calibrationCommandPending = true;
+    ++calibrationCommandSequence;
+  }
+  uint8_t commandType = clockCommandPending ? clockCommandType : (calibrationCommandPending ? 3 : 0);
+  uint8_t commandSequence = clockCommandPending ? clockCommandSequence : calibrationCommandSequence;
+  uint8_t response[23] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus,
+    commandType, commandSequence,
     (uint8_t)(clockCommandYear & 0xFF), (uint8_t)(clockCommandYear >> 8),
-    clockCommandMonth, clockCommandDay, clockCommandHour, clockCommandMinute, clockCommandSecond };
+    clockCommandMonth, clockCommandDay, clockCommandHour, clockCommandMinute, clockCommandSecond,
+    calibrationCommandInFlight.sensorId };
+  memcpy(response + 13, &calibrationCommandInFlight.currentFactor, sizeof(float));
+  memcpy(response + 17, &calibrationCommandInFlight.voltageFactor, sizeof(float));
+  response[21] = 0;
+  response[22] = 0;
   Wire.write(response, sizeof(response));
   if (clockCommandPending) clockCommandPending = false;
+  else if (calibrationCommandPending) calibrationCommandPending = false;
 }
 static void processGatewayPacket() {
   uint8_t raw[sizeof(GatewayPacket)];
@@ -1140,8 +1187,10 @@ static void handleInlineCalibration(uint32_t code) {
                             (code == IR_CODE_UP ? steps[calibrationDigit] : -steps[calibrationDigit]);
         selectedCalibrationValue() = constrain(roundf(value * 1000.0f) / 1000.0f, 0.001f, 9.999f);
       } else if (code == IR_CODE_OK) {
-        if (saveConfig()) calibrationEditing = false;
-        else Serial.println(F("ERROR: calibration settings could not be saved."));
+        if (saveConfig()) {
+          queueCalibrationCommand(calibrationRow / 2);
+          calibrationEditing = false;
+        } else Serial.println(F("ERROR: calibration settings could not be saved."));
       }
     }
   }
