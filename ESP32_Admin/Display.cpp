@@ -22,6 +22,10 @@ extern bool wifiControlPendingAp;
 extern bool wifiControlApplyPending;
 extern uint8_t wifiControlSelectedRow;
 extern uint32_t wifiControlApplyAt;
+extern bool calibrationInlineActive;
+extern bool calibrationEditing;
+extern uint8_t calibrationRow;
+extern uint8_t calibrationDigit;
 
 static const uint16_t WIDGET_COLORS[6] = { ST77XX_WHITE, 0x07FF, 0x07E0, 0xFFE0, 0xF800, 0xFD20 };
 static const uint8_t FONT_HEIGHTS[6] = {13, 14, 16, 15, 20, 24};
@@ -92,8 +96,15 @@ void drawWidget(const WidgetConfig& widget) {
     const int lineHeight = FONT_HEIGHTS[cs] + 3; int lineY = contentBaseline;
     for (uint8_t s = 0; s < strings; ++s) {
       drawAlignedText("Стринг " + String(s + 1), x, lineY, w, cs, widget.contentAlign, widget.headingColor); lineY += lineHeight;
-      drawAlignedText("Ток = " + String(cfg.currentCalibration[s], 3), x + 5, lineY, w - 5, cs, widget.contentAlign, widget.contentColor); lineY += lineHeight;
-      drawAlignedText("Напряжение = " + String(cfg.voltageCalibration[s], 3), x + 5, lineY, w - 5, cs, widget.contentAlign, widget.contentColor); lineY += lineHeight;
+      const uint8_t currentRow = s * 2, voltageRow = currentRow + 1;
+      const bool currentSelected = calibrationInlineActive && calibrationRow == currentRow;
+      const bool voltageSelected = calibrationInlineActive && calibrationRow == voltageRow;
+      drawAlignedText(String(currentSelected ? "> " : "  ") + "Ток = " + String(cfg.currentCalibration[s], 3),
+                      x + 5, lineY, w - 5, cs, widget.contentAlign,
+                      currentSelected ? 3 : widget.contentColor); lineY += lineHeight;
+      drawAlignedText(String(voltageSelected ? "> " : "  ") + "Напряжение = " + String(cfg.voltageCalibration[s], 3),
+                      x + 5, lineY, w - 5, cs, widget.contentAlign,
+                      voltageSelected ? 3 : widget.contentColor); lineY += lineHeight;
     }
     return;
   }
@@ -192,8 +203,13 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
     const uint8_t strings = widget.stringCount >= 2 && widget.stringCount <= 6 ? widget.stringCount : 2;
     for (uint8_t s = 0; s < strings && count + 3 <= 18; ++s) {
       out[count] = "Стринг " + String(s + 1); colors[count++] = widgetColor(widget.headingColor);
-      out[count] = "Ток = " + String(cfg.currentCalibration[s], 3); colors[count++] = widgetColor(widget.contentColor);
-      out[count] = "Напряжение = " + String(cfg.voltageCalibration[s], 3); colors[count++] = widgetColor(widget.contentColor);
+      const uint8_t currentRow = s * 2, voltageRow = currentRow + 1;
+      const bool currentSelected = calibrationInlineActive && calibrationRow == currentRow;
+      const bool voltageSelected = calibrationInlineActive && calibrationRow == voltageRow;
+      out[count] = String(currentSelected ? "> " : "  ") + "Ток = " + String(cfg.currentCalibration[s], 3);
+      colors[count++] = currentSelected ? 0xFFE0 : widgetColor(widget.contentColor);
+      out[count] = String(voltageSelected ? "> " : "  ") + "Напряжение = " + String(cfg.voltageCalibration[s], 3);
+      colors[count++] = voltageSelected ? 0xFFE0 : widgetColor(widget.contentColor);
     }
   } else if (widget.type == "wifiStatus") {
     if (WiFi.status() == WL_CONNECTED) {
