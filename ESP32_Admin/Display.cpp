@@ -99,10 +99,10 @@ void drawWidget(const WidgetConfig& widget) {
       const uint8_t currentRow = s * 2, voltageRow = currentRow + 1;
       const bool currentSelected = calibrationInlineActive && calibrationRow == currentRow;
       const bool voltageSelected = calibrationInlineActive && calibrationRow == voltageRow;
-      drawAlignedText(String(currentSelected ? "> " : "  ") + "Ток = " + String(cfg.currentCalibration[s], 3),
+      drawAlignedText(String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Ток = " + String(cfg.currentCalibration[s], 3),
                       x + 5, lineY, w - 5, cs, widget.contentAlign,
                       currentSelected ? 3 : widget.contentColor); lineY += lineHeight;
-      drawAlignedText(String(voltageSelected ? "> " : "  ") + "Напряжение = " + String(cfg.voltageCalibration[s], 3),
+      drawAlignedText(String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Напряжение = " + String(cfg.voltageCalibration[s], 3),
                       x + 5, lineY, w - 5, cs, widget.contentAlign,
                       voltageSelected ? 3 : widget.contentColor); lineY += lineHeight;
     }
