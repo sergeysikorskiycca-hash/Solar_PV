@@ -43,7 +43,7 @@ struct SensorPacket {
 };
 
 struct ESPNowCommand { uint8_t command; uint8_t sensorId; };
-struct ESPNowCalibrationCommand { uint8_t command; uint8_t sensorId; float currentFactor; float voltageFactor; };
+struct __attribute__((packed)) ESPNowCalibrationCommand { uint8_t command; uint8_t sensorId; float currentFactor; float voltageFactor; };
 
 struct SensorSlot {
   uint8_t mac[6];
