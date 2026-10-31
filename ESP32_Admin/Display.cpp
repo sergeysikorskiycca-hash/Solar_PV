@@ -89,11 +89,11 @@ void drawWidget(const WidgetConfig& widget) {
   int contentBaseline=widget.showHeading ? headingBaseline+FONT_HEIGHTS[hs]/2+FONT_HEIGHTS[cs]+3 : y+FONT_HEIGHTS[cs]+5;
   if(widget.type=="calibration") {
     const uint8_t strings = widget.stringCount >= 2 && widget.stringCount <= 6 ? widget.stringCount : 2;
-    const int lineHeight = 12; int lineY = contentBaseline;
+    const int lineHeight = FONT_HEIGHTS[cs] + 3; int lineY = contentBaseline;
     for (uint8_t s = 0; s < strings; ++s) {
-      drawAlignedText("Стринг " + String(s + 1), x, lineY, w, 0, 0, widget.headingColor); lineY += lineHeight;
-      drawAlignedText("Ток = " + String(cfg.currentCalibration[s], 3), x + 5, lineY, w - 5, 0, 0, widget.contentColor); lineY += lineHeight;
-      drawAlignedText("Напряжение = " + String(cfg.voltageCalibration[s], 3), x + 5, lineY, w - 5, 0, 0, widget.contentColor); lineY += lineHeight;
+      drawAlignedText("Стринг " + String(s + 1), x, lineY, w, cs, widget.contentAlign, widget.headingColor); lineY += lineHeight;
+      drawAlignedText("Ток = " + String(cfg.currentCalibration[s], 3), x + 5, lineY, w - 5, cs, widget.contentAlign, widget.contentColor); lineY += lineHeight;
+      drawAlignedText("Напряжение = " + String(cfg.voltageCalibration[s], 3), x + 5, lineY, w - 5, cs, widget.contentAlign, widget.contentColor); lineY += lineHeight;
     }
     return;
   }
@@ -261,10 +261,10 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
   makeDynamicLines(widget, lines, colors, count);
   if (!count) return;
   const uint8_t hs = widget.headingSize <= 5 ? widget.headingSize : 1;
-  const uint8_t cs = widget.type == "calibration" ? 0 : (widget.contentSize <= 5 ? widget.contentSize : 2);
+  const uint8_t cs = widget.contentSize <= 5 ? widget.contentSize : 2;
   const int headingBaseline = widget.y + FONT_HEIGHTS[hs] + 3;
   const int firstBaseline = widget.showHeading ? headingBaseline + FONT_HEIGHTS[hs] / 2 + FONT_HEIGHTS[cs] + 3 : widget.y + FONT_HEIGHTS[cs] + 5;
-  const int lineHeight = widget.type == "calibration" ? 12 : FONT_HEIGHTS[cs] + (widget.type == "wifiStatus" ? 5 : 4);
+  const int lineHeight = FONT_HEIGHTS[cs] + (widget.type == "wifiStatus" ? 5 : 4);
   IncrementalWidgetCache& cache = incrementalCaches[pageIndex][widgetIndex];
   const bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y || cache.w != widget.w ||
       cache.h != widget.h || cache.firstBaseline != firstBaseline || cache.lineHeight != lineHeight ||
