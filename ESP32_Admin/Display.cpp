@@ -215,9 +215,9 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
       const uint8_t currentRow = s * 2, voltageRow = currentRow + 1;
       const bool currentSelected = calibrationInlineActive && calibrationRow == currentRow;
       const bool voltageSelected = calibrationInlineActive && calibrationRow == voltageRow;
-      out[count] = String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Ток = " + String(cfg.currentCalibration[s], 3);
+      out[count] = String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Ток = " + calibrationValueText(cfg.currentCalibration[s], calibrationEditing, currentSelected);
       colors[count++] = currentSelected ? 0xFFE0 : widgetColor(widget.contentColor);
-      out[count] = String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Напряжение = " + String(cfg.voltageCalibration[s], 3);
+      out[count] = String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Напряжение = " + calibrationValueText(cfg.voltageCalibration[s], calibrationEditing, voltageSelected);
       colors[count++] = voltageSelected ? 0xFFE0 : widgetColor(widget.contentColor);
     }
   } else if (widget.type == "wifiStatus") {
