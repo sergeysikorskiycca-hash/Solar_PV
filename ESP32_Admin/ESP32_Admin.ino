@@ -94,7 +94,8 @@ static volatile uint8_t calibrationCommandSequence = 0;
 static bool otaConfirmActive = false;
 
 static void queueCalibrationCommand(uint8_t index) {
-  if (index >= 6) return;
+  // This controller firmware currently exposes two INA226 channels (IDs 1 and 2).
+  if (index >= 2) return;
   uint8_t next = (uint8_t)((calibrationQueueHead + 1) % 7);
   if (next == calibrationQueueTail) calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % 7);
   calibrationQueue[calibrationQueueHead].sensorId = index + 1;
@@ -103,7 +104,7 @@ static void queueCalibrationCommand(uint8_t index) {
   calibrationQueueHead = next;
 }
 static void queueChangedCalibrations(const float oldCurrent[6], const float oldVoltage[6]) {
-  for (uint8_t i = 0; i < 6; ++i) {
+  for (uint8_t i = 0; i < 2; ++i) {
     if (fabsf(cfg.currentCalibration[i] - oldCurrent[i]) > 0.0005f ||
         fabsf(cfg.voltageCalibration[i] - oldVoltage[i]) > 0.0005f)
       queueCalibrationCommand(i);
