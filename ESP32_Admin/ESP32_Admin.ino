@@ -233,8 +233,11 @@ String makeConfigJson() {
          ",\"power\":" + String(stringSensorPower[i], 2) + "}";
   }
   j += "],";
-  j += "\"currentCalibration\":[" + String(cfg.currentCalibration[0], 3) + "," + String(cfg.currentCalibration[1], 3) + "],";
-  j += "\"voltageCalibration\":[" + String(cfg.voltageCalibration[0], 3) + "," + String(cfg.voltageCalibration[1], 3) + "],";
+  j += "\"currentCalibration\":[";
+  for (uint8_t i = 0; i < 6; ++i) { if (i) j += ","; j += String(cfg.currentCalibration[i], 3); }
+  j += "],\"voltageCalibration\":[";
+  for (uint8_t i = 0; i < 6; ++i) { if (i) j += ","; j += String(cfg.voltageCalibration[i], 3); }
+  j += "],";
   j += "\"tftPage\":" + String(cfg.tftPage) + ",";
   j += "\"pageCount\":" + String(cfg.pageCount) + ",\"pages\":[";
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
@@ -312,7 +315,7 @@ void handleSaveDisplay() {
   if (doc.containsKey("fontScale")) cfg.fontScale = (doc["fontScale"] | 1) == 2 ? 2 : 1;
   JsonArray currentCal = doc["currentCalibration"].as<JsonArray>();
   JsonArray voltageCal = doc["voltageCalibration"].as<JsonArray>();
-  for (uint8_t i = 0; i < 2; ++i) {
+  for (uint8_t i = 0; i < 6; ++i) {
     if (currentCal.size() > i) cfg.currentCalibration[i] = constrain(currentCal[i].as<float>(), 0.001f, 9.999f);
     if (voltageCal.size() > i) cfg.voltageCalibration[i] = constrain(voltageCal[i].as<float>(), 0.001f, 9.999f);
   }
@@ -1061,7 +1064,15 @@ static void drawOtaConfirm() {
 
 
 static bool calibrationRemoteActive = false;
-static uint8_t calibrationLevel = 0, calibrationParameter = 0, calibrationString = 0, calibrationDigit = 0;
+static uint8_t calibrationLevel = 0, calibrationRow = 0, calibrationDigit = 0;
+static float calibrationEditBackup = 1.0f;
+static uint8_t calibrationStringCount() {
+  if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return 2;
+  PageConfig& page = cfg.pages[cfg.tftPage - 1];
+  for (uint8_t i = 0; i < page.widgetCount; ++i)
+    if (page.widgets[i].enabled && page.widgets[i].type == "calibration") return clampInt(page.widgets[i].stringCount, 1, 6);
+  return 2;
+}
 static bool hasCalibrationWidgetOnCurrentPage() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return false;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
@@ -1070,37 +1081,40 @@ static bool hasCalibrationWidgetOnCurrentPage() {
   return false;
 }
 static float& selectedCalibrationValue() {
-  return calibrationParameter == 0 ? cfg.currentCalibration[calibrationString] : cfg.voltageCalibration[calibrationString];
+  const uint8_t stringIndex = calibrationRow / 2;
+  return (calibrationRow % 2 == 0) ? cfg.currentCalibration[stringIndex] : cfg.voltageCalibration[stringIndex];
 }
 static void drawCalibrationRemote() {
   tft.fillScreen(ST77XX_BLACK);
-  drawCyrillicText(calibrationParameter == 0 ? "КОРРЕКТИРОВКА ТОКА" : "КОРРЕКТИРОВКА НАПРЯЖЕНИЯ", 4, 28, ST77XX_CYAN, true);
-  drawCyrillicText(String(calibrationLevel == 1 ? "> " : "  ") + "Стринг " + String(calibrationString + 1), 8, 100, calibrationLevel == 1 ? ST77XX_YELLOW : ST77XX_WHITE, true);
-  char value[12]; snprintf(value, sizeof(value), "%.3f", selectedCalibrationValue());
-  drawCyrillicText(String(calibrationLevel == 2 ? "> " : "  ") + String(value), 8, 158, calibrationLevel == 2 ? ST77XX_YELLOW : ST77XX_WHITE, true);
-  if (calibrationLevel == 2) { const uint8_t x[4] = {26, 50, 62, 74}; tft.drawRoundRect(x[calibrationDigit], 137, 13, 25, 2, ST77XX_YELLOW); }
+  const uint8_t strings = calibrationStringCount(); int y = 14;
+  for (uint8_t s = 0; s < strings; ++s) {
+    drawCyrillicText("Стринг " + String(s + 1), 5, y, ST77XX_CYAN, false); y += 14;
+    for (uint8_t p = 0; p < 2; ++p) {
+      const uint8_t row = s * 2 + p; const float value = p == 0 ? cfg.currentCalibration[s] : cfg.voltageCalibration[s];
+      char number[12]; snprintf(number, sizeof(number), "%.3f", value);
+      drawCyrillicText(String(row == calibrationRow ? "> " : "  ") + (p == 0 ? "Ток = " : "Напряжение = ") + number, 8, y, row == calibrationRow ? ST77XX_YELLOW : ST77XX_WHITE, false);
+      if (calibrationLevel == 1 && row == calibrationRow) { const int cx[4]={44,56,68,80}, vx[4]={86,98,110,122}; tft.drawRoundRect(row%2==0?cx[calibrationDigit]:vx[calibrationDigit],y-12,10,14,1,ST77XX_YELLOW); }
+      y += 14;
+    }
+  }
 }
 static void handleCalibrationRemote(uint32_t code) {
   if (code == IR_CODE_BACK || code == IR_CODE_MENU) {
-    if (calibrationLevel) --calibrationLevel;
+    if (calibrationLevel == 1) { selectedCalibrationValue() = calibrationEditBackup; calibrationLevel = 0; }
     else { calibrationRemoteActive = false; renderTFT(); return; }
   } else if (calibrationLevel == 0) {
-    if (code == IR_CODE_UP || code == IR_CODE_DOWN) calibrationParameter = calibrationParameter ? 0 : 1;
-    else if (code == IR_CODE_OK) calibrationLevel = 1;
-  } else if (calibrationLevel == 1) {
-    if (code == IR_CODE_UP || code == IR_CODE_DOWN) calibrationString = calibrationString ? 0 : 1;
-    else if (code == IR_CODE_OK) { calibrationDigit = 0; calibrationLevel = 2; }
+    const uint8_t rows = calibrationStringCount() * 2;
+    if (code == IR_CODE_UP && calibrationRow > 0) --calibrationRow;
+    else if (code == IR_CODE_DOWN && calibrationRow + 1 < rows) ++calibrationRow;
+    else if (code == IR_CODE_OK) { calibrationEditBackup = selectedCalibrationValue(); calibrationDigit = 0; calibrationLevel = 1; }
   } else {
-    if (code == IR_CODE_LEFT && calibrationDigit) --calibrationDigit;
+    if (code == IR_CODE_LEFT && calibrationDigit > 0) --calibrationDigit;
     else if (code == IR_CODE_RIGHT && calibrationDigit < 3) ++calibrationDigit;
     else if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
-      const float step[4] = {1.0f, 0.1f, 0.01f, 0.001f};
-      float v = selectedCalibrationValue() + (code == IR_CODE_UP ? step[calibrationDigit] : -step[calibrationDigit]);
-      selectedCalibrationValue() = constrain(roundf(v * 1000.0f) / 1000.0f, 0.001f, 9.999f);
-    } else if (code == IR_CODE_OK) {
-      if (saveConfig()) calibrationLevel = 1;
-      else Serial.println(F("ERROR: calibration settings could not be saved."));
-    }
+      const float steps[4]={1.0f,0.1f,0.01f,0.001f};
+      const float value=selectedCalibrationValue()+(code==IR_CODE_UP?steps[calibrationDigit]:-steps[calibrationDigit]);
+      selectedCalibrationValue()=constrain(roundf(value*1000.0f)/1000.0f,0.001f,9.999f);
+    } else if (code == IR_CODE_OK) { if (saveConfig()) calibrationLevel=0; else Serial.println(F("ERROR: calibration settings could not be saved.")); }
   }
   drawCalibrationRemote();
 }
@@ -1133,7 +1147,7 @@ static void handleIRRemote() {
   }
   if (calibrationRemoteActive) { handleCalibrationRemote(code); return; }
   if (rtMode != RT_CLOSED) { rtHandle(code); return; }
-  if (code == IR_CODE_OK && hasCalibrationWidgetOnCurrentPage()) { calibrationRemoteActive = true; calibrationLevel = 0; calibrationParameter = 0; calibrationString = 0; drawCalibrationRemote(); return; }
+  if (code == IR_CODE_OK && hasCalibrationWidgetOnCurrentPage()) { calibrationRemoteActive = true; calibrationLevel = 0; calibrationRow = 0; drawCalibrationRemote(); return; }
   if (code == IR_CODE_OSD) {
     otaConfirmActive = true;
     drawOtaConfirm();

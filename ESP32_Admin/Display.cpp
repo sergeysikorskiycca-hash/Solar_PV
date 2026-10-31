@@ -88,9 +88,13 @@ void drawWidget(const WidgetConfig& widget) {
   if (widget.showHeading) drawAlignedText(widget.label,x,headingBaseline,w,hs,widget.headingAlign,widget.headingColor);
   int contentBaseline=widget.showHeading ? headingBaseline+FONT_HEIGHTS[hs]/2+FONT_HEIGHTS[cs]+3 : y+FONT_HEIGHTS[cs]+5;
   if(widget.type=="calibration") {
-    drawAlignedText("Ток", x, contentBaseline, w, cs, widget.contentAlign, widget.contentColor);
-    drawAlignedText("Стринг 1", x, contentBaseline + FONT_HEIGHTS[cs] + 4, w, cs, widget.contentAlign, widget.contentColor);
-    drawAlignedText(String(cfg.currentCalibration[0], 3), x, contentBaseline + 2 * (FONT_HEIGHTS[cs] + 4), w, cs, widget.contentAlign, widget.contentColor);
+    const uint8_t strings = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
+    const int lineHeight = 12; int lineY = contentBaseline;
+    for (uint8_t s = 0; s < strings; ++s) {
+      drawAlignedText("Стринг " + String(s + 1), x, lineY, w, 0, 0, widget.headingColor); lineY += lineHeight;
+      drawAlignedText("Ток = " + String(cfg.currentCalibration[s], 3), x + 5, lineY, w - 5, 0, 0, widget.contentColor); lineY += lineHeight;
+      drawAlignedText("Напряжение = " + String(cfg.voltageCalibration[s], 3), x + 5, lineY, w - 5, 0, 0, widget.contentColor); lineY += lineHeight;
+    }
     return;
   }
   if(widget.type=="clock") {
@@ -169,8 +173,8 @@ struct IncrementalWidgetCache {
   bool initialized;
   int x, y, w, h, firstBaseline, lineHeight;
   uint8_t contentSize, align, color, background, count;
-  String lines[6];
-  uint16_t colors[6];
+  String lines[18];
+  uint16_t colors[18];
 };
 static IncrementalWidgetCache incrementalCaches[MAX_PAGES][MAX_WIDGETS_PER_PAGE];
 
@@ -185,9 +189,12 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
     out[count] = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : "--.--.----";
     colors[count++] = widgetColor(widget.contentColor);
   } else if (widget.type == "calibration") {
-    out[count] = "Ток"; colors[count++] = widgetColor(widget.contentColor);
-    out[count] = "Стринг 1"; colors[count++] = widgetColor(widget.contentColor);
-    out[count] = String(cfg.currentCalibration[0], 3); colors[count++] = widgetColor(widget.contentColor);
+    const uint8_t strings = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
+    for (uint8_t s = 0; s < strings && count + 3 <= 18; ++s) {
+      out[count] = "Стринг " + String(s + 1); colors[count++] = widgetColor(widget.headingColor);
+      out[count] = "Ток = " + String(cfg.currentCalibration[s], 3); colors[count++] = widgetColor(widget.contentColor);
+      out[count] = "Напряжение = " + String(cfg.voltageCalibration[s], 3); colors[count++] = widgetColor(widget.contentColor);
+    }
   } else if (widget.type == "wifiStatus") {
     if (WiFi.status() == WL_CONNECTED) {
       out[count] = "Сеть: " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);
@@ -250,14 +257,14 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
 void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint8_t widgetIndex) {
   if (!widget.enabled || pageIndex >= MAX_PAGES || widgetIndex >= MAX_WIDGETS_PER_PAGE) return;
   if (widget.type == "text") return;
-  String lines[6]; uint16_t colors[6]; uint8_t count = 0;
+  String lines[18]; uint16_t colors[18]; uint8_t count = 0;
   makeDynamicLines(widget, lines, colors, count);
   if (!count) return;
   const uint8_t hs = widget.headingSize <= 5 ? widget.headingSize : 1;
-  const uint8_t cs = widget.contentSize <= 5 ? widget.contentSize : 2;
+  const uint8_t cs = widget.type == "calibration" ? 0 : (widget.contentSize <= 5 ? widget.contentSize : 2);
   const int headingBaseline = widget.y + FONT_HEIGHTS[hs] + 3;
   const int firstBaseline = widget.showHeading ? headingBaseline + FONT_HEIGHTS[hs] / 2 + FONT_HEIGHTS[cs] + 3 : widget.y + FONT_HEIGHTS[cs] + 5;
-  const int lineHeight = FONT_HEIGHTS[cs] + (widget.type == "wifiStatus" ? 5 : 4);
+  const int lineHeight = widget.type == "calibration" ? 12 : FONT_HEIGHTS[cs] + (widget.type == "wifiStatus" ? 5 : 4);
   IncrementalWidgetCache& cache = incrementalCaches[pageIndex][widgetIndex];
   const bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y || cache.w != widget.w ||
       cache.h != widget.h || cache.firstBaseline != firstBaseline || cache.lineHeight != lineHeight ||
