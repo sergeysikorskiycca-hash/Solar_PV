@@ -98,7 +98,7 @@ void loadCurrentCalibration() {
     if (storedMagic == EEPROM_MAGIC_V2) {
         LegacyCalibrationRecord legacy = {};
         EEPROM.get(0, legacy);
-        if (isfinite(legacy.currentCalibration) && legacy.currentCalibration >= 0.1f && legacy.currentCalibration <= 10.0f) currentCalibration[0] = legacy.currentCalibration;
+        if (isfinite(legacy.currentCalibration) && legacy.currentCalibration >= 0.1f && legacy.currentCalibration <= 99.999f) currentCalibration[0] = legacy.currentCalibration;
         Serial.println("Legacy calibration migrated to v3");
     } else Serial.println("Calibration not found; using defaults");
     saveCalibration();
