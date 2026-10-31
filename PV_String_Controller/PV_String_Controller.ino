@@ -56,7 +56,7 @@ struct SensorData
 };
 
 struct ESPNowCommand { uint8_t command; uint8_t sensorId; };
-struct ESPNowCalibrationCommand { uint8_t command; uint8_t sensorId; float currentFactor; float voltageFactor; };
+struct __attribute__((packed)) ESPNowCalibrationCommand { uint8_t command; uint8_t sensorId; float currentFactor; float voltageFactor; };
 
 SensorData sensorData[SENSOR_COUNT];
 uint32_t packetCounter[SENSOR_COUNT] = {0, 0};
