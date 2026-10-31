@@ -25,6 +25,7 @@ extern uint32_t wifiControlApplyAt;
 extern bool calibrationInlineActive;
 extern bool calibrationEditing;
 extern uint8_t calibrationRow;
+extern uint8_t calibrationDigit;
 
 static const uint16_t WIDGET_COLORS[6] = { ST77XX_WHITE, 0x07FF, 0x07E0, 0xFFE0, 0xF800, 0xFD20 };
 static const uint8_t FONT_HEIGHTS[6] = {13, 14, 16, 15, 20, 24};
@@ -41,6 +42,15 @@ static void setWidgetFont(uint8_t size) {
   }
 }
 static uint16_t widgetColor(uint8_t color) { return WIDGET_COLORS[color <= 5 ? color : 0]; }
+static String calibrationValueText(float value, bool editing, bool selected) {
+  char number[12];
+  snprintf(number, sizeof(number), "%.3f", value);
+  String result(number);
+  if (!editing || !selected || calibrationDigit > 3) return result;
+  const uint8_t position = calibrationDigit == 0 ? 0 : calibrationDigit + 1;
+  result = result.substring(0, position) + "[" + result.charAt(position) + "]" + result.substring(position + 1);
+  return result;
+}
 static const uint16_t WIDGET_BACKGROUNDS[7] = { 0x0841, 0x001B, 0x0326, 0x3009, 0x4804, 0x3186, ST77XX_BLACK };
 static uint16_t widgetBackground(uint8_t color) { return WIDGET_BACKGROUNDS[color <= 6 ? color : 0]; }
 static void drawAlignedText(const String& text, int x, int y, int w, uint8_t size, uint8_t align, uint8_t color) {
@@ -98,10 +108,10 @@ void drawWidget(const WidgetConfig& widget) {
       const uint8_t currentRow = s * 2, voltageRow = currentRow + 1;
       const bool currentSelected = calibrationInlineActive && calibrationRow == currentRow;
       const bool voltageSelected = calibrationInlineActive && calibrationRow == voltageRow;
-      drawAlignedText(String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Ток = " + String(cfg.currentCalibration[s], 3),
+      drawAlignedText(String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Ток = " + calibrationValueText(cfg.currentCalibration[s], calibrationEditing, currentSelected),
                       x + 5, lineY, w - 5, cs, widget.contentAlign,
                       currentSelected ? 3 : widget.contentColor); lineY += lineHeight;
-      drawAlignedText(String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Напряжение = " + String(cfg.voltageCalibration[s], 3),
+      drawAlignedText(String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Напряжение = " + calibrationValueText(cfg.voltageCalibration[s], calibrationEditing, voltageSelected),
                       x + 5, lineY, w - 5, cs, widget.contentAlign,
                       voltageSelected ? 3 : widget.contentColor); lineY += lineHeight;
     }
