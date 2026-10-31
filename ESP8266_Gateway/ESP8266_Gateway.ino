@@ -42,10 +42,8 @@ struct SensorPacket {
   uint32_t packetNumber;
 };
 
-struct ESPNowCommand {
-  uint8_t command;
-  uint8_t sensorId;
-};
+struct ESPNowCommand { uint8_t command; uint8_t sensorId; };
+struct ESPNowCalibrationCommand { uint8_t command; uint8_t sensorId; float currentFactor; float voltageFactor; };
 
 struct SensorSlot {
   uint8_t mac[6];
@@ -96,6 +94,10 @@ static uint8_t lastOtaCommandSequence = 0xFF;
 static bool otaDispatchPending = false;
 static uint8_t otaTargetSensorId = 1;
 static uint32_t lastOtaDispatchMs = 0;
+static uint8_t lastCalibrationCommandSequence = 0xFF;
+static bool calibrationDispatchPending = false;
+static ESPNowCalibrationCommand calibrationDispatch = {};
+static uint32_t lastCalibrationDispatchMs = 0;
 
 static uint8_t crc8(const uint8_t* data, size_t length) {
   uint8_t crc = 0;
@@ -237,9 +239,9 @@ static bool exchangePacket() {
   // Give the ESP32 slave receive callback a brief chance to validate the frame
   // and prepare the matching acknowledgement before the immediate read.
   delay(2);
-  uint8_t count = Wire.requestFrom(ESP32_ADDRESS, (uint8_t)12);
+  uint8_t count = Wire.requestFrom(ESP32_ADDRESS, (uint8_t)23);
   lastI2CReadCount = count;
-  if (count != 12) {
+  if (count != 23) {
     while (Wire.available()) Wire.read();
     lastAckOk = false;
     lastAckStatus = 0xFE;
@@ -255,6 +257,12 @@ static bool exchangePacket() {
   uint8_t commandSequence = Wire.read();
   uint16_t commandYear = (uint16_t)Wire.read(); commandYear |= (uint16_t)Wire.read() << 8;
   uint8_t commandMonth = Wire.read(), commandDay = Wire.read(), commandHour = Wire.read(), commandMinute = Wire.read(), commandSecond = Wire.read();
+  uint8_t calibrationSensorId = Wire.read();
+  ESPNowCalibrationCommand incomingCalibration = {};
+  incomingCalibration.command = 0x02;
+  incomingCalibration.sensorId = calibrationSensorId;
+  uint8_t* calibrationBytes = (uint8_t*)&incomingCalibration;
+  for (uint8_t i = 2; i < sizeof(incomingCalibration); ++i) calibrationBytes[i] = Wire.read();
   lastAckStatus = ackStatus;
   lastAckOk = ackMagic == ACK_MAGIC && ackSequence == packet.sequence && ackStatus == 0;
   if (commandType == 1 && commandSequence != lastClockCommandSequence) {
@@ -267,6 +275,14 @@ static bool exchangePacket() {
     otaDispatchPending = otaTargetSensorId >= 1 && otaTargetSensorId <= MAX_SENSORS;
     lastOtaDispatchMs = 0;
     Serial.printf("OTA request received from ESP32 for sensor %u.\n", (unsigned)otaTargetSensorId);
+  } else if (commandType == 3 && commandSequence != lastCalibrationCommandSequence) {
+    lastCalibrationCommandSequence = commandSequence;
+    calibrationDispatch = incomingCalibration;
+    calibrationDispatchPending = calibrationDispatch.sensorId >= 1 &&
+      calibrationDispatch.sensorId <= MAX_SENSORS &&
+      isfinite(calibrationDispatch.currentFactor) && isfinite(calibrationDispatch.voltageFactor);
+    lastCalibrationDispatchMs = 0;
+    Serial.printf("Calibration command received for sensor %u.\\n", (unsigned)calibrationDispatch.sensorId);
   }
   return lastAckOk;
 }
@@ -307,6 +323,27 @@ static void processOtaDispatch() {
   }
 }
 
+static void processCalibrationDispatch() {
+  if (!calibrationDispatchPending || !espNowReady) return;
+  uint32_t now = millis();
+  if (now - lastCalibrationDispatchMs < 250UL) return;
+  lastCalibrationDispatchMs = now;
+  uint8_t id = calibrationDispatch.sensorId;
+  if (id < 1 || id > MAX_SENSORS) { calibrationDispatchPending = false; return; }
+  SensorSlot& slot = sensorSlots[id - 1];
+  if (!slot.valid || now - slot.lastSeenMs > 3000UL) return;
+  if (!esp_now_is_peer_exist(slot.mac)) {
+    int peerResult = esp_now_add_peer(slot.mac, ESP_NOW_ROLE_COMBO, ESP_NOW_CHANNEL, NULL, 0);
+    if (peerResult != 0 && !esp_now_is_peer_exist(slot.mac)) return;
+  }
+  int result = esp_now_send(slot.mac, (uint8_t*)&calibrationDispatch, sizeof(calibrationDispatch));
+  if (result == 0) {
+    calibrationDispatchPending = false;
+    Serial.printf("Calibration command queued to sensor %u (I=%.3f U=%.3f); EEPROM confirmation is not available.\\n",
+      (unsigned)id, calibrationDispatch.currentFactor, calibrationDispatch.voltageFactor);
+  } else Serial.printf("Calibration ESP-NOW send error %d; retry pending.\\n", result);
+}
+
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -339,6 +376,7 @@ void setup() {
 void loop() {
   uint32_t now = millis();
   processOtaDispatch();
+  processCalibrationDispatch();
 
   if (now - lastRtcMs >= RTC_INTERVAL_MS) {
     lastRtcMs = now;
@@ -356,7 +394,7 @@ void loop() {
                   rtcPresent ? "READ OK" : "READ FAILED",
                   (unsigned)packet.year, (unsigned)packet.month, (unsigned)packet.day,
                   (unsigned)packet.hour, (unsigned)packet.minute, (unsigned)packet.second);
-    Serial.printf("I2C ESP32: %s | writeErr=%u | readBytes=%u/12 | ACK magic=0x%02X seq=%u status=0x%02X | ESP-NOW: %s\n",
+    Serial.printf("I2C ESP32: %s | writeErr=%u | readBytes=%u/23 | ACK magic=0x%02X seq=%u status=0x%02X | ESP-NOW: %s\n",
                   lastAckOk ? "OK" : "NO RESPONSE",
                   (unsigned)lastI2CWriteError,
                   (unsigned)lastI2CReadCount,
