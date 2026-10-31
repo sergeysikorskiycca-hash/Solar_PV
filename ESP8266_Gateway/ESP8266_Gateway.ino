@@ -394,7 +394,7 @@ void loop() {
                   rtcPresent ? "READ OK" : "READ FAILED",
                   (unsigned)packet.year, (unsigned)packet.month, (unsigned)packet.day,
                   (unsigned)packet.hour, (unsigned)packet.minute, (unsigned)packet.second);
-    Serial.printf("I2C ESP32: %s | writeErr=%u | readBytes=%u/23 | ACK magic=0x%02X seq=%u status=0x%02X | ESP-NOW: %s\n",
+    Serial.printf("I2C ESP32: %s | writeErr=%u | readBytes=%u/21 | ACK magic=0x%02X seq=%u status=0x%02X | ESP-NOW: %s\n",
                   lastAckOk ? "OK" : "NO RESPONSE",
                   (unsigned)lastI2CWriteError,
                   (unsigned)lastI2CReadCount,
