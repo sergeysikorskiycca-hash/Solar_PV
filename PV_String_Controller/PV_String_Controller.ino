@@ -90,7 +90,7 @@ void loadCurrentCalibration() {
         EEPROM.get(0, record);
         for (uint8_t i = 0; i < SENSOR_COUNT; ++i) {
             if (isfinite(record.currentCalibration[i]) && record.currentCalibration[i] >= 0.001f && record.currentCalibration[i] <= 99.999f) currentCalibration[i] = record.currentCalibration[i];
-            if (isfinite(record.voltageCalibration[i]) && record.voltageCalibration[i] >= 0.001f && record.voltageCalibration[i] <= 9.999f) voltageCalibration[i] = record.voltageCalibration[i];
+            if (isfinite(record.voltageCalibration[i]) && record.voltageCalibration[i] >= 0.001f && record.voltageCalibration[i] <= 99.999f) voltageCalibration[i] = record.voltageCalibration[i];
         }
         Serial.println("Calibration v3 loaded");
         return;
