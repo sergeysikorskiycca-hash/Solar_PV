@@ -25,7 +25,6 @@ extern uint32_t wifiControlApplyAt;
 extern bool calibrationInlineActive;
 extern bool calibrationEditing;
 extern uint8_t calibrationRow;
-extern uint8_t calibrationDigit;
 
 static const uint16_t WIDGET_COLORS[6] = { ST77XX_WHITE, 0x07FF, 0x07E0, 0xFFE0, 0xF800, 0xFD20 };
 static const uint8_t FONT_HEIGHTS[6] = {13, 14, 16, 15, 20, 24};
@@ -206,9 +205,9 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
       const uint8_t currentRow = s * 2, voltageRow = currentRow + 1;
       const bool currentSelected = calibrationInlineActive && calibrationRow == currentRow;
       const bool voltageSelected = calibrationInlineActive && calibrationRow == voltageRow;
-      out[count] = String(currentSelected ? "> " : "  ") + "Ток = " + String(cfg.currentCalibration[s], 3);
+      out[count] = String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Ток = " + String(cfg.currentCalibration[s], 3);
       colors[count++] = currentSelected ? 0xFFE0 : widgetColor(widget.contentColor);
-      out[count] = String(voltageSelected ? "> " : "  ") + "Напряжение = " + String(cfg.voltageCalibration[s], 3);
+      out[count] = String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") + "Напряжение = " + String(cfg.voltageCalibration[s], 3);
       colors[count++] = voltageSelected ? 0xFFE0 : widgetColor(widget.contentColor);
     }
   } else if (widget.type == "wifiStatus") {
