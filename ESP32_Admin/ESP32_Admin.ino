@@ -1093,7 +1093,7 @@ static void drawCalibrationRemote() {
       const uint8_t row = s * 2 + p; const float value = p == 0 ? cfg.currentCalibration[s] : cfg.voltageCalibration[s];
       char number[12]; snprintf(number, sizeof(number), "%.3f", value);
       drawCyrillicText(String(row == calibrationRow ? "> " : "  ") + (p == 0 ? "Ток = " : "Напряжение = ") + number, 8, y, row == calibrationRow ? ST77XX_YELLOW : ST77XX_WHITE, false);
-      if (calibrationLevel == 1 && row == calibrationRow) { const int cx[4]={44,56,68,80}, vx[4]={86,98,110,122}; tft.drawRoundRect(row%2==0?cx[calibrationDigit]:vx[calibrationDigit],y-12,10,14,1,ST77XX_YELLOW); }
+      if (calibrationLevel == 1 && row == calibrationRow) { const int cx[4]={56,68,80,92}, vx[4]={98,110,122,134}; tft.drawRoundRect(row%2==0?cx[calibrationDigit]:vx[calibrationDigit],y-12,10,14,1,ST77XX_YELLOW); }
       y += 14;
     }
   }
