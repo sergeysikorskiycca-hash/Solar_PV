@@ -602,7 +602,7 @@ static void gatewayOnRequest() {
   }
   uint8_t commandType = clockCommandPending ? clockCommandType : (calibrationCommandPending ? 3 : 0);
   uint8_t commandSequence = clockCommandPending ? clockCommandSequence : calibrationCommandSequence;
-  uint8_t response[23] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus,
+  uint8_t response[21] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus,
     commandType, commandSequence,
     (uint8_t)(clockCommandYear & 0xFF), (uint8_t)(clockCommandYear >> 8),
     clockCommandMonth, clockCommandDay, clockCommandHour, clockCommandMinute, clockCommandSecond,
