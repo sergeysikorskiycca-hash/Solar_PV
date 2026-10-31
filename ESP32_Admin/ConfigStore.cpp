@@ -59,7 +59,7 @@ void setDefaults() {
   cfg.currentX = 125; cfg.currentY = 125; cfg.currentW = 106; cfg.currentH = 58;
   cfg.batteryX = 8; cfg.batteryY = 205; cfg.batteryW = 224; cfg.batteryH = 58;
   cfg.tftPage = 1;
-  for (uint8_t i = 0; i < 2; ++i) { cfg.currentCalibration[i] = 1.0f; cfg.voltageCalibration[i] = 1.0f; }
+  for (uint8_t i = 0; i < 6; ++i) { cfg.currentCalibration[i] = 1.0f; cfg.voltageCalibration[i] = 1.0f; }
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
     for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
@@ -216,10 +216,8 @@ void loadConfig() {
     else if (key == "batteryW") cfg.batteryW = clampInt(value.toInt(), 40, 224);
     else if (key == "batteryH") cfg.batteryH = clampInt(value.toInt(), 36, 120);
     else if (key == "tftPage") cfg.tftPage = clampInt(value.toInt(), 1, MAX_PAGES);
-    else if (key == "currentCalibration0") cfg.currentCalibration[0] = constrain(value.toFloat(), 0.001f, 9.999f);
-    else if (key == "currentCalibration1") cfg.currentCalibration[1] = constrain(value.toFloat(), 0.001f, 9.999f);
-    else if (key == "voltageCalibration0") cfg.voltageCalibration[0] = constrain(value.toFloat(), 0.001f, 9.999f);
-    else if (key == "voltageCalibration1") cfg.voltageCalibration[1] = constrain(value.toFloat(), 0.001f, 9.999f);
+    else if (key.startsWith("currentCalibration") && key.length() == 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < 6) cfg.currentCalibration[index] = constrain(value.toFloat(), 0.001f, 9.999f); }
+    else if (key.startsWith("voltageCalibration") && key.length() == 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < 6) cfg.voltageCalibration[index] = constrain(value.toFloat(), 0.001f, 9.999f); }
     else if (key == "pageCount" || key.startsWith("page") || (key.length() > 2 && key[0] == 'p' && isDigit(key[1]))) { if (loadPageKey(key, value)) genericPagesLoaded = true; }
     else if (key.startsWith("wifi") && key.endsWith("_ssid")) { int i = key.substring(4, key.length() - 5).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].ssid = value; }
     else if (key.startsWith("wifi") && key.endsWith("_password")) { int i = key.substring(4, key.length() - 9).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].password = value; }
@@ -289,10 +287,10 @@ bool saveConfig() {
   f.println("currentW=" + String(cfg.currentW)); f.println("currentH=" + String(cfg.currentH));
   f.println("batteryW=" + String(cfg.batteryW)); f.println("batteryH=" + String(cfg.batteryH));
   f.println("tftPage=" + String(cfg.tftPage));
-  f.println("currentCalibration0=" + String(cfg.currentCalibration[0], 3));
-  f.println("currentCalibration1=" + String(cfg.currentCalibration[1], 3));
-  f.println("voltageCalibration0=" + String(cfg.voltageCalibration[0], 3));
-  f.println("voltageCalibration1=" + String(cfg.voltageCalibration[1], 3));
+  for (uint8_t i = 0; i < 6; ++i) {
+    f.println("currentCalibration" + String(i) + "=" + String(cfg.currentCalibration[i], 3));
+    f.println("voltageCalibration" + String(i) + "=" + String(cfg.voltageCalibration[i], 3));
+  }
   f.println("pageCount=" + String(cfg.pageCount));
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
     f.println("page" + String(p) + "Title=" + sanitizeTitle(cfg.pages[p].title));
