@@ -45,13 +45,22 @@ static void setWidgetFont(uint8_t size) {
 static uint16_t widgetColor(uint8_t color) { return WIDGET_COLORS[color <= 5 ? color : 0]; }
 static String calibrationTargetText(bool editing, bool selected) {
   if (calibrationTargetScaled == 0 && !editing) return "--";
+  const bool currentRow = (calibrationRow % 2 == 0);
   char number[12];
-  snprintf(number, sizeof(number), "%04lu.%03lu",
-           (unsigned long)(calibrationTargetScaled / 1000UL),
-           (unsigned long)(calibrationTargetScaled % 1000UL));
+  if (currentRow) {
+    snprintf(number, sizeof(number), "%04lu.%02lu",
+             (unsigned long)(calibrationTargetScaled / 1000UL),
+             (unsigned long)((calibrationTargetScaled % 1000UL) / 10UL));
+  } else {
+    snprintf(number, sizeof(number), "%04lu.%01lu",
+             (unsigned long)(calibrationTargetScaled / 1000UL),
+             (unsigned long)((calibrationTargetScaled % 1000UL) / 100UL));
+  }
   String result(number);
-  if (!editing || !selected || calibrationDigit > 6) return result;
-  const uint8_t position = calibrationDigit < 3 ? calibrationDigit : calibrationDigit + 1;
+  const uint8_t digitCount = currentRow ? 6 : 5;
+  if (!editing || !selected || calibrationDigit >= digitCount) return result;
+  // Four integer digits, then the decimal point, then the fractional digits.
+  const uint8_t position = calibrationDigit < 4 ? calibrationDigit : calibrationDigit + 1;
   result = result.substring(0, position) + "[" + result.charAt(position) + "]" + result.substring(position + 1);
   return result;
 }
