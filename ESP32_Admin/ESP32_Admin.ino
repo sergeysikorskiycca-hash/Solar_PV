@@ -1140,7 +1140,7 @@ static float selectedCalibrationMeasurement() {
 static void beginCalibrationTargetEdit() {
   const float actual = selectedCalibrationMeasurement();
   calibrationTargetScaled = isfinite(actual) && actual > 0.0f
-                                ? (uint32_t)constrain((long)roundf(actual * 1000.0f), 0L, 999999L)
+                                ? (uint32_t)constrain((long)roundf(actual * 1000.0f), 0L, 9999999L)
                                 : 0;
   calibrationDigit = 0;
   calibrationEditing = true;
@@ -1186,12 +1186,12 @@ static void handleInlineCalibration(uint32_t code) {
         const int32_t oldDigit = (calibrationTargetScaled / place) % 10;
         int64_t scaled = (int64_t)calibrationTargetScaled +
                          ((int32_t)enteredDigit - oldDigit) * (int64_t)place;
-        calibrationTargetScaled = (uint32_t)constrain((long)scaled, 0L, 999999L);
+        calibrationTargetScaled = (uint32_t)constrain((long)scaled, 0L, 9999999L);
       } else if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
         const int32_t steps[7] = {1000000L, 100000L, 10000L, 1000L, 100L, 10L, 1L};
         int64_t value = (int64_t)calibrationTargetScaled +
                         (code == IR_CODE_UP ? steps[calibrationDigit] : -steps[calibrationDigit]);
-        calibrationTargetScaled = (uint32_t)constrain((long)value, 0L, 999999L);
+        calibrationTargetScaled = (uint32_t)constrain((long)value, 0L, 9999999L);
       } else if (code == IR_CODE_OK) {
         const float actual = selectedCalibrationMeasurement();
         const float target = calibrationTargetScaled / 1000.0f;
