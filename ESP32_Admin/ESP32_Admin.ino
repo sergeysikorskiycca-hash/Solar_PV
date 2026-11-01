@@ -1112,7 +1112,7 @@ static void drawOtaConfirm() {
 bool calibrationInlineActive = false;
 bool calibrationEditing = false;
 uint8_t calibrationRow = 0, calibrationDigit = 0;
-static float calibrationEditBackup = 1.0f;
+uint32_t calibrationTargetScaled = 0; // Desired real value, stored as thousandths.
 static uint8_t calibrationStringCount() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return 2;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
@@ -1131,6 +1131,20 @@ static float& selectedCalibrationValue() {
   const uint8_t stringIndex = calibrationRow / 2;
   return (calibrationRow % 2 == 0) ? cfg.currentCalibration[stringIndex] : cfg.voltageCalibration[stringIndex];
 }
+static float selectedCalibrationMeasurement() {
+  const uint8_t index = calibrationRow / 2;
+  if (index >= MAX_STRING_SENSORS || !stringSensorValid[index] ||
+      millis() - stringSensorLastSeenMs[index] > STRING_SENSOR_TIMEOUT_MS) return NAN;
+  return (calibrationRow % 2 == 0) ? stringSensorCurrent[index] : stringSensorVoltage[index];
+}
+static void beginCalibrationTargetEdit() {
+  const float actual = selectedCalibrationMeasurement();
+  calibrationTargetScaled = isfinite(actual) && actual > 0.0f
+                                ? (uint32_t)constrain((long)roundf(actual * 1000.0f), 0L, 999999L)
+                                : 0;
+  calibrationDigit = 0;
+  calibrationEditing = true;
+}
 static void refreshCalibrationWidget() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
@@ -1141,7 +1155,6 @@ static void refreshCalibrationWidget() {
 static void handleInlineCalibration(uint32_t code) {
   if (code == IR_CODE_BACK || code == IR_CODE_MENU) {
     if (calibrationEditing) {
-      selectedCalibrationValue() = calibrationEditBackup;
       calibrationEditing = false;
     } else {
       calibrationInlineActive = false;
@@ -1150,14 +1163,10 @@ static void handleInlineCalibration(uint32_t code) {
     const uint8_t rows = calibrationStringCount() * 2;
     if (code == IR_CODE_UP && calibrationRow > 0) --calibrationRow;
     else if (code == IR_CODE_DOWN && calibrationRow + 1 < rows) ++calibrationRow;
-    else if (code == IR_CODE_OK) {
-      calibrationEditBackup = selectedCalibrationValue();
-      calibrationDigit = 0;
-      calibrationEditing = true;
-    }
+    else if (code == IR_CODE_OK) beginCalibrationTargetEdit();
   } else {
-    if (code == IR_CODE_LEFT) calibrationDigit = (calibrationDigit + 4) % 5;
-    else if (code == IR_CODE_RIGHT) calibrationDigit = (calibrationDigit + 1) % 5;
+    if (code == IR_CODE_LEFT) calibrationDigit = (calibrationDigit + 6) % 7;
+    else if (code == IR_CODE_RIGHT) calibrationDigit = (calibrationDigit + 1) % 7;
     else {
       int8_t enteredDigit = -1;
       if (code == IR_CODE_0) enteredDigit = 0;
@@ -1172,24 +1181,39 @@ static void handleInlineCalibration(uint32_t code) {
       else if (code == IR_CODE_9) enteredDigit = 9;
 
       if (enteredDigit >= 0) {
-        // Replace only the selected decimal digit; keep all other digits unchanged.
-        const int32_t placeValues[5] = {10000, 1000, 100, 10, 1};
-        int32_t scaled = (int32_t)roundf(selectedCalibrationValue() * 1000.0f);
-        const int32_t place = placeValues[calibrationDigit];
-        const int32_t oldDigit = (scaled / place) % 10;
-        scaled += ((int32_t)enteredDigit - oldDigit) * place;
-        scaled = constrain(scaled, 1, 99999);
-        selectedCalibrationValue() = scaled / 1000.0f;
+        const uint32_t placeValues[7] = {1000000UL, 100000UL, 10000UL, 1000UL, 100UL, 10UL, 1UL};
+        const uint32_t place = placeValues[calibrationDigit];
+        const int32_t oldDigit = (calibrationTargetScaled / place) % 10;
+        int64_t scaled = (int64_t)calibrationTargetScaled +
+                         ((int32_t)enteredDigit - oldDigit) * (int64_t)place;
+        calibrationTargetScaled = (uint32_t)constrain((long)scaled, 0L, 999999L);
       } else if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
-        const float steps[5] = {10.0f, 1.0f, 0.1f, 0.01f, 0.001f};
-        const float value = selectedCalibrationValue() +
-                            (code == IR_CODE_UP ? steps[calibrationDigit] : -steps[calibrationDigit]);
-        selectedCalibrationValue() = constrain(roundf(value * 1000.0f) / 1000.0f, 0.001f, 99.999f);
+        const int32_t steps[7] = {1000000L, 100000L, 10000L, 1000L, 100L, 10L, 1L};
+        int64_t value = (int64_t)calibrationTargetScaled +
+                        (code == IR_CODE_UP ? steps[calibrationDigit] : -steps[calibrationDigit]);
+        calibrationTargetScaled = (uint32_t)constrain((long)value, 0L, 999999L);
       } else if (code == IR_CODE_OK) {
-        if (saveConfig()) {
-          queueCalibrationCommand(calibrationRow / 2);
-          calibrationEditing = false;
-        } else Serial.println(F("ERROR: calibration settings could not be saved."));
+        const float actual = selectedCalibrationMeasurement();
+        const float target = calibrationTargetScaled / 1000.0f;
+        if (!isfinite(actual) || actual <= 0.001f) {
+          Serial.println(F("ERROR: no fresh sensor reading; calibration was not changed."));
+        } else if (!isfinite(target) || target <= 0.0f) {
+          Serial.println(F("ERROR: desired calibration value must be greater than zero."));
+        } else {
+          float& factor = selectedCalibrationValue();
+          const float oldFactor = factor;
+          factor = constrain(roundf(oldFactor * target / actual * 1000.0f) / 1000.0f, 0.001f, 99.999f);
+          if (saveConfig()) {
+            queueCalibrationCommand(calibrationRow / 2);
+            calibrationEditing = false;
+            Serial.printf("IR calibration saved: string %u, %s, actual %.3f, target %.3f, factor %.3f\n",
+                          calibrationRow / 2 + 1, (calibrationRow % 2 == 0) ? "current" : "voltage",
+                          actual, target, factor);
+          } else {
+            factor = oldFactor;
+            Serial.println(F("ERROR: calibration settings could not be saved."));
+          }
+        }
       }
     }
   }
