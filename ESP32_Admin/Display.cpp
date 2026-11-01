@@ -46,7 +46,7 @@ static uint16_t widgetColor(uint8_t color) { return WIDGET_COLORS[color <= 5 ? c
 static String calibrationTargetText(bool editing, bool selected) {
   if (calibrationTargetScaled == 0 && !editing) return "--";
   char number[12];
-  snprintf(number, sizeof(number), "%03lu.%03lu",
+  snprintf(number, sizeof(number), "%04lu.%03lu",
            (unsigned long)(calibrationTargetScaled / 1000UL),
            (unsigned long)(calibrationTargetScaled % 1000UL));
   String result(number);
