@@ -73,7 +73,7 @@ static ESPNowCalibrationCommand pendingCalibrationCommand = {};
 
 // Сохраняет коэффициенты обоих каналов в EEPROM.
 bool saveCalibration() {
-    if (!eepromReady) eepromReady = EEPROM.begin(sizeof(CalibrationRecord));
+    if (!eepromReady) { EEPROM.begin(sizeof(CalibrationRecord)); eepromReady = true; }
     if (!eepromReady) { Serial.println("EEPROM INIT ERROR"); return false; }
     CalibrationRecord record = {};
     record.magic = EEPROM_MAGIC;
@@ -85,8 +85,9 @@ bool saveCalibration() {
     // Reopen the emulated EEPROM so verification reads the flash contents,
     // not only the RAM cache that was just written.
     EEPROM.end();
-    eepromReady = EEPROM.begin(sizeof(CalibrationRecord));
-    if (!eepromReady) { Serial.println("EEPROM REOPEN ERROR"); return false; }
+    if (!EEPROM.end()) { eepromReady = false; Serial.println("EEPROM REOPEN ERROR"); return false; }
+    EEPROM.begin(sizeof(CalibrationRecord));
+    eepromReady = true;
     CalibrationRecord verify = {};
     EEPROM.get(0, verify);
     if (memcmp(&verify, &record, sizeof(record)) != 0) {
@@ -99,8 +100,8 @@ bool saveCalibration() {
 
 // Загружает новую запись или переносит прежнюю калибровку v2.
 void loadCurrentCalibration() {
-    eepromReady = EEPROM.begin(sizeof(CalibrationRecord));
-    if (!eepromReady) { Serial.println("EEPROM INIT ERROR; calibration defaults remain active"); return; }
+    EEPROM.begin(sizeof(CalibrationRecord));
+    eepromReady = true;
     uint32_t storedMagic = 0;
     EEPROM.get(0, storedMagic);
     if (storedMagic == EEPROM_MAGIC) {
