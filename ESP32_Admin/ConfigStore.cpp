@@ -109,13 +109,13 @@ void initializeDefaultPages() {
   cfg.pages[0].title = "Показатели";
   cfg.pages[0].showTitle = true;
   cfg.pages[0].widgetCount = 4;
-  const char* types[4] = {"power", "voltage", "current", "battery"};
-  String labels[4] = {cfg.powerLabel, cfg.voltageLabel, cfg.currentLabel, cfg.batteryLabel};
+  const char* types[4] = {"custom", "custom", "custom", "custom"};
+  String labels[4] = {"Блок 1", "Блок 2", "Блок 3", "Блок 4"};
   int xs[4] = {cfg.powerX, cfg.voltageX, cfg.currentX, cfg.batteryX};
   int ys[4] = {cfg.powerY, cfg.voltageY, cfg.currentY, cfg.batteryY};
   int ws[4] = {cfg.powerW, cfg.voltageW, cfg.currentW, cfg.batteryW};
   int hs[4] = {cfg.powerH, cfg.voltageH, cfg.currentH, cfg.batteryH};
-  bool enabled[4] = {cfg.showPower, cfg.showVoltage, cfg.showCurrent, cfg.showBattery};
+  bool enabled[4] = {true, true, true, true};
   for (uint8_t i = 0; i < 4; i++) {
     WidgetConfig& w = cfg.pages[0].widgets[i];
     w.type = types[i]; w.label = labels[i]; w.text = ""; w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.elementCount = 0; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0; w.x = xs[i]; w.y = ys[i];
