@@ -15,6 +15,15 @@ static bool stringSensorFresh(uint8_t index) {
          millis() - stringSensorLastSeenMs[index] <= 3500UL;
 }
 
+static String widgetElementReading(const WidgetElementConfig& element, const char*& unit) {
+  const uint8_t sensor = element.sourceId > 0 ? element.sourceId - 1 : 0;
+  unit = element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : "В");
+  if (element.sourceId < 1 || element.sourceId > 6 || !stringSensorFresh(sensor)) return "--";
+  if (element.metric == 1) return String(stringSensorCurrent[sensor], 2);
+  if (element.metric == 2) return String(stringSensorPower[sensor], 1);
+  return String(stringSensorVoltage[sensor], 1);
+}
+
 extern bool routerModeEnabled;
 extern bool setupApEnabled;
 extern bool wifiControlPendingRouter;
@@ -147,6 +156,19 @@ void drawWidget(const WidgetConfig& widget) {
     int avail=y+h-4-contentBaseline, lineHeight=FONT_HEIGHTS[cs]+3;
     drawWrappedText(widget,widget.text,contentBaseline,avail>0?avail/lineHeight+1:0); return;
   }
+  if (widget.type == "custom") {
+    int lineY = contentBaseline;
+    for (uint8_t i = 0; i < widget.elementCount && i < MAX_WIDGET_ELEMENTS && lineY <= y + h - 4; ++i) {
+      const WidgetElementConfig& element = widget.elements[i];
+      const char* unit = "В";
+      String reading = widgetElementReading(element, unit);
+      const uint8_t fontSize = element.fontSize <= 5 ? element.fontSize : cs;
+      drawAlignedText(element.label + ": " + reading + " " + unit,
+                      x, lineY, w, fontSize, widget.contentAlign, element.color);
+      lineY += FONT_HEIGHTS[fontSize] + 4;
+    }
+    return;
+  }
   if(widget.type=="strings" || widget.type=="stringsVoltage" ||
      widget.type=="stringsCurrent" || widget.type=="stringsPower") {
     const char* unit = "В";
@@ -269,6 +291,14 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
     } else {
       out[count] = cfg.uiTexts.selectHint; colors[count++] = 0xBDF7;
       out[count] = cfg.uiTexts.changeHint; colors[count++] = 0xBDF7;
+    }
+  } else if (widget.type == "custom") {
+    for (uint8_t i = 0; i < widget.elementCount && i < MAX_WIDGET_ELEMENTS && count < 18; ++i) {
+      const WidgetElementConfig& element = widget.elements[i];
+      const char* unit = "В";
+      String reading = widgetElementReading(element, unit);
+      out[count] = element.label + ": " + reading + " " + unit;
+      colors[count++] = widgetColor(element.color);
     }
   } else if (widget.type == "strings" || widget.type == "stringsVoltage" ||
              widget.type == "stringsCurrent" || widget.type == "stringsPower") {
