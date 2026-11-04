@@ -66,8 +66,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <p class="hint">Предпросмотр повторяет координаты TFT. Выбранная для редактирования страница не обязана совпадать с физическим экраном.</p></section></div></main>
 <script>
 const MAX_PAGES=8,MAX_WIDGETS=12,MAX_WIDGET_ELEMENTS=12;
-const defaults=[
- {label:'Блок 1',x:8,y:55,w:224,h:58,enabled:true},
+const defaults=[ {label:'Блок 1',x:8,y:55,w:224,h:58,enabled:true},
  {label:'Блок 2',x:8,y:125,w:106,h:58,enabled:true},
  {label:'Блок 3',x:125,y:125,w:106,h:58,enabled:true},
  {label:'Блок 4',x:8,y:205,w:224,h:58,enabled:true}
@@ -142,15 +141,15 @@ function renderCustomEditor(w){
   const up=document.createElement('button');up.type='button';up.textContent='↑';up.disabled=index===0;up.title='Переместить выше';up.addEventListener('click',()=>{const a=w.elements;[a[index-1],a[index]]=[a[index],a[index-1]];renderAll()});
   const down=document.createElement('button');down.type='button';down.textContent='↓';down.disabled=index===w.elements.length-1;down.title='Переместить ниже';down.addEventListener('click',()=>{const a=w.elements;[a[index+1],a[index]]=[a[index],a[index+1]];renderAll()});
   const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='Удалить';remove.addEventListener('click',()=>{w.elements.splice(index,1);renderAll()});
-  actions.append(up,down,remove);bottom.appendChild(actions);row.appendChild(bottom);
-  if(k===1) {const hint=document.createElement('p');hint.className='hint';hint.textContent='Установка времени и даты — в системной панели RTC ниже.';row.appendChild(hint)}
+  actions.append(up,down,remove);bottom.appendChild(actions);row.appendChild(bottom);  if(k===1) {const rtcPanel=$('clockSettingsPanel');rtcPanel.style.display='block';row.appendChild(rtcPanel)}
   if(k===3||k===5) {const hint=document.createElement('p');hint.className='hint';hint.textContent=k===3?'Переключение режима Wi-Fi доступно в системных настройках и с ИК-пульта.':'Поиск сетей, выбор SSID и пароль доступны в системной панели Wi-Fi ниже.';row.appendChild(hint)}
   if(k===4) {const hint=document.createElement('p');hint.className='hint';hint.textContent='Коэффициенты и целевые показания настраиваются в разделе калибровки ниже.';row.appendChild(hint)}
   root.appendChild(row);
  });
  const tools=$('systemElementTools');
  const kindsNow=new Set(w.elements.map(e=>Number(e.kind)||0));
- const panels=[['clockSettingsPanel',kindsNow.has(1)],['wifiModePanel',kindsNow.has(3)],['wifiDefaultsPanel',kindsNow.has(3)],['wifiConnectionPanel',kindsNow.has(5)],['calibrationEditor',kindsNow.has(4)]];
+ const rtcPanel=$('clockSettingsPanel');if(rtcPanel.parentElement!==root)rtcPanel.style.display='none';
+ const panels=[['wifiModePanel',kindsNow.has(3)],['wifiDefaultsPanel',kindsNow.has(3)],['wifiConnectionPanel',kindsNow.has(5)],['calibrationEditor',kindsNow.has(4)]];
  tools.style.display=panels.some(([,show])=>show)?'block':'none';
  panels.forEach(([id,show])=>{const panel=$(id);if(panel){panel.style.display=show?'block':'none';tools.appendChild(panel)}});
  $('addCustomElement').disabled=w.elements.length>=MAX_WIDGET_ELEMENTS;
@@ -217,8 +216,7 @@ async function saveUiTexts(reset){
  const values={};uiTextKeys.forEach(key=>{const el=$('ui'+key[0].toUpperCase()+key.slice(1));values[key]=reset?uiTextDefaults[key]:el.value});
  try{const r=await fetch('/api/ui-texts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(values)});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Ошибка сохранения');uiTexts=values;renderUiTexts(uiTexts);$('uiTextsStatus').textContent=j.message;renderCanvas();}
  catch(e){$('uiTextsStatus').textContent='Ошибка: '+e.message}
-}
-$('saveUiTexts').addEventListener('click',()=>saveUiTexts(false));
+}$('saveUiTexts').addEventListener('click',()=>saveUiTexts(false));
 $('resetUiTexts').addEventListener('click',()=>{if(confirm('Вернуть исходные подписи?'))saveUiTexts(true)});
 function applyActiveCalibration(c){
  const valid=Array.isArray(c.activeCalibrationValid)?c.activeCalibrationValid:[];
@@ -267,8 +265,7 @@ $('newPage').addEventListener('click',async()=>{
   const c=await (await fetch('/api/config?t='+Date.now(),{cache:'no-store'})).json();followDevice=false;loadConfig(c);editorPage=Math.min(Number(j.page)-1,pages.length-1);selectedWidget=-1;renderAll();
  }catch(e){alert(e.message||'Ошибка создания страницы')}
 });
-$('deletePage').addEventListener('click',async()=>{
- if(pages.length<=1)return;if(!confirm('Удалить страницу '+(editorPage+1)+' и все её блоки?'))return;
+$('deletePage').addEventListener('click',async()=>{ if(pages.length<=1)return;if(!confirm('Удалить страницу '+(editorPage+1)+' и все её блоки?'))return;
  const removed=editorPage;pages.splice(removed,1);if(editorPage>=pages.length)editorPage=pages.length-1;selectedWidget=-1;followDevice=false;
  try{await saveAll(false)}catch(e){alert('Не удалось сохранить изменения: '+e.message)}renderAll();
 });
