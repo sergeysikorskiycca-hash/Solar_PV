@@ -33,7 +33,7 @@ struct WidgetElementConfig {
 
 // Widget types are data, not page-specific drawing code (including multi-string layouts).
 struct WidgetConfig {
-  String type;       // power, voltage, current, battery, wifiStatus
+  String type;       // "custom" at runtime; legacy names are accepted only during migration.
   String label;
   uint8_t headingSize, contentSize;
   uint8_t stringCount; // Read only when migrating old saved layouts.
