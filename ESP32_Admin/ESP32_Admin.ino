@@ -532,7 +532,7 @@ enum RemoteTextMode : uint8_t { RT_CLOSED, RT_PICKER, RT_EDIT, RT_WIFI_MENU, RT_
 // ESP32 is the slave at 0x42. All multi-byte fields are little-endian.
 static const uint8_t GATEWAY_I2C_ADDRESS = 0x42;
 static const uint8_t GATEWAY_FRAME_MAGIC = 0xA7;
-static const uint8_t GATEWAY_FRAME_VERSION = 1;
+static const uint8_t GATEWAY_FRAME_VERSION = 2;
 static const uint8_t GATEWAY_ACK_MAGIC = 0x5A;
 #pragma pack(push, 1)
 struct GatewayPacket {
