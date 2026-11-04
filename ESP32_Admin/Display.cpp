@@ -168,29 +168,6 @@ void drawCyrillicText(const String& text, int x, int baselineY, uint16_t color, 
   u8g2Fonts.setFont(large ? u8g2_font_unifont_t_cyrillic : u8g2_font_6x13_t_cyrillic);
   u8g2Fonts.setCursor(x, baselineY); u8g2Fonts.print(text);
 }
-static void drawWrappedText(const WidgetConfig& widget, const String& rawText, int startBaseline, int maxLines) {
-  String content = rawText; content.replace("\r", ""); content += "\n";
-  String line = ""; int baseline = startBaseline;
-  uint8_t sz = widget.contentSize <= 5 ? widget.contentSize : 1;
-  const int lineHeight = FONT_HEIGHTS[sz] + 3, maxWidth = widget.w - 12;
-  setWidgetFont(sz);
-  for (size_t pos = 0; pos < content.length() && maxLines > 0;) {
-    if (content[pos] == '\n') {
-      drawAlignedText(line, widget.x, baseline, widget.w, sz, widget.contentAlign, widget.contentColor);
-      line = ""; baseline += lineHeight; maxLines--; pos++; continue;
-    }
-    uint8_t lead = (uint8_t)content[pos];
-    size_t bytes = lead < 0x80 ? 1 : ((lead & 0xE0) == 0xC0 ? 2 : ((lead & 0xF0) == 0xE0 ? 3 : ((lead & 0xF8) == 0xF0 ? 4 : 1)));
-    if (pos + bytes > content.length()) bytes = 1;
-    String glyph = content.substring(pos, pos + bytes), candidate = line + glyph;
-    if (line.length() && u8g2Fonts.getUTF8Width(candidate.c_str()) > maxWidth) {
-      drawAlignedText(line, widget.x, baseline, widget.w, sz, widget.contentAlign, widget.contentColor);
-      line = glyph; baseline += lineHeight; maxLines--;
-    } else line = candidate;
-    pos += bytes;
-  }
-  if (line.length() && maxLines > 0) drawAlignedText(line, widget.x, baseline, widget.w, sz, widget.contentAlign, widget.contentColor);
-}
 void drawWidget(const WidgetConfig& widget) {
   if (!widget.enabled) return;
   const int x = widget.x, y = widget.y, w = widget.w, h = widget.h;
