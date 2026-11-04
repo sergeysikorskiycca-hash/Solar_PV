@@ -95,7 +95,7 @@ function renderTabs(){
 }
 function renderCanvas(){
  const c=$('preview');c.querySelectorAll('.widget').forEach(n=>n.remove());
- $('prevTitle').textContent=pages[editorPage].title||('Страница '+(editorPage+1));$('prevTitle').style.display=pages[editorPage].showTitle?'block':'none';$('prevTitle').style.fontSize='16px';const palette=['#FFFFFF','#00D5FF','#39E75F','#FFD400','#FF4D4D','#FF8C00'];const headingSizes=[9,11,13,15,17,19],contentSizes=[9,12,15,18,20,22];
+ $('prevTitle').textContent=pages[editorPage].title||('Страница '+(editorPage+1));$('prevTitle').style.display=pages[editorPage].showTitle?'block':'none';$('prevTitle').style.fontSize='16px';const palette=['#FFFFFF','#00D5FF','#39E75F','#FFD400','#FF4D4D','#FF8C00'];const headingSizes=[9,11,13,17,20,23],contentSizes=[9,12,15,20,24,27];
  $('prevNetwork').textContent=networkLabel;$('prevPage').textContent='Стр. '+(editorPage+1);
  pages[editorPage].widgets.forEach((w,i)=>{
   if(!w.enabled)return;
