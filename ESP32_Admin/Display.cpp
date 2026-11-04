@@ -177,8 +177,6 @@ void drawWidget(const WidgetConfig& widget) {
   const uint8_t cs = widget.contentSize <= 5 ? widget.contentSize : 2;
   const int headingBaseline = y + FONT_HEIGHTS[hs] + 3;
   if (widget.showHeading) drawAlignedText(widget.label, x, headingBaseline, w, hs, widget.headingAlign, widget.headingColor);
-  if (widget.type != "custom") return;
-
   const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
   const uint8_t firstSize = count && widget.elements[0].fontSize <= 5 ? widget.elements[0].fontSize : cs;
   int lineY = widget.showHeading
@@ -203,8 +201,7 @@ struct IncrementalWidgetCache {
 static IncrementalWidgetCache incrementalCaches[MAX_PAGES][MAX_WIDGETS_PER_PAGE];
 
 void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint8_t widgetIndex) {
-  if (!widget.enabled || widget.type != "custom" ||
-      pageIndex >= MAX_PAGES || widgetIndex >= MAX_WIDGETS_PER_PAGE) return;
+  if (!widget.enabled || pageIndex >= MAX_PAGES || widgetIndex >= MAX_WIDGETS_PER_PAGE) return;
   IncrementalWidgetCache& cache = incrementalCaches[pageIndex][widgetIndex];
   const uint8_t headingSize = widget.headingSize <= 5 ? widget.headingSize : 1;
   const uint8_t contentSize = widget.contentSize <= 5 ? widget.contentSize : 2;
