@@ -232,23 +232,6 @@ String makeConfigJson() {
   j += "\"selectHint\":\"" + jsonEscape(cfg.uiTexts.selectHint) + "\",";
   j += "\"changeHint\":\"" + jsonEscape(cfg.uiTexts.changeHint) + "\",";
   j += "\"applyLabel\":\"" + jsonEscape(cfg.uiTexts.applyLabel) + "\"},";
-  j += "\"powerLabel\":\"" + jsonEscape(cfg.powerLabel) + "\",";
-  j += "\"voltageLabel\":\"" + jsonEscape(cfg.voltageLabel) + "\",";
-  j += "\"currentLabel\":\"" + jsonEscape(cfg.currentLabel) + "\",";
-  j += "\"batteryLabel\":\"" + jsonEscape(cfg.batteryLabel) + "\",";
-  j += "\"fontScale\":" + String(cfg.fontScale) + ",";
-  j += "\"showPower\":" + String(cfg.showPower ? "true" : "false") + ",";
-  j += "\"showVoltage\":" + String(cfg.showVoltage ? "true" : "false") + ",";
-  j += "\"showCurrent\":" + String(cfg.showCurrent ? "true" : "false") + ",";
-  j += "\"showBattery\":" + String(cfg.showBattery ? "true" : "false") + ",";
-  j += "\"powerX\":" + String(cfg.powerX) + ",\"powerY\":" + String(cfg.powerY) + ",";
-  j += "\"voltageX\":" + String(cfg.voltageX) + ",\"voltageY\":" + String(cfg.voltageY) + ",";
-  j += "\"currentX\":" + String(cfg.currentX) + ",\"currentY\":" + String(cfg.currentY) + ",";
-  j += "\"batteryX\":" + String(cfg.batteryX) + ",\"batteryY\":" + String(cfg.batteryY) + ",";
-  j += "\"powerW\":" + String(cfg.powerW) + ",\"powerH\":" + String(cfg.powerH) + ",";
-  j += "\"voltageW\":" + String(cfg.voltageW) + ",\"voltageH\":" + String(cfg.voltageH) + ",";
-  j += "\"currentW\":" + String(cfg.currentW) + ",\"currentH\":" + String(cfg.currentH) + ",";
-  j += "\"batteryW\":" + String(cfg.batteryW) + ",\"batteryH\":" + String(cfg.batteryH) + ",";
   j += "\"clock\":{\"valid\":" + String(gatewayTimeValid ? "true" : "false") + ",\"date\":\"";
   if (gatewayTimeValid) { char d[11]; snprintf(d, sizeof(d), "%04u-%02u-%02u", (unsigned)gatewayYear, (unsigned)gatewayMonth, (unsigned)gatewayDay); j += d; }
   j += "\",\"time\":\"";
@@ -383,7 +366,6 @@ void handleSaveDisplay() {
     return;
   }
   if (doc.containsKey("title")) cfg.title = sanitizeTitle(String(doc["title"] | "SOLAR PV"));
-  if (doc.containsKey("fontScale")) cfg.fontScale = (doc["fontScale"] | 1) == 2 ? 2 : 1;
   float oldCurrentCalibration[6], oldVoltageCalibration[6];
   memcpy(oldCurrentCalibration, cfg.currentCalibration, sizeof(oldCurrentCalibration));
   memcpy(oldVoltageCalibration, cfg.voltageCalibration, sizeof(oldVoltageCalibration));
@@ -441,13 +423,6 @@ void handleSaveDisplay() {
       w.y = clampInt(source["y"] | 55, 40, 290 - w.h);
       w.enabled = source["enabled"] | true;
     }
-  }
-  for (uint8_t i = 0; i < cfg.pages[0].widgetCount; i++) {
-    WidgetConfig& w = cfg.pages[0].widgets[i];
-    if (w.type == "power") { cfg.powerLabel=w.label; cfg.showPower=w.enabled; cfg.powerX=w.x; cfg.powerY=w.y; cfg.powerW=w.w; cfg.powerH=w.h; }
-    else if (w.type == "voltage") { cfg.voltageLabel=w.label; cfg.showVoltage=w.enabled; cfg.voltageX=w.x; cfg.voltageY=w.y; cfg.voltageW=w.w; cfg.voltageH=w.h; }
-    else if (w.type == "current") { cfg.currentLabel=w.label; cfg.showCurrent=w.enabled; cfg.currentX=w.x; cfg.currentY=w.y; cfg.currentW=w.w; cfg.currentH=w.h; }
-    else if (w.type == "battery") { cfg.batteryLabel=w.label; cfg.showBattery=w.enabled; cfg.batteryX=w.x; cfg.batteryY=w.y; cfg.batteryW=w.w; cfg.batteryH=w.h; }
   }
   cfg.tftPage = clampInt(cfg.tftPage, 1, cfg.pageCount);
   bool ok = saveConfig();
