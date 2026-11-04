@@ -678,7 +678,7 @@ static void processGatewayPacket() {
         activeCalibrationValid[index] = packet.currentCalibrationX600 >= 1 && packet.voltageCalibrationX600 >= 1;
         // The sensor is authoritative: keep browser and IR calibration math aligned
         // with the coefficients actually applied by the live sensor.
-        if (activeCalibrationValid[index]) {
+        if (activeCalibrationValid[index] && index < 6) {
           cfg.currentCalibration[index] = activeCurrentCalibration[index];
           cfg.voltageCalibration[index] = activeVoltageCalibration[index];
         }
