@@ -275,24 +275,34 @@ void loadConfig() {
           w.elementCount = 2;
           w.elements[0].label = "Время"; w.elements[0].kind = ELEMENT_CLOCK; w.elements[0].metric = 0;
           w.elements[1].label = "Дата"; w.elements[1].kind = ELEMENT_CLOCK; w.elements[1].metric = 1;
-        } else if (legacyType == "wifiStatus" || legacyType == "wifiControl") {
+          for (uint8_t e = 0; e < 2; ++e) { w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor; }
+        } else if (legacyType == "wifiStatus") {
+          w.elementCount = 4;
+          const char* labels[4] = {"Статус", "Сеть", "Сигнал", "IP"};
+          for (uint8_t e = 0; e < 4; ++e) {
+            w.elements[e].label = labels[e]; w.elements[e].kind = ELEMENT_WIFI_STATUS;
+            w.elements[e].metric = e; w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor;
+          }
+        } else if (legacyType == "wifiControl") {
           w.elementCount = 1;
-          w.elements[0].label = legacyType == "wifiStatus" ? "Состояние Wi-Fi" : "Управление Wi-Fi";
-          w.elements[0].kind = legacyType == "wifiStatus" ? ELEMENT_WIFI_STATUS : ELEMENT_WIFI_CONTROL;
-          w.elements[0].metric = legacyType == "wifiControl" ? 2 : 0;
+          w.elements[0].label = "Управление Wi-Fi"; w.elements[0].kind = ELEMENT_WIFI_CONTROL;
+          w.elements[0].metric = 2; w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
         } else if (legacyType == "calibration") {
           w.elementCount = clampInt(w.stringCount, 2, 6);
           for (uint8_t e = 0; e < w.elementCount; ++e) {
             w.elements[e].label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
             w.elements[e].kind = ELEMENT_CALIBRATION; w.elements[e].sourceId = e + 1; w.elements[e].metric = 2;
+            w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor;
           }
         } else if (legacyType == "text") {
           w.elementCount = 1; w.elements[0].label = w.text; w.elements[0].kind = ELEMENT_TEXT;
+          w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
         } else if (legacyType == "power" || legacyType == "voltage" || legacyType == "current" || legacyType == "battery") {
           w.elementCount = 1; w.elements[0].kind = ELEMENT_SENSOR;
           w.elements[0].label = legacyType == "power" ? "Мощность PV" : (legacyType == "voltage" ? "Напряжение" : (legacyType == "current" ? "Ток" : "Аккумулятор"));
           w.elements[0].sourceId = legacyType == "power" ? 7 : 0;
           w.elements[0].metric = legacyType == "current" ? 1 : (legacyType == "power" ? 2 : (legacyType == "battery" ? 3 : 0));
+          w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
         }
         w.type = "custom";
       }
