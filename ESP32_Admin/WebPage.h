@@ -136,9 +136,14 @@ function renderCanvas(){
 }
 function syncStyleControls(){const p=pages[editorPage],w=p&&p.widgets[selectedWidget],target=$('styleTarget').value;const keys=[target+'Size',target+'Align',target+'Color'];$('styleSize').disabled=!w;$('styleAlign').disabled=!w;$('styleColor').disabled=!w;$('backgroundColor').disabled=!w;$('showWidgetBorder').disabled=!w;if(!w)return;$('styleSize').value=String(w[keys[0]]);$('styleAlign').value=String(w[keys[1]]);$('styleColor').value=String(w[keys[2]]);$('backgroundColor').value=String(w.backgroundColor??0);$('showWidgetBorder').checked=w.showBorder!==false;}
 function renderAll(){renderTabs();$('pageTitle').value=pages[editorPage].title;$('showPageTitle').checked=pages[editorPage].showTitle!==false;const p=pages[editorPage],w=p.widgets[selectedWidget];$('showWidgetHeading').disabled=!w;$('showWidgetHeading').checked=!!(w&&w.showHeading!==false);$('widgetText').disabled=!w||w.type!=='text';$('widgetText').value=w&&w.type==='text'?w.text:'';const isCalibration=!!w&&w.type==='calibration';$('calibrationEditor').style.display=isCalibration?'block':'none';if(isCalibration)renderCalibrationRows(w.stringCount||2);const isStrings=!!w&&['strings','stringsVoltage','stringsCurrent','stringsPower'].includes(w.type);const hasStringCount=isStrings||isCalibration;$('stringCountWrap').style.display=hasStringCount?'block':'none';$('stringCount').disabled=!hasStringCount;if(hasStringCount)$('stringCount').value=String(w.stringCount||2);syncStyleControls();renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT'}
+function applyActiveCalibration(c){
+ const valid=Array.isArray(c.activeCalibrationValid)?c.activeCalibrationValid:[];
+ const activeCurrent=normalizeCalibration(c.activeCurrentCalibration),activeVoltage=normalizeCalibration(c.activeVoltageCalibration);
+ for(let i=0;i<2;i++)if(valid[i]===true){currentCalibration[i]=activeCurrent[i];voltageCalibration[i]=activeVoltage[i];}
+}
 function loadConfig(c){
  stringTelemetry=Array.isArray(c.stringTelemetry)?c.stringTelemetry:[];
- currentCalibration=normalizeCalibration(c.currentCalibration);voltageCalibration=normalizeCalibration(c.voltageCalibration);
+ currentCalibration=normalizeCalibration(c.currentCalibration);voltageCalibration=normalizeCalibration(c.voltageCalibration);applyActiveCalibration(c);
  $('netStatus').textContent=c.networkStatus||'Wi-Fi не подключён';
  if(c.clock){$('clockDate').value=c.clock.date||'';$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
  networkStatus=c.networkStatus||'';networkLabel=c.networkLabel||'Wi-Fi: —';savedNetworks=c.savedNetworks||[];wifiMode=c.wifiMode||wifiMode;renderWiFiMode();$('defaultRouter').checked=!!wifiMode.defaultRouter;$('defaultAp').checked=!!wifiMode.defaultAp;renderWiFiDefaults();
@@ -154,7 +159,7 @@ function collectData(){
 }
 async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
-  stringTelemetry=Array.isArray(c.stringTelemetry)?c.stringTelemetry:[];currentCalibration=normalizeCalibration(c.currentCalibration);voltageCalibration=normalizeCalibration(c.voltageCalibration);updateStringPreviews();
+  stringTelemetry=Array.isArray(c.stringTelemetry)?c.stringTelemetry:[];currentCalibration=normalizeCalibration(c.currentCalibration);voltageCalibration=normalizeCalibration(c.voltageCalibration);applyActiveCalibration(c);updateStringPreviews();
   const p=Math.max(0,Math.min((Number(c.tftPage)||1)-1,Math.max(0,pages.length-1)));
   if(p!==devicePage){devicePage=p;if(followDevice)editorPage=Math.min(devicePage,pages.length-1);renderAll()}
   if(c.clock){if(document.activeElement!==$('clockDate'))$('clockDate').value=c.clock.date||'';if(document.activeElement!==$('clockTime'))$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
