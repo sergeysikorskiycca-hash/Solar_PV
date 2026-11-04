@@ -237,8 +237,8 @@ void readINA226(uint8_t index)
     data.current = current;
     data.power = power;
     data.shuntVoltage = shuntVoltage * 1000.0f;
-    data.currentCalibrationPermille = (uint16_t)lroundf(currentCalibration[index] * 600.0f);
-    data.voltageCalibrationPermille = (uint16_t)lroundf(voltageCalibration[index] * 600.0f);
+    data.currentCalibrationX600 = (uint16_t)lroundf(currentCalibration[index] * 600.0f);
+    data.voltageCalibrationX600 = (uint16_t)lroundf(voltageCalibration[index] * 600.0f);
     data.packetNumber = packetCounter[index]++;
 }
 
