@@ -159,8 +159,9 @@ bool loadPageKey(const String& key, const String& value) {
     String elementField = suffix.substring(elementEnd);
     WidgetElementConfig& element = w.elements[elementIndex];
     if (elementField == "Label") element.label = sanitizeTitle(value);
-    else if (elementField == "Source") element.sourceId = clampInt(value.toInt(), 1, 6);
-    else if (elementField == "Metric") element.metric = clampInt(value.toInt(), 0, 2);
+    else if (elementField == "Kind") element.kind = clampInt(value.toInt(), ELEMENT_SENSOR, ELEMENT_TEXT);
+    else if (elementField == "Source") element.sourceId = clampInt(value.toInt(), 0, 7);
+    else if (elementField == "Metric") element.metric = clampInt(value.toInt(), 0, 5);
     else if (elementField == "Size") element.fontSize = clampInt(value.toInt(), 0, 5);
     else if (elementField == "Color") element.color = clampInt(value.toInt(), 0, 5);
     else return false;
@@ -292,6 +293,7 @@ void loadConfig() {
           for (uint8_t e = 0; e < w.elementCount; ++e) {
             WidgetElementConfig& element = w.elements[e];
             element.label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
+            element.kind = ELEMENT_SENSOR;
             element.sourceId = e + 1;
             element.metric = legacyType == "stringsCurrent" ? 1 : (legacyType == "stringsPower" ? 2 : 0);
             element.fontSize = w.contentSize;
@@ -300,14 +302,44 @@ void loadConfig() {
         }
         w.type = "custom";
       }
+      // Convert fixed-purpose blocks into elements of the universal block.
+      if (w.type != "custom" && w.type != "strings" && w.type != "stringsVoltage" &&
+          w.type != "stringsCurrent" && w.type != "stringsPower" && w.elementCount == 0) {
+        const String legacyType = w.type;
+        if (legacyType == "clock") {
+          w.elementCount = 2;
+          w.elements[0].label = "Время"; w.elements[0].kind = ELEMENT_CLOCK; w.elements[0].metric = 0;
+          w.elements[1].label = "Дата"; w.elements[1].kind = ELEMENT_CLOCK; w.elements[1].metric = 1;
+        } else if (legacyType == "wifiStatus" || legacyType == "wifiControl") {
+          w.elementCount = 1;
+          w.elements[0].label = legacyType == "wifiStatus" ? "Состояние Wi-Fi" : "Управление Wi-Fi";
+          w.elements[0].kind = legacyType == "wifiStatus" ? ELEMENT_WIFI_STATUS : ELEMENT_WIFI_CONTROL;
+          w.elements[0].metric = legacyType == "wifiControl" ? 2 : 0;
+        } else if (legacyType == "calibration") {
+          w.elementCount = clampInt(w.stringCount, 2, 6);
+          for (uint8_t e = 0; e < w.elementCount; ++e) {
+            w.elements[e].label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
+            w.elements[e].kind = ELEMENT_CALIBRATION; w.elements[e].sourceId = e + 1; w.elements[e].metric = 2;
+          }
+        } else if (legacyType == "text") {
+          w.elementCount = 1; w.elements[0].label = w.text; w.elements[0].kind = ELEMENT_TEXT;
+        } else if (legacyType == "power" || legacyType == "voltage" || legacyType == "current" || legacyType == "battery") {
+          w.elementCount = 1; w.elements[0].kind = ELEMENT_SENSOR;
+          w.elements[0].label = legacyType == "power" ? "Мощность PV" : (legacyType == "voltage" ? "Напряжение" : (legacyType == "current" ? "Ток" : "Аккумулятор"));
+          w.elements[0].sourceId = legacyType == "power" ? 7 : 0;
+          w.elements[0].metric = legacyType == "current" ? 1 : (legacyType == "power" ? 2 : (legacyType == "battery" ? 3 : 0));
+        }
+        w.type = "custom";
+      }
       w.elementCount = clampInt(w.elementCount, 0, MAX_WIDGET_ELEMENTS);
       for (uint8_t e = 0; e < w.elementCount; ++e) {
         WidgetElementConfig& element = w.elements[e];
-        element.sourceId = clampInt(element.sourceId ? element.sourceId : 1, 1, 6);
-        element.metric = clampInt(element.metric, 0, 2);
+        element.kind = clampInt(element.kind, ELEMENT_SENSOR, ELEMENT_TEXT);
+        element.sourceId = clampInt(element.sourceId, 0, 7);
+        element.metric = clampInt(element.metric, 0, 5);
         element.fontSize = clampInt(element.fontSize, 0, 5);
         element.color = clampInt(element.color, 0, 5);
-        if (!element.label.length()) element.label = "Стринг " + String(element.sourceId);
+        if (!element.label.length()) element.label = "Элемент " + String(e + 1);
       }
       w.headingAlign = clampInt(w.headingAlign, 0, 2); w.contentAlign = clampInt(w.contentAlign, 0, 2);
       w.headingColor = clampInt(w.headingColor, 0, 5); w.contentColor = clampInt(w.contentColor, 0, 5); w.backgroundColor = clampInt(w.backgroundColor, 0, 6);
@@ -398,6 +430,7 @@ bool saveConfig() {
         const WidgetElementConfig& element = w.elements[e];
         String elementPrefix = prefix + "Element" + String(e);
         f.println(elementPrefix + "Label=" + sanitizeTitle(element.label));
+        f.println(elementPrefix + "Kind=" + String(element.kind));
         f.println(elementPrefix + "Source=" + String(element.sourceId));
         f.println(elementPrefix + "Metric=" + String(element.metric));
         f.println(elementPrefix + "Size=" + String(element.fontSize));
