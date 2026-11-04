@@ -261,6 +261,9 @@ String makeConfigJson() {
   }
   j += "\"networkStatus\":\"" + jsonEscape(net) + "\",";
   j += "\"networkLabel\":\"" + jsonEscape(label) + "\",";
+  j += "\"gatewayTelemetry\":{\"valid\":" + String(gatewayOnline && gatewaySensorValid ? "true" : "false") +
+       ",\"voltage\":" + String(gatewayVoltage, 3) + ",\"current\":" + String(gatewayCurrent, 4) +
+       ",\"power\":" + String(gatewayPower, 2) + "},";
   j += "\"stringTelemetry\":[";
   for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) {
     if (i) j += ",";
