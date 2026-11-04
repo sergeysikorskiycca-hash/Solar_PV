@@ -95,7 +95,7 @@ void initializeDefaultPages() {
   bool enabled[4] = {true, true, true, true};
   for (uint8_t i = 0; i < 4; i++) {
     WidgetConfig& w = cfg.pages[0].widgets[i];
-    w.type = types[i]; w.label = labels[i]; w.text = ""; w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.elementCount = 0; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0; w.x = xs[i]; w.y = ys[i];
+    w.type = types[i]; w.label = labels[i]; w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.elementCount = 0; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0; w.x = xs[i]; w.y = ys[i];
     w.w = ws[i]; w.h = hs[i]; w.enabled = enabled[i];
   }
   cfg.pages[1].title = "Wi-Fi";
@@ -270,25 +270,25 @@ void loadConfig() {
       }
       // Convert fixed-purpose blocks into elements of the universal block.
       if (w.type != "custom" && w.type != "strings" && w.type != "stringsVoltage" &&
-          w.type != "stringsCurrent" && w.type != "stringsPower" && w.elementCount == 0) {
+          w.type != "stringsCurrent" && w.type != "stringsPower") {
         const String legacyType = w.type;
-        if (legacyType == "clock") {
+        if (legacyType == "clock" && w.elementCount == 0) {
           w.elementCount = 2;
           w.elements[0].label = "Время"; w.elements[0].kind = ELEMENT_CLOCK; w.elements[0].metric = 0;
           w.elements[1].label = "Дата"; w.elements[1].kind = ELEMENT_CLOCK; w.elements[1].metric = 1;
           for (uint8_t e = 0; e < 2; ++e) { w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor; }
-        } else if (legacyType == "wifiStatus") {
+        } else if (legacyType == "wifiStatus" && w.elementCount == 0) {
           w.elementCount = 4;
           const char* labels[4] = {"Статус", "Сеть", "Сигнал", "IP"};
           for (uint8_t e = 0; e < 4; ++e) {
             w.elements[e].label = labels[e]; w.elements[e].kind = ELEMENT_WIFI_STATUS;
             w.elements[e].metric = e; w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor;
           }
-        } else if (legacyType == "wifiControl") {
+        } else if (legacyType == "wifiControl" && w.elementCount == 0) {
           w.elementCount = 1;
           w.elements[0].label = "Управление Wi-Fi"; w.elements[0].kind = ELEMENT_WIFI_CONTROL;
           w.elements[0].metric = 2; w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
-        } else if (legacyType == "calibration") {
+        } else if (legacyType == "calibration" && w.elementCount == 0) {
           w.elementCount = clampInt(w.stringCount, 2, 6);
           for (uint8_t e = 0; e < w.elementCount; ++e) {
             w.elements[e].label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
@@ -296,9 +296,11 @@ void loadConfig() {
             w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor;
           }
         } else if (legacyType == "text") {
-          w.elementCount = 1; w.elements[0].label = w.text; w.elements[0].kind = ELEMENT_TEXT;
-          w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
-        } else if (legacyType == "power" || legacyType == "voltage" || legacyType == "current" || legacyType == "battery") {
+          if (w.elementCount == 0) {
+            w.elementCount = 1; w.elements[0].label = "Текст"; w.elements[0].kind = ELEMENT_TEXT;
+            w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
+          }
+        } else if ((legacyType == "power" || legacyType == "voltage" || legacyType == "current" || legacyType == "battery") && w.elementCount == 0) {
           w.elementCount = 1; w.elements[0].kind = ELEMENT_SENSOR;
           w.elements[0].label = legacyType == "power" ? "Мощность PV" : (legacyType == "voltage" ? "Напряжение" : (legacyType == "current" ? "Ток" : "Аккумулятор"));
           w.elements[0].sourceId = legacyType == "power" ? 7 : 0;
