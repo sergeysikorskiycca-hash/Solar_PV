@@ -296,8 +296,8 @@ String makeConfigJson() {
     for (uint8_t i = 0; i < page.widgetCount; i++) {
       if (i) j += ",";
       const WidgetConfig& w = page.widgets[i];
-      j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",\"text\":\"" + jsonEscapeText(w.text) + "\",\"showHeading\":" + String(w.showHeading ? "true" : "false") + ",\"showBorder\":" + String(w.showBorder ? "true" : "false") + ",";
-      j += "\"headingSize\":" + String(w.headingSize) + ",\"contentSize\":" + String(w.contentSize) + ",\"stringCount\":" + String(w.stringCount ? w.stringCount : 2) + ",\"locked\":" + String(w.locked ? "true" : "false") + ",\"headingAlign\":" + String(w.headingAlign) + ",\"contentAlign\":" + String(w.contentAlign) + ",\"headingColor\":" + String(w.headingColor) + ",\"contentColor\":" + String(w.contentColor) + ",\"backgroundColor\":" + String(w.backgroundColor) + ",";
+      j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",\"showHeading\":" + String(w.showHeading ? "true" : "false") + ",\"showBorder\":" + String(w.showBorder ? "true" : "false") + ",";
+      j += "\"headingSize\":" + String(w.headingSize) + ",\"contentSize\":" + String(w.contentSize) + ",\"locked\":" + String(w.locked ? "true" : "false") + ",\"headingAlign\":" + String(w.headingAlign) + ",\"contentAlign\":" + String(w.contentAlign) + ",\"headingColor\":" + String(w.headingColor) + ",\"contentColor\":" + String(w.contentColor) + ",\"backgroundColor\":" + String(w.backgroundColor) + ",";
       j += "\"x\":" + String(w.x) + ",\"y\":" + String(w.y) + ",\"w\":" + String(w.w) + ",\"h\":" + String(w.h) + ",";
       j += "\"enabled\":" + String(w.enabled ? "true" : "false") + ",\"elementCount\":" + String(w.elementCount) + ",\"elements\":[";
       for (uint8_t e = 0; e < w.elementCount && e < MAX_WIDGET_ELEMENTS; ++e) {
@@ -399,8 +399,6 @@ void handleSaveDisplay() {
       String type = String(source["type"] | "power");
       if (isKnownWidgetType(type)) w.type = type;
       w.label = sanitizeTitle(String(source["label"] | "Блок"));
-      w.text = String(source["text"] | "");
-      if (w.text.length() > 240) w.text = w.text.substring(0, 240);
       w.headingSize = clampInt(source["headingSize"] | 1, 0, 5); w.contentSize = clampInt(source["contentSize"] | 2, 0, 5);
       w.stringCount = clampInt(source["stringCount"] | 2, 1, 6);
       JsonArray sourceElements = source["elements"].as<JsonArray>();
