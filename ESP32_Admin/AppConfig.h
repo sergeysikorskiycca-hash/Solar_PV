@@ -35,9 +35,8 @@ struct WidgetElementConfig {
 struct WidgetConfig {
   String type;       // power, voltage, current, battery, wifiStatus
   String label;
-  String text;      // Free text for text widgets; supports UTF-8 and line breaks.
   uint8_t headingSize, contentSize;
-  uint8_t stringCount; // Number of PV strings shown by a strings widget.
+  uint8_t stringCount; // Read only when migrating old saved layouts.
   uint8_t elementCount; // Number of configured rows in a universal widget.
   WidgetElementConfig elements[MAX_WIDGET_ELEMENTS];
   bool locked; // Prevents accidental position and size changes in the web editor
