@@ -302,7 +302,15 @@ String makeConfigJson() {
       j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",\"text\":\"" + jsonEscapeText(w.text) + "\",\"showHeading\":" + String(w.showHeading ? "true" : "false") + ",\"showBorder\":" + String(w.showBorder ? "true" : "false") + ",";
       j += "\"headingSize\":" + String(w.headingSize) + ",\"contentSize\":" + String(w.contentSize) + ",\"stringCount\":" + String(w.stringCount ? w.stringCount : 2) + ",\"locked\":" + String(w.locked ? "true" : "false") + ",\"headingAlign\":" + String(w.headingAlign) + ",\"contentAlign\":" + String(w.contentAlign) + ",\"headingColor\":" + String(w.headingColor) + ",\"contentColor\":" + String(w.contentColor) + ",\"backgroundColor\":" + String(w.backgroundColor) + ",";
       j += "\"x\":" + String(w.x) + ",\"y\":" + String(w.y) + ",\"w\":" + String(w.w) + ",\"h\":" + String(w.h) + ",";
-      j += "\"enabled\":" + String(w.enabled ? "true" : "false") + "}";
+      j += "\"enabled\":" + String(w.enabled ? "true" : "false") + ",\"elementCount\":" + String(w.elementCount) + ",\"elements\":[";
+      for (uint8_t e = 0; e < w.elementCount && e < MAX_WIDGET_ELEMENTS; ++e) {
+        const WidgetElementConfig& element = w.elements[e];
+        if (e) j += ",";
+        j += "{\"label\":\"" + jsonEscape(element.label) + "\",\"sourceId\":" + String(element.sourceId) +
+             ",\"metric\":" + String(element.metric) + ",\"fontSize\":" + String(element.fontSize) +
+             ",\"color\":" + String(element.color) + "}";
+      }
+      j += "]}";
     }
     j += "]}";
   }
@@ -398,7 +406,21 @@ void handleSaveDisplay() {
       w.text = String(source["text"] | "");
       if (w.text.length() > 240) w.text = w.text.substring(0, 240);
       w.headingSize = clampInt(source["headingSize"] | 1, 0, 5); w.contentSize = clampInt(source["contentSize"] | 2, 0, 5);
-      w.stringCount = clampInt(source["stringCount"] | 2, 1, 6); w.locked = source["locked"] | false; w.showHeading = source["showHeading"] | true; w.showBorder = source["showBorder"] | true;
+      w.stringCount = clampInt(source["stringCount"] | 2, 1, 6);
+      JsonArray sourceElements = source["elements"].as<JsonArray>();
+      w.elementCount = clampInt(sourceElements.size(), 0, MAX_WIDGET_ELEMENTS);
+      for (uint8_t e = 0; e < w.elementCount; ++e) {
+        JsonObject sourceElement = sourceElements[e].as<JsonObject>();
+        WidgetElementConfig& element = w.elements[e];
+        element.sourceId = clampInt(sourceElement["sourceId"] | 1, 1, 6);
+        element.metric = clampInt(sourceElement["metric"] | 0, 0, 2);
+        element.fontSize = clampInt(sourceElement["fontSize"] | 2, 0, 5);
+        element.color = clampInt(sourceElement["color"] | 3, 0, 5);
+        String elementLabel = String(sourceElement["label"] | "");
+        if (!elementLabel.length()) elementLabel = "Стринг " + String(element.sourceId);
+        element.label = sanitizeTitle(elementLabel);
+      }
+      w.locked = source["locked"] | false; w.showHeading = source["showHeading"] | true; w.showBorder = source["showBorder"] | true;
       w.headingAlign = clampInt(source["headingAlign"] | 0, 0, 2); w.contentAlign = clampInt(source["contentAlign"] | 0, 0, 2);
       w.headingColor = clampInt(source["headingColor"] | 0, 0, 5); w.contentColor = clampInt(source["contentColor"] | 3, 0, 5); w.backgroundColor = clampInt(source["backgroundColor"] | 0, 0, 6);
       w.w = clampInt(source["w"] | 106, 40, 240);
