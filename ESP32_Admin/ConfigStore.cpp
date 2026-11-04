@@ -281,7 +281,7 @@ void loadConfig() {
       w.headingSize = clampInt(w.headingSize, 0, 5); w.contentSize = clampInt(w.contentSize, 0, 5);
       const uint8_t legacyType = legacyWidgetTypes[p][i];
       const uint8_t legacyStringCount = legacyStringCounts[p][i];
-      if (legacyType != LEGACY_NONE) legacyLayoutMigrated = true;
+      if (legacyType != LEGACY_NONE || legacyStringCount != 0) legacyLayoutMigrated = true;
       const bool firstElementMissing = w.elementCount == 0 || !w.elements[0].label.length();
       if (legacyType == LEGACY_STRINGS || legacyType == LEGACY_STRINGS_VOLTAGE ||
           legacyType == LEGACY_STRINGS_CURRENT || legacyType == LEGACY_STRINGS_POWER) {
