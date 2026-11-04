@@ -282,6 +282,24 @@ void loadConfig() {
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
       if (!isKnownWidgetType(w.type)) w.type = "power";
+      w.headingSize = clampInt(w.headingSize, 0, 5); w.contentSize = clampInt(w.contentSize, 0, 5);
+      w.stringCount = clampInt(w.stringCount ? w.stringCount : 2, 1, 6);
+      // Convert legacy fixed-type string monitors into editable universal rows.
+      if (w.type == "strings" || w.type == "stringsVoltage" || w.type == "stringsCurrent" || w.type == "stringsPower") {
+        const String legacyType = w.type;
+        if (w.elementCount == 0) {
+          w.elementCount = w.stringCount;
+          for (uint8_t e = 0; e < w.elementCount; ++e) {
+            WidgetElementConfig& element = w.elements[e];
+            element.label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
+            element.sourceId = e + 1;
+            element.metric = legacyType == "stringsCurrent" ? 1 : (legacyType == "stringsPower" ? 2 : 0);
+            element.fontSize = w.contentSize;
+            element.color = w.contentColor;
+          }
+        }
+        w.type = "custom";
+      }
       w.elementCount = clampInt(w.elementCount, 0, MAX_WIDGET_ELEMENTS);
       for (uint8_t e = 0; e < w.elementCount; ++e) {
         WidgetElementConfig& element = w.elements[e];
@@ -291,8 +309,6 @@ void loadConfig() {
         element.color = clampInt(element.color, 0, 5);
         if (!element.label.length()) element.label = "Стринг " + String(element.sourceId);
       }
-      w.headingSize = clampInt(w.headingSize, 0, 5); w.contentSize = clampInt(w.contentSize, 0, 5);
-      w.stringCount = clampInt(w.stringCount ? w.stringCount : 2, 1, 6);
       w.headingAlign = clampInt(w.headingAlign, 0, 2); w.contentAlign = clampInt(w.contentAlign, 0, 2);
       w.headingColor = clampInt(w.headingColor, 0, 5); w.contentColor = clampInt(w.contentColor, 0, 5); w.backgroundColor = clampInt(w.backgroundColor, 0, 6);
       w.w = clampInt(w.w, 40, 240); w.h = clampInt(w.h, 36, 250);
