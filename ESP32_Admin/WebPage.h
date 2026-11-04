@@ -116,7 +116,7 @@ function renderCustomEditor(w){
   const row=document.createElement('div');row.className='element-editor';
   const top=document.createElement('div');top.className='row';
   const kind=customSelect(kinds,element.kind??0);
-  kind.addEventListener('change',()=>{element.kind=Number(kind.value);if(element.kind===4)element.metric=2;else if(element.kind===1)element.metric=0;renderAll()});
+  kind.addEventListener('change',()=>{element.kind=Number(kind.value);if(element.kind===3||element.kind===4)element.metric=2;else if(element.kind===1)element.metric=0;renderAll()});
   top.appendChild(customField('Тип элемента',kind));
   const label=document.createElement('input');label.type='text';label.maxLength=54;label.value=element.label;
   label.addEventListener('input',()=>{element.label=label.value.slice(0,54);updateCustomPreviews()});
@@ -124,14 +124,14 @@ function renderCustomEditor(w){
   const bottom=document.createElement('div');bottom.className='row';
   const k=Number(element.kind)||0;
   if(k===0||k===4){
-   const sourceOptions=[[0,'ESP32 / шлюз'],[1,'Датчик 1'],[2,'Датчик 2'],[3,'Датчик 3'],[4,'Датчик 4'],[5,'Датчик 5'],[6,'Датчик 6'],[7,'Сумма мощности']];
+   const sourceOptions=k===4?[[1,'Датчик 1'],[2,'Датчик 2'],[3,'Датчик 3'],[4,'Датчик 4'],[5,'Датчик 5'],[6,'Датчик 6']]:[[0,'ESP32 / шлюз'],[1,'Датчик 1'],[2,'Датчик 2'],[3,'Датчик 3'],[4,'Датчик 4'],[5,'Датчик 5'],[6,'Датчик 6'],[7,'Сумма мощности']];
    const source=customSelect(sourceOptions,element.sourceId??1);source.addEventListener('change',()=>{element.sourceId=Number(source.value);updateCustomPreviews()});bottom.appendChild(customField('Источник',source));
   }
   let metricOptions=null,metricTitle='Параметр';
   if(k===0)metricOptions=[[0,'Напряжение'],[1,'Ток'],[2,'Мощность'],[3,'Заряд батареи']];
   else if(k===1){metricTitle='Отображать';metricOptions=[[0,'Время'],[1,'Дату'],[2,'Время и дату']]}
   else if(k===2){metricTitle='Информация';metricOptions=[[0,'Состояние'],[1,'Имя сети'],[2,'Уровень сигнала'],[3,'IP роутера'],[4,'Состояние точки'],[5,'IP точки']]}
-  else if(k===3){metricTitle='Управление';metricOptions=[[0,'Роутер'],[1,'Точка доступа'],[2,'Роутер и точка']]}
+  else if(k===3){element.metric=2;metricOptions=null}
   else if(k===4){metricTitle='Калибровка';metricOptions=[[0,'Ток'],[1,'Напряжение'],[2,'Ток и напряжение']]}
   if(metricOptions){const metric=customSelect(metricOptions,element.metric??0);metric.addEventListener('change',()=>{element.metric=Number(metric.value);updateCustomPreviews()});bottom.appendChild(customField(metricTitle,metric))}
   const size=customSelect(sizeOptions,element.fontSize);size.addEventListener('change',()=>{element.fontSize=Number(size.value);updateCustomPreviews()});bottom.appendChild(customField('Размер',size));
@@ -238,7 +238,7 @@ function loadConfig(c){
 }
 function updateDeviceStatus(){ $('deviceStatus').textContent='Физический дисплей: страница '+(devicePage+1)+' из '+pages.length+'. Редактор: страница '+(editorPage+1)+'.'; }
 function collectData(){
- return {title:'SOLAR PV',fontScale:1,currentCalibration,voltageCalibration,pageCount:pages.length,pages:pages.map(p=>({title:p.title,showTitle:p.showTitle!==false,widgets:p.widgets.map(w=>({type:w.type,label:w.label,text:w.text||'',headingSize:w.headingSize,contentSize:w.contentSize,headingAlign:w.headingAlign,contentAlign:w.contentAlign,headingColor:w.headingColor,contentColor:w.contentColor,backgroundColor:w.backgroundColor??0,stringCount:w.stringCount||2,elements:(w.elements||[]).map(e=>({label:e.label,kind:e.kind??0,sourceId:e.sourceId,metric:e.metric,fontSize:e.fontSize,color:e.color})),locked:w.locked===true,showHeading:w.showHeading!==false,showBorder:w.showBorder!==false,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
+ return {title:'SOLAR PV',fontScale:1,currentCalibration,voltageCalibration,pageCount:pages.length,pages:pages.map(p=>({title:p.title,showTitle:p.showTitle!==false,widgets:p.widgets.map(w=>({type:w.type,label:w.label,text:w.text||'',headingSize:w.headingSize,contentSize:w.contentSize,headingAlign:w.headingAlign,contentAlign:w.contentAlign,headingColor:w.headingColor,contentColor:w.contentColor,backgroundColor:w.backgroundColor??0,elements:(w.elements||[]).map(e=>({label:e.label,kind:e.kind??0,sourceId:e.sourceId,metric:e.metric,fontSize:e.fontSize,color:e.color})),locked:w.locked===true,showHeading:w.showHeading!==false,showBorder:w.showBorder!==false,x:w.x,y:w.y,w:w.w,h:w.h,enabled:w.enabled}))}))};
 }
 async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
@@ -273,9 +273,8 @@ $('deletePage').addEventListener('click',async()=>{
 $('followDevice').addEventListener('click',()=>{followDevice=true;editorPage=Math.min(devicePage,pages.length-1);selectedWidget=-1;renderAll()});
 $('addWidget').addEventListener('click',()=>{
  const p=pages[editorPage];if(p.widgets.length>=MAX_WIDGETS){alert('На одной странице максимум '+MAX_WIDGETS+' блоков.');return}
- const type=$('widgetType').value;const n=p.widgets.length;
- const isStrings=['strings','stringsVoltage','stringsCurrent','stringsPower'].includes(type);const isCustom=type==='custom';const wide=type==='wifiStatus'||type==='wifiControl'||type==='calibration'||type==='text'||isStrings||type==='clock'||isCustom;
- p.widgets.push({type,label:typeLabels[type],text:'',elements:[],headingSize:1,contentSize:type==='wifiStatus'?1:2,stringCount:2,locked:false,showHeading:type==='calibration'?false:true,headingAlign:0,contentAlign:0,headingColor:0,contentColor:type==='wifiStatus'?0:3,backgroundColor:0,showBorder:true,x:wide?8:8+(n%3)*76,y:wide?55+(n%3)*50:55+Math.floor(n/3)*58,w:wide?224:72,h:(type==='calibration'?250:((type==='wifiStatus'||type==='wifiControl')?120:((type==='text'||type==='clock')?80:(isStrings||isCustom?110:58)))),enabled:true});
+ const n=p.widgets.length;
+ p.widgets.push({type:'custom',label:'Блок '+(n+1),text:'',elements:[],headingSize:1,contentSize:2,locked:false,showHeading:true,headingAlign:0,contentAlign:0,headingColor:0,contentColor:3,backgroundColor:0,showBorder:true,x:8,y:55,w:224,h:110,enabled:true});
  selectedWidget=p.widgets.length-1;renderAll();
 });
 $('deleteWidget').addEventListener('click',()=>{const p=pages[editorPage];if(selectedWidget<0||selectedWidget>=p.widgets.length){alert('Сначала выбери блок на холсте.');return}p.widgets.splice(selectedWidget,1);selectedWidget=-1;renderAll()});
