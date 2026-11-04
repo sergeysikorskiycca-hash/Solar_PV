@@ -235,6 +235,7 @@ struct IncrementalWidgetCache {
   uint8_t contentSize, align, color, background, count;
   String lines[18];
   uint16_t colors[18];
+  uint8_t fontSizes[18];
 };
 static IncrementalWidgetCache incrementalCaches[MAX_PAGES][MAX_WIDGETS_PER_PAGE];
 
@@ -335,6 +336,54 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
 void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint8_t widgetIndex) {
   if (!widget.enabled || pageIndex >= MAX_PAGES || widgetIndex >= MAX_WIDGETS_PER_PAGE) return;
   if (widget.type == "text") return;
+  if (widget.type == "custom") {
+    IncrementalWidgetCache& cache = incrementalCaches[pageIndex][widgetIndex];
+    const uint8_t headingSize = widget.headingSize <= 5 ? widget.headingSize : 1;
+    const uint8_t contentSize = widget.contentSize <= 5 ? widget.contentSize : 2;
+    const int headingBaseline = widget.y + FONT_HEIGHTS[headingSize] + 3;
+    const int firstBaseline = widget.showHeading
+        ? headingBaseline + FONT_HEIGHTS[headingSize] / 2 + FONT_HEIGHTS[contentSize] + 3
+        : widget.y + FONT_HEIGHTS[contentSize] + 5;
+    const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
+    bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y ||
+        cache.w != widget.w || cache.h != widget.h || cache.firstBaseline != firstBaseline ||
+        cache.background != widget.backgroundColor || cache.count != count ||
+        cache.align != widget.contentAlign;
+    for (uint8_t i = 0; i < count; ++i) {
+      const uint8_t size = widget.elements[i].fontSize <= 5 ? widget.elements[i].fontSize : contentSize;
+      if (!cache.initialized || cache.fontSizes[i] != size) layoutChanged = true;
+    }
+    if (layoutChanged) {
+      const int top = firstBaseline - FONT_HEIGHTS[contentSize] + 1;
+      const int bottom = widget.y + widget.h - 3;
+      if (bottom > top) tft.fillRect(widget.x + 2, top, widget.w - 4, bottom - top, widgetBackground(widget.backgroundColor));
+    }
+    int lineY = firstBaseline;
+    for (uint8_t i = 0; i < count; ++i) {
+      const WidgetElementConfig& element = widget.elements[i];
+      const uint8_t size = element.fontSize <= 5 ? element.fontSize : contentSize;
+      const char* unit = "В";
+      const String reading = widgetElementReading(element, unit);
+      const String line = element.label + ": " + reading + " " + unit;
+      const uint16_t color = widgetColor(element.color);
+      if (lineY <= widget.y + widget.h - 4 &&
+          (layoutChanged || cache.lines[i] != line || cache.colors[i] != color)) {
+        tft.fillRect(widget.x + 2, lineY - FONT_HEIGHTS[size] + 1,
+                     widget.w - 4, FONT_HEIGHTS[size] + 4, widgetBackground(widget.backgroundColor));
+        drawAlignedText(line, widget.x, lineY, widget.w, size, widget.contentAlign, element.color);
+      }
+      cache.lines[i] = line;
+      cache.colors[i] = color;
+      cache.fontSizes[i] = size;
+      lineY += FONT_HEIGHTS[size] + 4;
+    }
+    cache.x = widget.x; cache.y = widget.y; cache.w = widget.w; cache.h = widget.h;
+    cache.firstBaseline = firstBaseline; cache.lineHeight = FONT_HEIGHTS[contentSize] + 4;
+    cache.contentSize = contentSize; cache.align = widget.contentAlign;
+    cache.color = widget.contentColor; cache.background = widget.backgroundColor;
+    cache.count = count; cache.initialized = true;
+    return;
+  }
   String lines[18]; uint16_t colors[18]; uint8_t count = 0;
   makeDynamicLines(widget, lines, colors, count);
   if (!count) return;
