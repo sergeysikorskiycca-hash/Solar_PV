@@ -246,8 +246,8 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
     }
   } else if (widget.type == "wifiStatus") {
     if (WiFi.status() == WL_CONNECTED) {
-      out[count] = "Сеть: " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);
-      out[count] = "Сигнал: " + String(WiFi.RSSI()) + " dBm"; colors[count++] = widgetColor(widget.contentColor);
+      out[count] = cfg.uiTexts.networkLabel + ": " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);
+      out[count] = cfg.uiTexts.signalLabel + ": " + String(WiFi.RSSI()) + " dBm"; colors[count++] = widgetColor(widget.contentColor);
       out[count] = "IP: " + WiFi.localIP().toString(); colors[count++] = widgetColor(widget.contentColor);
     } else {
       out[count] = cfg.uiTexts.noRouterLabel; colors[count++] = widgetColor(widget.contentColor);
@@ -260,9 +260,9 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
   } else if (widget.type == "wifiControl") {
     bool router = wifiControlApplyPending ? wifiControlPendingRouter : routerModeEnabled;
     bool ap = wifiControlApplyPending ? wifiControlPendingAp : setupApEnabled;
-    out[count] = String(wifiControlSelectedRow == 0 ? "> " : "  ") + "Роутер: " + (router ? "ВКЛ" : "ВЫКЛ");
+    out[count] = String(wifiControlSelectedRow == 0 ? "> " : "  ") + cfg.uiTexts.routerLabel + ": " + (router ? "ВКЛ" : "ВЫКЛ");
     colors[count++] = wifiControlSelectedRow == 0 ? 0x07FF : (router ? 0x07E0 : 0xF800);
-    out[count] = String(wifiControlSelectedRow == 1 ? "> " : "  ") + "Точка: " + (ap ? "ВКЛ" : "ВЫКЛ");
+    out[count] = String(wifiControlSelectedRow == 1 ? "> " : "  ") + cfg.uiTexts.apLabel + ": " + (ap ? "ВКЛ" : "ВЫКЛ");
     colors[count++] = wifiControlSelectedRow == 1 ? 0x07FF : (ap ? 0x07E0 : 0xF800);
     if (wifiControlApplyPending) {
       uint32_t remaining = (int32_t)(wifiControlApplyAt - millis()) > 0 ? (wifiControlApplyAt - millis() + 999UL) / 1000UL : 0;
