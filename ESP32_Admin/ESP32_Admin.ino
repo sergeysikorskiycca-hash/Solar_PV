@@ -290,7 +290,7 @@ String makeConfigJson() {
     for (uint8_t i = 0; i < page.widgetCount; i++) {
       if (i) j += ",";
       const WidgetConfig& w = page.widgets[i];
-      j += "{\"type\":\"" + jsonEscape(w.type) + "\",\"label\":\"" + jsonEscape(w.label) + "\",\"showHeading\":" + String(w.showHeading ? "true" : "false") + ",\"showBorder\":" + String(w.showBorder ? "true" : "false") + ",";
+      j += "{\"label\":\"" + jsonEscape(w.label) + "\",\"showHeading\":" + String(w.showHeading ? "true" : "false") + ",\"showBorder\":" + String(w.showBorder ? "true" : "false") + ",";
       j += "\"headingSize\":" + String(w.headingSize) + ",\"contentSize\":" + String(w.contentSize) + ",\"locked\":" + String(w.locked ? "true" : "false") + ",\"headingAlign\":" + String(w.headingAlign) + ",\"contentAlign\":" + String(w.contentAlign) + ",\"headingColor\":" + String(w.headingColor) + ",\"contentColor\":" + String(w.contentColor) + ",\"backgroundColor\":" + String(w.backgroundColor) + ",";
       j += "\"x\":" + String(w.x) + ",\"y\":" + String(w.y) + ",\"w\":" + String(w.w) + ",\"h\":" + String(w.h) + ",";
       j += "\"enabled\":" + String(w.enabled ? "true" : "false") + ",\"elementCount\":" + String(w.elementCount) + ",\"elements\":[";
@@ -390,8 +390,6 @@ void handleSaveDisplay() {
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
       JsonObject source = sourceWidgets[i].as<JsonObject>();
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      // Runtime layouts have one universal block type; element kinds define behavior.
-      w.type = "custom";
       w.label = sanitizeTitle(String(source["label"] | "Блок"));
       w.headingSize = clampInt(source["headingSize"] | 1, 0, 5); w.contentSize = clampInt(source["contentSize"] | 2, 0, 5);
       JsonArray sourceElements = source["elements"].as<JsonArray>();
@@ -729,6 +727,7 @@ static RemoteTextMode rtMode = RT_CLOSED;
 static uint32_t rtEmptyMessageUntil = 0;
 static uint8_t rtPick = 0;
 static int8_t rtWidget = -1;
+static int8_t rtElement = -1;
 static String rtBuffer;
 static size_t rtCursor = 0;
 static bool rtRussian = true, rtUpper = true;
@@ -759,15 +758,23 @@ static String rtChar(const String& s,size_t p){return s.substring(p,p+rtBytes(s,
 static int rtTextCount(){
   if(cfg.tftPage<1||cfg.tftPage>cfg.pageCount)return 0;
   int n=0; PageConfig& p=cfg.pages[cfg.tftPage-1];
-  for(uint8_t i=0;i<p.widgetCount;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text")n++;
+  for(uint8_t i=0;i<p.widgetCount;i++){
+    const WidgetConfig& w=p.widgets[i]; if(!w.enabled)continue;
+    for(uint8_t e=0;e<w.elementCount&&e<MAX_WIDGET_ELEMENTS;e++)
+      if(w.elements[e].kind==ELEMENT_TEXT)++n;
+  }
   return n;
 }
 static int rtCount(){ return (rtTextCount() > 6 ? 6 : rtTextCount()) + 1; }
 static int rtIndex(uint8_t wanted){
   if(cfg.tftPage<1||cfg.tftPage>cfg.pageCount)return -1;
   PageConfig& p=cfg.pages[cfg.tftPage-1]; uint8_t n=0;
-  for(uint8_t i=0;i<p.widgetCount&&n<6;i++)if(p.widgets[i].enabled&&p.widgets[i].type=="text"){
-    if(n++==wanted)return i;
+  for(uint8_t i=0;i<p.widgetCount&&n<6;i++){
+    WidgetConfig& w=p.widgets[i]; if(!w.enabled)continue;
+    for(uint8_t e=0;e<w.elementCount&&e<MAX_WIDGET_ELEMENTS;e++){
+      if(w.elements[e].kind!=ELEMENT_TEXT)continue;
+      if(n++==wanted){rtElement=e;return i;}
+    }
   }
   if(wanted==n)return -2;
   return -1;
@@ -803,12 +810,18 @@ static void rtMoveSelection(int rowDelta, int colDelta) {
   }
 }
 static void rtDrawPicker(){
-  tft.fillScreen(ST77XX_BLACK); drawCyrillicText("ТЕКСТОВЫЙ БЛОК",8,25,ST77XX_WHITE,true);
+  tft.fillScreen(ST77XX_BLACK); drawCyrillicText("ТЕКСТОВЫЕ ЭЛЕМЕНТЫ",8,25,ST77XX_WHITE,true);
   drawCyrillicText("UP/DOWN выбор, OK ввод",8,48,0x07FF,false);
   PageConfig& p=cfg.pages[cfg.tftPage-1]; int y=82; uint8_t n=0;
-  for(uint8_t i=0;i<p.widgetCount&&n<6;i++){WidgetConfig& w=p.widgets[i];if(!w.enabled||w.type!="text")continue;
-    if(n==rtPick)tft.fillRoundRect(5,y-16,230,28,4,0x03EF);
-    drawCyrillicText((n==rtPick?"> ":"  ")+w.label.substring(0,27),10,y+2,ST77XX_WHITE,false);y+=30;n++;
+  for(uint8_t i=0;i<p.widgetCount&&n<6;i++){
+    WidgetConfig& w=p.widgets[i]; if(!w.enabled)continue;
+    for(uint8_t e=0;e<w.elementCount&&e<MAX_WIDGET_ELEMENTS&&n<6;e++){
+      WidgetElementConfig& element=w.elements[e]; if(element.kind!=ELEMENT_TEXT)continue;
+      if(n==rtPick)tft.fillRoundRect(5,y-16,230,28,4,0x03EF);
+      String item=w.label.length()?w.label+": "+element.label:element.label;
+      drawCyrillicText((n==rtPick?"> ":"  ")+item.substring(0,27),10,y+2,ST77XX_WHITE,false);
+      y+=30;n++;
+    }
   }
   if(n==rtPick)tft.fillRoundRect(5,y-16,230,28,4,0x03EF);
   drawCyrillicText((n==rtPick?"> ":"  ")+String("Часы и дата — настроить"),10,y+2,ST77XX_WHITE,false);
@@ -818,7 +831,10 @@ static void rtDrawEditor(){
   tft.fillScreen(ST77XX_BLACK);
   PageConfig& p=cfg.pages[cfg.tftPage-1];
   if (rtWifiPassword) drawCyrillicText("ПАРОЛЬ WI-FI",5,13,0x07FF,false);
-  else { WidgetConfig& w=p.widgets[rtWidget]; drawCyrillicText(w.label.substring(0,30),5,13,0x07FF,false); }
+  else if (rtWidget>=0 && rtElement>=0) {
+    WidgetConfig& w=p.widgets[rtWidget];
+    drawCyrillicText((w.label+": "+w.elements[rtElement].label).substring(0,30),5,13,0x07FF,false);
+  }
 
   // A compact preview of the text being edited, with a caret at the insertion point.
   String preview=rtBuffer;
@@ -971,8 +987,8 @@ static void rtOpen(){
     rtMode=RT_EMPTY_MESSAGE;
     rtEmptyMessageUntil=millis()+900UL;
     tft.fillScreen(ST77XX_BLACK);
-    drawCyrillicText("Нет текстовых блоков",8,35,ST77XX_WHITE,true);
-    drawCyrillicText("Добавь блок в веб-админке",8,62,0xBDF7,false);
+    drawCyrillicText("Нет текстовых элементов",8,35,ST77XX_WHITE,true);
+    drawCyrillicText("Добавь элемент в веб-админке",8,62,0xBDF7,false);
     return;
   }
   rtMode=RT_PICKER;rtPick=0;rtDrawPicker();
@@ -980,18 +996,23 @@ static void rtOpen(){
 static void rtOpenClockEditor();
 static void rtEdit(){
   rtWidget=rtIndex(rtPick);if(rtWidget==-2){rtOpenClockEditor();return;}if(rtWidget<0){rtMode=RT_CLOSED;renderTFT();return;}
-  rtBuffer=cfg.pages[cfg.tftPage-1].widgets[rtWidget].text;if(rtBuffer.length()>240)rtBuffer=rtBuffer.substring(0,240);
+  rtBuffer=cfg.pages[cfg.tftPage-1].widgets[rtWidget].elements[rtElement].label;if(rtBuffer.length()>54)rtBuffer=rtBuffer.substring(0,54);
   rtCursor=rtBuffer.length();rtMode=RT_EDIT;rtKeyRow=0;rtKeyCol=0;rtUpper=true;rtRussian=true;rtSymbolsPage=false;rtDrawEditor();
 }
 static void rtInsert(String ch){
-  if(!ch.length()||rtBuffer.length()+ch.length()>240)return;
+  const size_t maxLength = rtWifiPassword ? 63U : 54U;
+  if(!ch.length()||rtBuffer.length()+ch.length()>maxLength)return;
   rtBuffer=rtBuffer.substring(0,rtCursor)+ch+rtBuffer.substring(rtCursor);rtCursor+=ch.length();rtDrawEditor();
 }
 static void rtSave(){
   if(rtWifiPassword){rtWifiConnect(rtWifiSelectedSSID,rtBuffer);rtWifiPassword=false;return;}
-  if(rtWidget>=0&&cfg.tftPage>=1&&cfg.tftPage<=cfg.pageCount){
-    cfg.pages[cfg.tftPage-1].widgets[rtWidget].text=rtBuffer;
-    bool ok=saveConfig();Serial.println(ok?F("IR text block saved."):F("ERROR: text block save failed."));
+  if(rtWidget>=0&&rtElement>=0&&cfg.tftPage>=1&&cfg.tftPage<=cfg.pageCount){
+    WidgetConfig& widget=cfg.pages[cfg.tftPage-1].widgets[rtWidget];
+    if(rtElement<widget.elementCount){
+      String value=sanitizeTitle(rtBuffer);
+      widget.elements[rtElement].label=value.length()?value:"Текст";
+      bool ok=saveConfig();Serial.println(ok?F("IR text element saved."):F("ERROR: text element save failed."));
+    }
   }
   rtMode=RT_CLOSED;renderTFT();
 }
