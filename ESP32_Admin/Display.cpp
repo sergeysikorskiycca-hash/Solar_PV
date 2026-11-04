@@ -15,15 +15,6 @@ static bool stringSensorFresh(uint8_t index) {
          millis() - stringSensorLastSeenMs[index] <= 3500UL;
 }
 
-static String widgetElementReading(const WidgetElementConfig& element, const char*& unit) {
-  const uint8_t sensor = element.sourceId > 0 ? element.sourceId - 1 : 0;
-  unit = element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : "В");
-  if (element.sourceId < 1 || element.sourceId > 6 || !stringSensorFresh(sensor)) return "--";
-  if (element.metric == 1) return String(stringSensorCurrent[sensor], 2);
-  if (element.metric == 2) return String(stringSensorPower[sensor], 1);
-  return String(stringSensorVoltage[sensor], 1);
-}
-
 extern bool routerModeEnabled;
 extern bool setupApEnabled;
 extern bool wifiControlPendingRouter;
@@ -73,6 +64,22 @@ static String calibrationTargetText(bool editing, bool selected, bool currentRow
   result = result.substring(0, position) + "[" + result.charAt(position) + "]" + result.substring(position + 1);
   return result;
 }
+static uint8_t calibrationElementOrdinal(const WidgetElementConfig* target) {
+  if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return 255;
+  const PageConfig& page = cfg.pages[cfg.tftPage - 1];
+  uint8_t ordinal = 0;
+  for (uint8_t i = 0; i < page.widgetCount; ++i) {
+    const WidgetConfig& widget = page.widgets[i];
+    if (!widget.enabled) continue;
+    for (uint8_t e = 0; e < widget.elementCount; ++e) {
+      const WidgetElementConfig& element = widget.elements[e];
+      if (element.kind != ELEMENT_CALIBRATION) continue;
+      if (&element == target) return ordinal;
+      ++ordinal;
+    }
+  }
+  return 255;
+}
 static String widgetElementText(const WidgetElementConfig& element) {
   if (element.kind == ELEMENT_TEXT) return element.label;
   if (element.kind == ELEMENT_CLOCK) {
@@ -114,7 +121,8 @@ static String widgetElementText(const WidgetElementConfig& element) {
     const bool fresh = sensor < 6 && stringSensorFresh(sensor);
     const String current = fresh ? String(stringSensorCurrent[sensor], 2) : "--";
     const String voltage = fresh ? String(stringSensorVoltage[sensor], 1) : "--";
-    const bool selected = calibrationInlineActive && calibrationRow / 2 == sensor;
+    const uint8_t ordinal = calibrationElementOrdinal(&element);
+    const bool selected = calibrationInlineActive && ordinal != 255 && calibrationRow / 2 == ordinal;
     const String currentText = calibrationTargetText(calibrationEditing, selected && calibrationRow % 2 == 0, true, current);
     const String voltageText = calibrationTargetText(calibrationEditing, selected && calibrationRow % 2 == 1, false, voltage);
     return element.label + ": " + currentText + " А / " + voltageText + " В";
@@ -185,119 +193,26 @@ static void drawWrappedText(const WidgetConfig& widget, const String& rawText, i
 }
 void drawWidget(const WidgetConfig& widget) {
   if (!widget.enabled) return;
-  const int x=widget.x, y=widget.y, w=widget.w, h=widget.h;
-  tft.fillRoundRect(x,y,w,h,5,widgetBackground(widget.backgroundColor));
-  if (widget.showBorder) tft.drawRoundRect(x,y,w,h,5,0x5B6D);
-  uint8_t hs=widget.headingSize<=5?widget.headingSize:1, cs=widget.contentSize<=5?widget.contentSize:2;
-  int headingBaseline=y+FONT_HEIGHTS[hs]+3;
-  if (widget.showHeading) drawAlignedText(widget.label,x,headingBaseline,w,hs,widget.headingAlign,widget.headingColor);
-  int contentBaseline=widget.showHeading ? headingBaseline+FONT_HEIGHTS[hs]/2+FONT_HEIGHTS[cs]+3 : y+FONT_HEIGHTS[cs]+5;
-  if(widget.type=="calibration") {
-    const uint8_t strings = widget.stringCount >= 2 && widget.stringCount <= 6 ? widget.stringCount : 2;
-    const int lineHeight = FONT_HEIGHTS[cs] + 3; int lineY = contentBaseline;
-    for (uint8_t s = 0; s < strings; ++s) {
-      drawAlignedText(cfg.uiTexts.stringPrefix + " " + String(s + 1), x, lineY, w, cs, widget.contentAlign, widget.headingColor); lineY += lineHeight;
-      const uint8_t currentRow = s * 2, voltageRow = currentRow + 1;
-      const bool currentSelected = calibrationInlineActive && calibrationRow == currentRow;
-      const bool voltageSelected = calibrationInlineActive && calibrationRow == voltageRow;
-      const bool fresh = stringSensorFresh(s);
-      const String currentActual = fresh ? String(stringSensorCurrent[s], 2) : "--";
-      const String voltageActual = fresh ? String(stringSensorVoltage[s], 1) : "--";
-      drawAlignedText(String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                      cfg.uiTexts.currentLabel + " " + currentActual + " > " + calibrationTargetText(calibrationEditing, currentSelected, true, currentActual) + " А",
-                      x + 3, lineY, w - 3, cs, widget.contentAlign,
-                      currentSelected ? 3 : widget.contentColor); lineY += lineHeight;
-      drawAlignedText(String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                      cfg.uiTexts.voltageLabel + " " + voltageActual + " > " + calibrationTargetText(calibrationEditing, voltageSelected, false, voltageActual) + " В",
-                      x + 3, lineY, w - 3, cs, widget.contentAlign,
-                      voltageSelected ? 3 : widget.contentColor); lineY += lineHeight;
-    }
-    return;
+  const int x = widget.x, y = widget.y, w = widget.w, h = widget.h;
+  tft.fillRoundRect(x, y, w, h, 5, widgetBackground(widget.backgroundColor));
+  if (widget.showBorder) tft.drawRoundRect(x, y, w, h, 5, 0x5B6D);
+  const uint8_t hs = widget.headingSize <= 5 ? widget.headingSize : 1;
+  const uint8_t cs = widget.contentSize <= 5 ? widget.contentSize : 2;
+  const int headingBaseline = y + FONT_HEIGHTS[hs] + 3;
+  if (widget.showHeading) drawAlignedText(widget.label, x, headingBaseline, w, hs, widget.headingAlign, widget.headingColor);
+  if (widget.type != "custom") return;
+
+  const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
+  const uint8_t firstSize = count && widget.elements[0].fontSize <= 5 ? widget.elements[0].fontSize : cs;
+  int lineY = widget.showHeading
+      ? headingBaseline + FONT_HEIGHTS[hs] / 2 + FONT_HEIGHTS[firstSize] + 3
+      : y + FONT_HEIGHTS[firstSize] + 5;
+  for (uint8_t i = 0; i < count && lineY <= y + h - 4; ++i) {
+    const WidgetElementConfig& element = widget.elements[i];
+    const uint8_t size = element.fontSize <= 5 ? element.fontSize : cs;
+    drawAlignedText(widgetElementText(element), x, lineY, w, size, widget.contentAlign, element.color);
+    lineY += FONT_HEIGHTS[size] + 4;
   }
-  if(widget.type=="clock") {
-    extern bool gatewayTimeValid; extern uint16_t gatewayYear; extern uint8_t gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond;
-    String timeText = gatewayTimeValid ? (String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" + String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" + String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond)) : String("--:--:--");
-    String dateText = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : String("--.--.----");
-    drawAlignedText(timeText,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
-    drawAlignedText(dateText,x,contentBaseline+FONT_HEIGHTS[cs]+4,w,cs,widget.contentAlign,widget.contentColor);
-    return;
-  }
-  if(widget.type=="text") {
-    int avail=y+h-4-contentBaseline, lineHeight=FONT_HEIGHTS[cs]+3;
-    drawWrappedText(widget,widget.text,contentBaseline,avail>0?avail/lineHeight+1:0); return;
-  }
-  if (widget.type == "custom") {
-    const uint8_t firstSize = widget.elementCount && widget.elements[0].fontSize <= 5 ? widget.elements[0].fontSize : cs;
-    int lineY = widget.showHeading
-        ? headingBaseline + FONT_HEIGHTS[hs] / 2 + FONT_HEIGHTS[firstSize] + 3
-        : y + FONT_HEIGHTS[firstSize] + 5;
-    for (uint8_t i = 0; i < widget.elementCount && i < MAX_WIDGET_ELEMENTS && lineY <= y + h - 4; ++i) {
-      const WidgetElementConfig& element = widget.elements[i];
-      const uint8_t fontSize = element.fontSize <= 5 ? element.fontSize : cs;
-      drawAlignedText(widgetElementText(element), x, lineY, w, fontSize,
-                      widget.contentAlign, element.color);
-      lineY += FONT_HEIGHTS[fontSize] + 4;
-    }
-    return;
-  }
-  if(widget.type=="strings" || widget.type=="stringsVoltage" ||
-     widget.type=="stringsCurrent" || widget.type=="stringsPower") {
-    const char* unit = "В";
-    if (widget.type == "stringsCurrent") unit = "А";
-    else if (widget.type == "stringsPower") unit = "Вт";
-    int lineY = contentBaseline, lineHeight = FONT_HEIGHTS[cs] + 4;
-    uint8_t count = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
-    for (uint8_t i = 0; i < count && lineY <= y + h - 4; i++) {
-      String reading = "--";
-      if (stringSensorFresh(i)) {
-        if (widget.type == "stringsCurrent") reading = String(stringSensorCurrent[i], 2);
-        else if (widget.type == "stringsPower") reading = String(stringSensorPower[i], 1);
-        else reading = String(stringSensorVoltage[i], 1);
-      }
-      drawAlignedText(cfg.uiTexts.stringPrefix + " " + String(i + 1) + ": " + reading + " " + unit,
-                      x, lineY, w, cs, widget.contentAlign, widget.contentColor);
-      lineY += lineHeight;
-    }
-    return;
-  }
-  if(widget.type=="wifiControl") {
-    int lineY=contentBaseline, lineHeight=FONT_HEIGHTS[cs]+4;
-    auto line=[&](const String& s,uint16_t color){if(lineY<=y+h-4)drawAlignedText(s,x,lineY,w,cs,widget.contentAlign,color);lineY+=lineHeight;};
-    bool router = wifiControlApplyPending ? wifiControlPendingRouter : routerModeEnabled;
-    bool ap = wifiControlApplyPending ? wifiControlPendingAp : setupApEnabled;
-    line(String(wifiControlSelectedRow==0?"> ":"  ")+cfg.uiTexts.routerLabel + ": "+(router?"ВКЛ":"ВЫКЛ"),wifiControlSelectedRow==0?0x07FF:(router?0x07E0:0xF800));
-    line(String(wifiControlSelectedRow==1?"> ":"  ")+cfg.uiTexts.apLabel + ": "+(ap?"ВКЛ":"ВЫКЛ"),wifiControlSelectedRow==1?0x07FF:(ap?0x07E0:0xF800));
-    if(wifiControlApplyPending) {
-      uint32_t remaining = (int32_t)(wifiControlApplyAt - millis()) > 0 ? (wifiControlApplyAt - millis() + 999UL) / 1000UL : 0;
-      line(cfg.uiTexts.applyLabel + " "+String(remaining)+" сек.",0xFFE0);
-    } else {
-      line(cfg.uiTexts.selectHint,0xBDF7);
-      line(cfg.uiTexts.changeHint,0xBDF7);
-    }
-    return;
-  }
-  if(widget.type=="wifiStatus") {
-    int lineY=contentBaseline, lineHeight=FONT_HEIGHTS[cs]+5;
-    auto drawLine=[&](const String& value){if(lineY<=y+h-4)drawAlignedText(value,x,lineY,w,cs,widget.contentAlign,widget.contentColor);lineY+=lineHeight;};
-    if(WiFi.status()==WL_CONNECTED){drawLine(cfg.uiTexts.networkLabel + ": "+cfg.ssid);drawLine(cfg.uiTexts.signalLabel + ": "+String(WiFi.RSSI())+" dBm");drawLine("IP: "+WiFi.localIP().toString());}
-    else {drawLine(cfg.uiTexts.noRouterLabel);drawLine(cfg.uiTexts.networkLabel + ": "+cfg.ssid);}
-    if(apActive&&lineY<y+h-4){drawLine(cfg.uiTexts.apSetupLabel);drawLine("IP: "+WiFi.softAPIP().toString());} return;
-  }
-  String value = "--";
-  if (widget.type == "power") {
-    // Show the sum of the latest received values from String 1 and String 2.
-    // Keep the last readings until a new packet updates the corresponding string.
-    value = (stringSensorValid[0] || stringSensorValid[1])
-                ? String(stringSensorPower[0] + stringSensorPower[1], 1) + " W"
-                : "-- W";
-  } else if (widget.type == "voltage") {
-    value = gatewayOnline && gatewaySensorValid ? String(gatewayVoltage, 1) + " V" : "-- V";
-  } else if (widget.type == "current") {
-    value = gatewayOnline && gatewaySensorValid ? String(gatewayCurrent, 2) + " A" : "-- A";
-  } else if (widget.type == "battery") {
-    value = "-- %"; // Battery percentage is not supplied by the PV sensor.
-  }
-  drawAlignedText(value,x,contentBaseline,w,cs,widget.contentAlign,widget.contentColor);
 }
 // Per-page/per-widget cache for incremental refresh of dynamic widget content.
 struct IncrementalWidgetCache {
@@ -310,184 +225,52 @@ struct IncrementalWidgetCache {
 };
 static IncrementalWidgetCache incrementalCaches[MAX_PAGES][MAX_WIDGETS_PER_PAGE];
 
-static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t colors[], uint8_t& count) {
-  count = 0;
-  if (widget.type == "clock") {
-    extern bool gatewayTimeValid;
-    extern uint16_t gatewayYear;
-    extern uint8_t gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond;
-    out[count] = gatewayTimeValid ? (String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" + String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" + String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond)) : "--:--:--";
-    colors[count++] = widgetColor(widget.contentColor);
-    out[count] = gatewayTimeValid ? (String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." + String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear)) : "--.--.----";
-    colors[count++] = widgetColor(widget.contentColor);
-  } else if (widget.type == "calibration") {
-    const uint8_t strings = widget.stringCount >= 2 && widget.stringCount <= 6 ? widget.stringCount : 2;
-    for (uint8_t s = 0; s < strings && count + 3 <= 18; ++s) {
-      out[count] = cfg.uiTexts.stringPrefix + " " + String(s + 1); colors[count++] = widgetColor(widget.headingColor);
-      const uint8_t currentRow = s * 2, voltageRow = currentRow + 1;
-      const bool currentSelected = calibrationInlineActive && calibrationRow == currentRow;
-      const bool voltageSelected = calibrationInlineActive && calibrationRow == voltageRow;
-      const bool fresh = stringSensorFresh(s);
-      const String currentActual = fresh ? String(stringSensorCurrent[s], 2) : "--";
-      const String voltageActual = fresh ? String(stringSensorVoltage[s], 1) : "--";
-      out[count] = String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                   cfg.uiTexts.currentLabel + " " + currentActual + " > " + calibrationTargetText(calibrationEditing, currentSelected, true, currentActual) + " А";
-      colors[count++] = currentSelected ? 0xFFE0 : widgetColor(widget.contentColor);
-      out[count] = String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                   cfg.uiTexts.voltageLabel + " " + voltageActual + " > " + calibrationTargetText(calibrationEditing, voltageSelected, false, voltageActual) + " В";
-      colors[count++] = voltageSelected ? 0xFFE0 : widgetColor(widget.contentColor);
-    }
-  } else if (widget.type == "wifiStatus") {
-    if (WiFi.status() == WL_CONNECTED) {
-      out[count] = cfg.uiTexts.networkLabel + ": " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);
-      out[count] = cfg.uiTexts.signalLabel + ": " + String(WiFi.RSSI()) + " dBm"; colors[count++] = widgetColor(widget.contentColor);
-      out[count] = "IP: " + WiFi.localIP().toString(); colors[count++] = widgetColor(widget.contentColor);
-    } else {
-      out[count] = cfg.uiTexts.noRouterLabel; colors[count++] = widgetColor(widget.contentColor);
-      out[count] = cfg.uiTexts.networkLabel + ": " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);
-    }
-    if (apActive && count <= 4) {
-      out[count] = cfg.uiTexts.apSetupLabel; colors[count++] = widgetColor(widget.contentColor);
-      out[count] = "IP: " + WiFi.softAPIP().toString(); colors[count++] = widgetColor(widget.contentColor);
-    }
-  } else if (widget.type == "wifiControl") {
-    bool router = wifiControlApplyPending ? wifiControlPendingRouter : routerModeEnabled;
-    bool ap = wifiControlApplyPending ? wifiControlPendingAp : setupApEnabled;
-    out[count] = String(wifiControlSelectedRow == 0 ? "> " : "  ") + cfg.uiTexts.routerLabel + ": " + (router ? "ВКЛ" : "ВЫКЛ");
-    colors[count++] = wifiControlSelectedRow == 0 ? 0x07FF : (router ? 0x07E0 : 0xF800);
-    out[count] = String(wifiControlSelectedRow == 1 ? "> " : "  ") + cfg.uiTexts.apLabel + ": " + (ap ? "ВКЛ" : "ВЫКЛ");
-    colors[count++] = wifiControlSelectedRow == 1 ? 0x07FF : (ap ? 0x07E0 : 0xF800);
-    if (wifiControlApplyPending) {
-      uint32_t remaining = (int32_t)(wifiControlApplyAt - millis()) > 0 ? (wifiControlApplyAt - millis() + 999UL) / 1000UL : 0;
-      out[count] = "Применение через " + String(remaining) + " сек."; colors[count++] = 0xFFE0;
-    } else {
-      out[count] = cfg.uiTexts.selectHint; colors[count++] = 0xBDF7;
-      out[count] = cfg.uiTexts.changeHint; colors[count++] = 0xBDF7;
-    }
-  } else if (widget.type == "custom") {
-    for (uint8_t i = 0; i < widget.elementCount && i < MAX_WIDGET_ELEMENTS && count < 18; ++i) {
-      const WidgetElementConfig& element = widget.elements[i];
-      const char* unit = "В";
-      String reading = widgetElementReading(element, unit);
-      out[count] = element.label + ": " + reading + " " + unit;
-      colors[count++] = widgetColor(element.color);
-    }
-  } else if (widget.type == "strings" || widget.type == "stringsVoltage" ||
-             widget.type == "stringsCurrent" || widget.type == "stringsPower") {
-    const char* unit = widget.type == "stringsCurrent" ? "А" :
-                       (widget.type == "stringsPower" ? "Вт" : "В");
-    const uint8_t stringCount = widget.stringCount >= 1 && widget.stringCount <= 6 ? widget.stringCount : 2;
-    for (uint8_t i = 0; i < stringCount && count < 6; ++i) {
-      String reading = "--";
-      if (stringSensorFresh(i)) {
-        if (widget.type == "stringsCurrent") reading = String(stringSensorCurrent[i], 2);
-        else if (widget.type == "stringsPower") reading = String(stringSensorPower[i], 1);
-        else reading = String(stringSensorVoltage[i], 1);
-      }
-      out[count] = cfg.uiTexts.stringPrefix + " " + String(i + 1) + ": " + reading + " " + unit;
-      colors[count++] = widgetColor(widget.contentColor);
-    }
-  } else if (widget.type == "power" || widget.type == "voltage" || widget.type == "current" || widget.type == "battery") {
-    if (widget.type == "power") {
-      // Sum the latest stored power values; do not expire a string between packets.
-      out[count] = (stringSensorValid[0] || stringSensorValid[1])
-                       ? String(stringSensorPower[0] + stringSensorPower[1], 1) + " W"
-                       : "-- W";
-    } else if (widget.type == "voltage") {
-      out[count] = gatewayOnline && gatewaySensorValid ? String(gatewayVoltage, 1) + " V" : "-- V";
-    } else if (widget.type == "current") {
-      out[count] = gatewayOnline && gatewaySensorValid ? String(gatewayCurrent, 2) + " A" : "-- A";
-    } else {
-      out[count] = "-- %"; // Battery percentage is not supplied by the PV sensor.
-    }
-    colors[count++] = widgetColor(widget.contentColor);
-  }
-}
-
 void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint8_t widgetIndex) {
-  if (!widget.enabled || pageIndex >= MAX_PAGES || widgetIndex >= MAX_WIDGETS_PER_PAGE) return;
-  if (widget.type == "text") return;
-  if (widget.type == "custom") {
-    IncrementalWidgetCache& cache = incrementalCaches[pageIndex][widgetIndex];
-    const uint8_t headingSize = widget.headingSize <= 5 ? widget.headingSize : 1;
-    const uint8_t contentSize = widget.contentSize <= 5 ? widget.contentSize : 2;
-    const int headingBaseline = widget.y + FONT_HEIGHTS[headingSize] + 3;
-    const uint8_t firstSize = widget.elementCount && widget.elements[0].fontSize <= 5 ? widget.elements[0].fontSize : contentSize;
-    const int firstBaseline = widget.showHeading
-        ? headingBaseline + FONT_HEIGHTS[headingSize] / 2 + FONT_HEIGHTS[firstSize] + 3
-        : widget.y + FONT_HEIGHTS[firstSize] + 5;
-    const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
-    bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y ||
-        cache.w != widget.w || cache.h != widget.h || cache.firstBaseline != firstBaseline ||
-        cache.background != widget.backgroundColor || cache.count != count ||
-        cache.align != widget.contentAlign;
-    for (uint8_t i = 0; i < count; ++i) {
-      const uint8_t size = widget.elements[i].fontSize <= 5 ? widget.elements[i].fontSize : contentSize;
-      if (!cache.initialized || cache.fontSizes[i] != size) layoutChanged = true;
-    }
-    if (layoutChanged) {
-      const int top = firstBaseline - FONT_HEIGHTS[firstSize] + 1;
-      const int bottom = widget.y + widget.h - 3;
-      if (bottom > top) tft.fillRect(widget.x + 2, top, widget.w - 4, bottom - top, widgetBackground(widget.backgroundColor));
-    }
-    int lineY = firstBaseline;
-    for (uint8_t i = 0; i < count; ++i) {
-      const WidgetElementConfig& element = widget.elements[i];
-      const uint8_t size = element.fontSize <= 5 ? element.fontSize : contentSize;
-      const String line = widgetElementText(element);
-      const uint16_t color = widgetColor(element.color);
-      if (lineY <= widget.y + widget.h - 4 &&
-          (layoutChanged || cache.lines[i] != line || cache.colors[i] != color)) {
-        tft.fillRect(widget.x + 2, lineY - FONT_HEIGHTS[size] + 1,
-                     widget.w - 4, FONT_HEIGHTS[size] + 4, widgetBackground(widget.backgroundColor));
-        drawAlignedText(line, widget.x, lineY, widget.w, size, widget.contentAlign, element.color);
-      }
-      cache.lines[i] = line;
-      cache.colors[i] = color;
-      cache.fontSizes[i] = size;
-      lineY += FONT_HEIGHTS[size] + 4;
-    }
-    cache.x = widget.x; cache.y = widget.y; cache.w = widget.w; cache.h = widget.h;
-    cache.firstBaseline = firstBaseline; cache.lineHeight = FONT_HEIGHTS[contentSize] + 4;
-    cache.contentSize = contentSize; cache.align = widget.contentAlign;
-    cache.color = widget.contentColor; cache.background = widget.backgroundColor;
-    cache.count = count; cache.initialized = true;
-    return;
-  }
-  String lines[18]; uint16_t colors[18]; uint8_t count = 0;
-  makeDynamicLines(widget, lines, colors, count);
-  if (!count) return;
-  const uint8_t hs = widget.headingSize <= 5 ? widget.headingSize : 1;
-  const uint8_t cs = widget.contentSize <= 5 ? widget.contentSize : 2;
-  const int headingBaseline = widget.y + FONT_HEIGHTS[hs] + 3;
-  const int firstBaseline = widget.showHeading ? headingBaseline + FONT_HEIGHTS[hs] / 2 + FONT_HEIGHTS[cs] + 3 : widget.y + FONT_HEIGHTS[cs] + 5;
-  const int lineHeight = FONT_HEIGHTS[cs] + (widget.type == "wifiStatus" ? 5 : 4);
+  if (!widget.enabled || widget.type != "custom" ||
+      pageIndex >= MAX_PAGES || widgetIndex >= MAX_WIDGETS_PER_PAGE) return;
   IncrementalWidgetCache& cache = incrementalCaches[pageIndex][widgetIndex];
-  const bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y || cache.w != widget.w ||
-      cache.h != widget.h || cache.firstBaseline != firstBaseline || cache.lineHeight != lineHeight ||
-      cache.contentSize != cs || cache.align != widget.contentAlign || cache.color != widget.contentColor ||
-      cache.background != widget.backgroundColor || cache.count != count;
+  const uint8_t headingSize = widget.headingSize <= 5 ? widget.headingSize : 1;
+  const uint8_t contentSize = widget.contentSize <= 5 ? widget.contentSize : 2;
+  const int headingBaseline = widget.y + FONT_HEIGHTS[headingSize] + 3;
+  const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
+  const uint8_t firstSize = count && widget.elements[0].fontSize <= 5 ? widget.elements[0].fontSize : contentSize;
+  const int firstBaseline = widget.showHeading
+      ? headingBaseline + FONT_HEIGHTS[headingSize] / 2 + FONT_HEIGHTS[firstSize] + 3
+      : widget.y + FONT_HEIGHTS[firstSize] + 5;
+  bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y ||
+      cache.w != widget.w || cache.h != widget.h || cache.firstBaseline != firstBaseline ||
+      cache.background != widget.backgroundColor || cache.count != count ||
+      cache.align != widget.contentAlign;
+  for (uint8_t i = 0; i < count; ++i) {
+    const uint8_t size = widget.elements[i].fontSize <= 5 ? widget.elements[i].fontSize : contentSize;
+    if (!cache.initialized || cache.fontSizes[i] != size) layoutChanged = true;
+  }
   if (layoutChanged) {
-    int top = firstBaseline - FONT_HEIGHTS[cs] + 1, bottom = widget.y + widget.h - 3;
+    const int top = firstBaseline - FONT_HEIGHTS[firstSize] + 1;
+    const int bottom = widget.y + widget.h - 3;
     if (bottom > top) tft.fillRect(widget.x + 2, top, widget.w - 4, bottom - top, widgetBackground(widget.backgroundColor));
   }
+  int lineY = firstBaseline;
   for (uint8_t i = 0; i < count; ++i) {
-    int baseline = firstBaseline + i * lineHeight;
-    if (baseline > widget.y + widget.h - 4) break;
-    if (layoutChanged || cache.lines[i] != lines[i] || cache.colors[i] != colors[i]) {
-      tft.fillRect(widget.x + 2, baseline - FONT_HEIGHTS[cs] + 1, widget.w - 4, FONT_HEIGHTS[cs] + 4, widgetBackground(widget.backgroundColor));
-      setWidgetFont(cs);
-      int textWidth = u8g2Fonts.getUTF8Width(lines[i].c_str()), tx = widget.x + 6, available = widget.w - 12;
-      if (widget.contentAlign == 1) tx += (available - textWidth) / 2;
-      else if (widget.contentAlign == 2) tx += available - textWidth;
-      if (tx < widget.x + 3) tx = widget.x + 3;
-      u8g2Fonts.setForegroundColor(colors[i]); u8g2Fonts.setCursor(tx, baseline); u8g2Fonts.print(lines[i]);
+    const WidgetElementConfig& element = widget.elements[i];
+    const uint8_t size = element.fontSize <= 5 ? element.fontSize : contentSize;
+    const String line = widgetElementText(element);
+    const uint16_t color = widgetColor(element.color);
+    if (lineY <= widget.y + widget.h - 4 &&
+        (layoutChanged || cache.lines[i] != line || cache.colors[i] != color)) {
+      tft.fillRect(widget.x + 2, lineY - FONT_HEIGHTS[size] + 1,
+                   widget.w - 4, FONT_HEIGHTS[size] + 4, widgetBackground(widget.backgroundColor));
+      drawAlignedText(line, widget.x, lineY, widget.w, size, widget.contentAlign, element.color);
     }
-    cache.lines[i] = lines[i]; cache.colors[i] = colors[i];
+    cache.lines[i] = line;
+    cache.colors[i] = color;
+    cache.fontSizes[i] = size;
+    lineY += FONT_HEIGHTS[size] + 4;
   }
   cache.x = widget.x; cache.y = widget.y; cache.w = widget.w; cache.h = widget.h;
-  cache.firstBaseline = firstBaseline; cache.lineHeight = lineHeight; cache.contentSize = cs;
-  cache.align = widget.contentAlign; cache.color = widget.contentColor; cache.background = widget.backgroundColor;
+  cache.firstBaseline = firstBaseline; cache.lineHeight = FONT_HEIGHTS[contentSize] + 4;
+  cache.contentSize = contentSize; cache.align = widget.contentAlign;
+  cache.color = widget.contentColor; cache.background = widget.backgroundColor;
   cache.count = count; cache.initialized = true;
 }
 void resetIncrementalWidgetCache() {
