@@ -43,9 +43,10 @@ static void setWidgetFont(uint8_t size) {
   }
 }
 static uint16_t widgetColor(uint8_t color) { return WIDGET_COLORS[color <= 5 ? color : 0]; }
-static String calibrationTargetText(bool editing, bool selected) {
-  if (calibrationTargetScaled == 0 && !editing) return "--";
-  const bool currentRow = (calibrationRow % 2 == 0);
+static String calibrationTargetText(bool editing, bool selected, bool currentRow, const String& actualText) {
+  // Outside the active edit, each string shows its own live measurement.
+  // Only the selected row may display the shared temporary edit buffer.
+  if (!editing || !selected) return actualText;
   char number[12];
   if (currentRow) {
     snprintf(number, sizeof(number), "%04lu.%02lu",
@@ -58,7 +59,7 @@ static String calibrationTargetText(bool editing, bool selected) {
   }
   String result(number);
   const uint8_t digitCount = currentRow ? 6 : 5;
-  if (!editing || !selected || calibrationDigit >= digitCount) return result;
+  if (calibrationDigit >= digitCount) return result;
   // Four integer digits, then the decimal point, then the fractional digits.
   const uint8_t position = calibrationDigit < 4 ? calibrationDigit : calibrationDigit + 1;
   result = result.substring(0, position) + "[" + result.charAt(position) + "]" + result.substring(position + 1);
@@ -125,11 +126,11 @@ void drawWidget(const WidgetConfig& widget) {
       const String currentActual = fresh ? String(stringSensorCurrent[s], 2) : "--";
       const String voltageActual = fresh ? String(stringSensorVoltage[s], 1) : "--";
       drawAlignedText(String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                      "Ток " + currentActual + " > " + calibrationTargetText(calibrationEditing, currentSelected) + " А",
+                      "Ток " + currentActual + " > " + calibrationTargetText(calibrationEditing, currentSelected, true, currentActual) + " А",
                       x + 3, lineY, w - 3, cs, widget.contentAlign,
                       currentSelected ? 3 : widget.contentColor); lineY += lineHeight;
       drawAlignedText(String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                      "Напр. " + voltageActual + " > " + calibrationTargetText(calibrationEditing, voltageSelected) + " В",
+                      "Напр. " + voltageActual + " > " + calibrationTargetText(calibrationEditing, voltageSelected, false, voltageActual) + " В",
                       x + 3, lineY, w - 3, cs, widget.contentAlign,
                       voltageSelected ? 3 : widget.contentColor); lineY += lineHeight;
     }
@@ -237,10 +238,10 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
       const String currentActual = fresh ? String(stringSensorCurrent[s], 2) : "--";
       const String voltageActual = fresh ? String(stringSensorVoltage[s], 1) : "--";
       out[count] = String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                   "Ток " + currentActual + " > " + calibrationTargetText(calibrationEditing, currentSelected) + " А";
+                   "Ток " + currentActual + " > " + calibrationTargetText(calibrationEditing, currentSelected, true, currentActual) + " А";
       colors[count++] = currentSelected ? 0xFFE0 : widgetColor(widget.contentColor);
       out[count] = String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                   "Напр. " + voltageActual + " > " + calibrationTargetText(calibrationEditing, voltageSelected) + " В";
+                   "Напр. " + voltageActual + " > " + calibrationTargetText(calibrationEditing, voltageSelected, false, voltageActual) + " В";
       colors[count++] = voltageSelected ? 0xFFE0 : widgetColor(widget.contentColor);
     }
   } else if (widget.type == "wifiStatus") {
