@@ -247,6 +247,14 @@ String makeConfigJson() {
   }
   j += "\"networkStatus\":\"" + jsonEscape(net) + "\",";
   j += "\"networkLabel\":\"" + jsonEscape(label) + "\",";
+  const bool routerConnected = WiFi.status() == WL_CONNECTED;
+  const String routerIp = routerConnected ? WiFi.localIP().toString() : "—";
+  const String apIp = apActive ? WiFi.softAPIP().toString() : "—";
+  j += "\"wifiInfo\":{\"connected\":" + String(routerConnected ? "true" : "false") +
+       ",\"rssi\":" + String(routerConnected ? WiFi.RSSI() : 0) +
+       ",\"routerIp\":\"" + jsonEscape(routerIp) +
+       "\",\"apActive\":" + String(apActive ? "true" : "false") +
+       ",\"apIp\":\"" + jsonEscape(apIp) + "\"},";
   j += "\"gatewayTelemetry\":{\"valid\":" + String(gatewayOnline && gatewaySensorValid ? "true" : "false") +
        ",\"voltage\":" + String(gatewayVoltage, 3) + ",\"current\":" + String(gatewayCurrent, 4) +
        ",\"power\":" + String(gatewayPower, 2) + "},";
@@ -382,11 +390,10 @@ void handleSaveDisplay() {
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
       JsonObject source = sourceWidgets[i].as<JsonObject>();
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      String type = String(source["type"] | "power");
-      if (isKnownWidgetType(type)) w.type = type;
+      // Runtime layouts have one universal block type; element kinds define behavior.
+      w.type = "custom";
       w.label = sanitizeTitle(String(source["label"] | "Блок"));
       w.headingSize = clampInt(source["headingSize"] | 1, 0, 5); w.contentSize = clampInt(source["contentSize"] | 2, 0, 5);
-      w.stringCount = clampInt(source["stringCount"] | 2, 1, 6);
       JsonArray sourceElements = source["elements"].as<JsonArray>();
       w.elementCount = clampInt(sourceElements.size(), 0, MAX_WIDGET_ELEMENTS);
       for (uint8_t e = 0; e < w.elementCount; ++e) {
