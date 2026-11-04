@@ -1,7 +1,7 @@
 /*
   SOLAR_STRING_1:
   INA226 -> ESP-NOW, OTA по команде от шлюза.
-  Коэффициент калибровки тока хранится в EEPROM.
+  Коэффициенты калибровки тока и напряжения хранятся в EEPROM.
 */
 
 #include <Arduino.h>
@@ -74,7 +74,6 @@ static ESPNowCalibrationCommand pendingCalibrationCommand = {};
 // Сохраняет коэффициенты обоих каналов в EEPROM.
 bool saveCalibration() {
     if (!eepromReady) { EEPROM.begin(sizeof(CalibrationRecord)); eepromReady = true; }
-    if (!eepromReady) { Serial.println("EEPROM INIT ERROR"); return false; }
     CalibrationRecord record = {};
     record.magic = EEPROM_MAGIC;
     memcpy(record.currentCalibration, currentCalibration, sizeof(currentCalibration));
