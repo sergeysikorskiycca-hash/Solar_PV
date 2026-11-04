@@ -148,7 +148,7 @@ function renderCustomEditor(w){
  });
  const tools=$('systemElementTools');
  const kindsNow=new Set(w.elements.map(e=>Number(e.kind)||0));
- const rtcPanel=$('clockSettingsPanel');if(rtcPanel.parentElement!==root)rtcPanel.style.display='none';
+ const rtcPanel=$('clockSettingsPanel');if(!root.querySelector('#clockSettingsPanel'))rtcPanel.style.display='none';
  const panels=[['wifiModePanel',kindsNow.has(3)],['wifiDefaultsPanel',kindsNow.has(3)],['wifiConnectionPanel',kindsNow.has(5)],['calibrationEditor',kindsNow.has(4)]];
  tools.style.display=panels.some(([,show])=>show)?'block':'none';
  panels.forEach(([id,show])=>{const panel=$(id);if(panel){panel.style.display=show?'block':'none';tools.appendChild(panel)}});
