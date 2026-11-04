@@ -29,16 +29,16 @@ extern uint8_t calibrationDigit;
 extern uint32_t calibrationTargetScaled;
 
 static const uint16_t WIDGET_COLORS[6] = { ST77XX_WHITE, 0x07FF, 0x07E0, 0xFFE0, 0xF800, 0xFD20 };
-static const uint8_t FONT_HEIGHTS[6] = {13, 15, 16, 18, 20, 22};
+static const uint8_t FONT_HEIGHTS[6] = {13, 15, 16, 20, 24, 27};
 
 static void setWidgetFont(uint8_t size) {
   switch (size) {
     case 0: u8g2Fonts.setFont(u8g2_font_6x13_t_cyrillic); break;       // 13 px
     case 1: u8g2Fonts.setFont(u8g2_font_9x15_t_cyrillic); break;       // 15 px
     case 2: u8g2Fonts.setFont(u8g2_font_unifont_t_cyrillic); break;   // 16 px
-    case 3: u8g2Fonts.setFont(u8g2_font_9x18_t_cyrillic); break;       // 18 px
-    case 4: u8g2Fonts.setFont(u8g2_font_10x20_t_cyrillic); break;     // 20 px
-    default: u8g2Fonts.setFont(u8g2_font_11x22_t_cyrillic); break;    // 22 px
+    case 3: u8g2Fonts.setFont(u8g2_font_10x20_t_cyrillic); break;    // 20 px
+    case 4: u8g2Fonts.setFont(u8g2_font_inr24_t_cyrillic); break;    // 24 px
+    default: u8g2Fonts.setFont(u8g2_font_inr27_t_cyrillic); break;   // 27 px
   }
 }
 static uint16_t widgetColor(uint8_t color) { return WIDGET_COLORS[color <= 5 ? color : 0]; }
