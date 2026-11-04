@@ -6,11 +6,21 @@
 static constexpr uint8_t MAX_SAVED_NETWORKS = 8;
 static constexpr uint8_t MAX_PAGES = 8;
 static constexpr uint8_t MAX_WIDGETS_PER_PAGE = 12;
+static constexpr uint8_t MAX_WIDGET_ELEMENTS = 12;
 static constexpr char CONFIG_PATH[] = "/solarpv.cfg";
 
 struct SavedNetwork {
   String ssid;
   String password;
+};
+
+// One independently configured data row inside a universal widget.
+struct WidgetElementConfig {
+  String label;
+  uint8_t sourceId; // Physical sensor ID, 1..6.
+  uint8_t metric;   // 0=voltage, 1=current, 2=power.
+  uint8_t fontSize; // 0..5.
+  uint8_t color;    // 0..5.
 };
 
 // Widget types are data, not page-specific drawing code (including multi-string layouts).
@@ -20,6 +30,8 @@ struct WidgetConfig {
   String text;      // Free text for text widgets; supports UTF-8 and line breaks.
   uint8_t headingSize, contentSize;
   uint8_t stringCount; // Number of PV strings shown by a strings widget.
+  uint8_t elementCount; // Number of configured rows in a universal widget.
+  WidgetElementConfig elements[MAX_WIDGET_ELEMENTS];
   bool locked; // Prevents accidental position and size changes in the web editor
   bool showHeading; // Hide redundant widget heading when false.
   bool showBorder; // Draw widget outline when true.
