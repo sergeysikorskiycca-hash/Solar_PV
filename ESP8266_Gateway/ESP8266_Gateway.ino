@@ -39,8 +39,8 @@ struct SensorPacket {
   float current;
   float power;
   float shuntVoltage;
-  uint16_t currentCalibrationPermille;
-  uint16_t voltageCalibrationPermille;
+  uint16_t currentCalibrationX600;
+  uint16_t voltageCalibrationX600;
   uint32_t packetNumber;
 };
 
