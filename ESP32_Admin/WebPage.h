@@ -132,7 +132,7 @@ function renderCustomEditor(w){
   else if(k===1){metricTitle='Отображать';metricOptions=[[0,'Время'],[1,'Дату'],[2,'Время и дату']]}
   else if(k===2){metricTitle='Информация';metricOptions=[[0,'Состояние'],[1,'Имя сети'],[2,'Уровень сигнала'],[3,'IP роутера'],[4,'Состояние точки'],[5,'IP точки']]}
   else if(k===3){element.metric=2;metricOptions=null}
-  else if(k===4){metricTitle='Калибровка';metricOptions=[[0,'Ток'],[1,'Напряжение'],[2,'Ток и напряжение']]}
+  else if(k===4){element.metric=2;metricOptions=null}
   if(metricOptions){const metric=customSelect(metricOptions,element.metric??0);metric.addEventListener('change',()=>{element.metric=Number(metric.value);updateCustomPreviews()});bottom.appendChild(customField(metricTitle,metric))}
   const size=customSelect(sizeOptions,element.fontSize);size.addEventListener('change',()=>{element.fontSize=Number(size.value);updateCustomPreviews()});bottom.appendChild(customField('Размер',size));
   const color=customSelect(colorOptions,element.color);color.addEventListener('change',()=>{element.color=Number(color.value);updateCustomPreviews()});bottom.appendChild(customField('Цвет',color));
