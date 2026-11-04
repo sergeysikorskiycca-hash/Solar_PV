@@ -365,7 +365,7 @@ void handleWiFiScanStatus() {
 }
 
 void handleSaveDisplay() {
-  DynamicJsonDocument doc(32768);
+  DynamicJsonDocument doc(65536);
   DeserializationError error = deserializeJson(doc, server.arg("plain"));
   if (error) {
     server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректный JSON макета.\"}");
