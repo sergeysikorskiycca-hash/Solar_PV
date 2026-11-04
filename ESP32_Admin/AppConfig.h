@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include "UiTexts.h"
 
 // Shared configuration model for the ESP32 admin firmware.
 static constexpr uint8_t MAX_SAVED_NETWORKS = 8;
@@ -47,6 +48,7 @@ struct AppConfig {
   float currentCalibration[6];
   float voltageCalibration[6];
   PageConfig pages[MAX_PAGES];
+  UiTexts uiTexts;
 
   // Legacy fields are retained only to migrate existing /solarpv.cfg files.
   String powerLabel, voltageLabel, currentLabel, batteryLabel;
