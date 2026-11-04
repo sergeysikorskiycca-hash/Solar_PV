@@ -55,8 +55,8 @@ struct SensorSlot {
   float current;
   float power;
   float shuntVoltage;
-  uint16_t currentCalibrationPermille;
-  uint16_t voltageCalibrationPermille;
+  uint16_t currentCalibrationX600;
+  uint16_t voltageCalibrationX600;
   uint32_t packetNumber;
   uint32_t lastSeenMs;
   bool valid;
@@ -72,8 +72,8 @@ struct GatewayPacket {
   uint8_t month, day, hour, minute, second;
   uint8_t sensorId;
   float voltage, current, power;
-  uint16_t currentCalibrationPermille;
-  uint16_t voltageCalibrationPermille;
+  uint16_t currentCalibrationX600;
+  uint16_t voltageCalibrationX600;
   uint16_t sensorPacketNumber;
   uint8_t crc;
 };
@@ -193,8 +193,8 @@ static void onSensorData(uint8_t* mac, uint8_t* data, uint8_t len) {
   slot.current = incoming.current;
   slot.power = incoming.power;
   slot.shuntVoltage = incoming.shuntVoltage;
-  slot.currentCalibrationPermille = incoming.currentCalibrationPermille;
-  slot.voltageCalibrationPermille = incoming.voltageCalibrationPermille;
+  slot.currentCalibrationX600 = incoming.currentCalibrationX600;
+  slot.voltageCalibrationX600 = incoming.voltageCalibrationX600;
   slot.packetNumber = incoming.packetNumber;
   slot.lastSeenMs = millis();
   slot.valid = true;
@@ -222,16 +222,16 @@ static bool exchangePacket() {
     packet.voltage = slot.voltage;
     packet.current = slot.current;
     packet.power = slot.power;
-    packet.currentCalibrationPermille = slot.currentCalibrationPermille;
-    packet.voltageCalibrationPermille = slot.voltageCalibrationPermille;
+    packet.currentCalibrationX600 = slot.currentCalibrationX600;
+    packet.voltageCalibrationX600 = slot.voltageCalibrationX600;
     packet.sensorPacketNumber = (uint16_t)(slot.packetNumber & 0xFFFF);
   } else {
     packet.sensorId = 0;
     packet.voltage = 0.0f;
     packet.current = 0.0f;
     packet.power = 0.0f;
-    packet.currentCalibrationPermille = 0;
-    packet.voltageCalibrationPermille = 0;
+    packet.currentCalibrationX600 = 0;
+    packet.voltageCalibrationX600 = 0;
     packet.sensorPacketNumber = 0;
   }
 
@@ -418,8 +418,8 @@ void loop() {
       const SensorSlot& slot = sensorSlots[(uint8_t)sensorIndex];
       Serial.printf("Sensor %u (%s): %.2f V, %.3f A, %.1f W, K=%.3f KU=%.3f, packet %lu\n",
                     (unsigned)slot.sensorId, slot.name, slot.voltage, slot.current, slot.power,
-                    slot.currentCalibrationPermille / 1000.0f,
-                    slot.voltageCalibrationPermille / 1000.0f,
+                    slot.currentCalibrationX600 / 600.0f,
+                    slot.voltageCalibrationX600 / 600.0f,
                     (unsigned long)slot.packetNumber);
     } else {
       Serial.println(F("No ESP-NOW sensor packet received yet."));
