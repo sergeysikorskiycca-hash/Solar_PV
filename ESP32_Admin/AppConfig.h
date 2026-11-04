@@ -31,12 +31,12 @@ struct WidgetElementConfig {
   uint8_t color;    // 0..5.
 };
 
-// Widget types are data, not page-specific drawing code (including multi-string layouts).
+// Every widget is universal; legacy fields exist only during LittleFS migration.
 struct WidgetConfig {
-  String type;       // "custom" at runtime; legacy names are accepted only during migration.
   String label;
   uint8_t headingSize, contentSize;
-  uint8_t stringCount; // Read only when migrating old saved layouts.
+  uint8_t legacyType; // Temporary legacy type code, cleared after loading.
+  uint8_t legacyStringCount; // Temporary old string count, cleared after loading.
   uint8_t elementCount; // Number of configured rows in a universal widget.
   WidgetElementConfig elements[MAX_WIDGET_ELEMENTS];
   bool locked; // Prevents accidental position and size changes in the web editor
@@ -83,4 +83,3 @@ void loadConfig();
 int findSavedNetwork(const String& ssid);
 bool addOrUpdateSavedNetwork(const String& ssid, const String& password);
 bool saveConfig();
-bool isKnownWidgetType(const String& type);
