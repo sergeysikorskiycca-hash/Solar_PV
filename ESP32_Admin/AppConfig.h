@@ -70,14 +70,6 @@ struct AppConfig {
   PageConfig pages[MAX_PAGES];
   UiTexts uiTexts;
 
-  // Legacy fields are retained only to migrate existing /solarpv.cfg files.
-  String powerLabel, voltageLabel, currentLabel, batteryLabel;
-  bool showPower, showVoltage, showCurrent, showBattery;
-  uint8_t fontScale;
-  int powerX, powerY, powerW, powerH;
-  int voltageX, voltageY, voltageW, voltageH;
-  int currentX, currentY, currentW, currentH;
-  int batteryX, batteryY, batteryW, batteryH;
 };
 
 extern AppConfig cfg;
