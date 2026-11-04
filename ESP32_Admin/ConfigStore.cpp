@@ -48,17 +48,6 @@ void setDefaults() {
   cfg.password = "";
   cfg.title = "SOLAR PV";
   setDefaultUiTexts(cfg.uiTexts);
-  cfg.powerLabel = "Мощность PV"; cfg.voltageLabel = "Напряжение";
-  cfg.currentLabel = "Ток"; cfg.batteryLabel = "Аккумулятор";
-  cfg.showPower = true;
-  cfg.showVoltage = true;
-  cfg.showCurrent = true;
-  cfg.showBattery = true;
-  cfg.fontScale = 1;
-  cfg.powerX = 8; cfg.powerY = 55; cfg.powerW = 224; cfg.powerH = 58;
-  cfg.voltageX = 8; cfg.voltageY = 125; cfg.voltageW = 106; cfg.voltageH = 58;
-  cfg.currentX = 125; cfg.currentY = 125; cfg.currentW = 106; cfg.currentH = 58;
-  cfg.batteryX = 8; cfg.batteryY = 205; cfg.batteryW = 224; cfg.batteryH = 58;
   cfg.tftPage = 1;
   for (uint8_t i = 0; i < 6; ++i) { cfg.currentCalibration[i] = 1.0f; cfg.voltageCalibration[i] = 1.0f; }
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
@@ -111,10 +100,10 @@ void initializeDefaultPages() {
   cfg.pages[0].widgetCount = 4;
   const char* types[4] = {"custom", "custom", "custom", "custom"};
   String labels[4] = {"Блок 1", "Блок 2", "Блок 3", "Блок 4"};
-  int xs[4] = {cfg.powerX, cfg.voltageX, cfg.currentX, cfg.batteryX};
-  int ys[4] = {cfg.powerY, cfg.voltageY, cfg.currentY, cfg.batteryY};
-  int ws[4] = {cfg.powerW, cfg.voltageW, cfg.currentW, cfg.batteryW};
-  int hs[4] = {cfg.powerH, cfg.voltageH, cfg.currentH, cfg.batteryH};
+  int xs[4] = {8, 8, 125, 8};
+  int ys[4] = {55, 125, 125, 205};
+  int ws[4] = {224, 106, 106, 224};
+  int hs[4] = {58, 58, 58, 58};
   bool enabled[4] = {true, true, true, true};
   for (uint8_t i = 0; i < 4; i++) {
     WidgetConfig& w = cfg.pages[0].widgets[i];
@@ -222,31 +211,6 @@ void loadConfig() {
     else if (key == "uiSelectHint") cfg.uiTexts.selectHint = sanitizeUiText(value,"ВВЕРХ/ВНИЗ: выбор");
     else if (key == "uiChangeHint") cfg.uiTexts.changeHint = sanitizeUiText(value,"OK: изменить (5 сек.)");
     else if (key == "uiApplyLabel") cfg.uiTexts.applyLabel = sanitizeUiText(value,"Применение через");
-    else if (key == "powerLabel") cfg.powerLabel = sanitizeTitle(value);
-    else if (key == "voltageLabel") cfg.voltageLabel = sanitizeTitle(value);
-    else if (key == "currentLabel") cfg.currentLabel = sanitizeTitle(value);
-    else if (key == "batteryLabel") cfg.batteryLabel = sanitizeTitle(value);
-    else if (key == "showPower") cfg.showPower = value == "1";
-    else if (key == "showVoltage") cfg.showVoltage = value == "1";
-    else if (key == "showCurrent") cfg.showCurrent = value == "1";
-    else if (key == "showBattery") cfg.showBattery = value == "1";
-    else if (key == "fontScale") cfg.fontScale = value == "2" ? 2 : 1;
-    else if (key == "powerX") cfg.powerX = clampInt(value.toInt(), 0, 16);
-    else if (key == "powerY") cfg.powerY = clampInt(value.toInt(), 40, 230);
-    else if (key == "voltageX") cfg.voltageX = clampInt(value.toInt(), 0, 128);
-    else if (key == "voltageY") cfg.voltageY = clampInt(value.toInt(), 40, 240);
-    else if (key == "currentX") cfg.currentX = clampInt(value.toInt(), 0, 128);
-    else if (key == "currentY") cfg.currentY = clampInt(value.toInt(), 40, 240);
-    else if (key == "batteryX") cfg.batteryX = clampInt(value.toInt(), 0, 16);
-    else if (key == "batteryY") cfg.batteryY = clampInt(value.toInt(), 40, 240);
-    else if (key == "powerW") cfg.powerW = clampInt(value.toInt(), 40, 224);
-    else if (key == "powerH") cfg.powerH = clampInt(value.toInt(), 36, 120);
-    else if (key == "voltageW") cfg.voltageW = clampInt(value.toInt(), 40, 224);
-    else if (key == "voltageH") cfg.voltageH = clampInt(value.toInt(), 36, 120);
-    else if (key == "currentW") cfg.currentW = clampInt(value.toInt(), 40, 224);
-    else if (key == "currentH") cfg.currentH = clampInt(value.toInt(), 36, 120);
-    else if (key == "batteryW") cfg.batteryW = clampInt(value.toInt(), 40, 224);
-    else if (key == "batteryH") cfg.batteryH = clampInt(value.toInt(), 36, 120);
     else if (key == "tftPage") cfg.tftPage = clampInt(value.toInt(), 1, MAX_PAGES);
     else if (key.startsWith("currentCalibration") && key.length() == 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < 6) cfg.currentCalibration[index] = constrain(value.toFloat(), 0.001f, 99.999f); }
     else if (key.startsWith("voltageCalibration") && key.length() == 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < 6) cfg.voltageCalibration[index] = constrain(value.toFloat(), 0.001f, 99.999f); }
@@ -387,27 +351,6 @@ bool saveConfig() {
   f.println("uiSelectHint=" + sanitizeUiText(cfg.uiTexts.selectHint,"ВВЕРХ/ВНИЗ: выбор"));
   f.println("uiChangeHint=" + sanitizeUiText(cfg.uiTexts.changeHint,"OK: изменить (5 сек.)"));
   f.println("uiApplyLabel=" + sanitizeUiText(cfg.uiTexts.applyLabel,"Применение через"));
-  f.println("powerLabel=" + sanitizeTitle(cfg.powerLabel));
-  f.println("voltageLabel=" + sanitizeTitle(cfg.voltageLabel));
-  f.println("currentLabel=" + sanitizeTitle(cfg.currentLabel));
-  f.println("batteryLabel=" + sanitizeTitle(cfg.batteryLabel));
-  f.println(String("showPower=") + (cfg.showPower ? "1" : "0"));
-  f.println(String("showVoltage=") + (cfg.showVoltage ? "1" : "0"));
-  f.println(String("showCurrent=") + (cfg.showCurrent ? "1" : "0"));
-  f.println(String("showBattery=") + (cfg.showBattery ? "1" : "0"));
-  f.println(String("fontScale=") + String(cfg.fontScale));
-  f.println("powerX=" + String(cfg.powerX));
-  f.println("powerY=" + String(cfg.powerY));
-  f.println("voltageX=" + String(cfg.voltageX));
-  f.println("voltageY=" + String(cfg.voltageY));
-  f.println("currentX=" + String(cfg.currentX));
-  f.println("currentY=" + String(cfg.currentY));
-  f.println("batteryX=" + String(cfg.batteryX));
-  f.println("batteryY=" + String(cfg.batteryY));
-  f.println("powerW=" + String(cfg.powerW)); f.println("powerH=" + String(cfg.powerH));
-  f.println("voltageW=" + String(cfg.voltageW)); f.println("voltageH=" + String(cfg.voltageH));
-  f.println("currentW=" + String(cfg.currentW)); f.println("currentH=" + String(cfg.currentH));
-  f.println("batteryW=" + String(cfg.batteryW)); f.println("batteryH=" + String(cfg.batteryH));
   f.println("tftPage=" + String(cfg.tftPage));
   for (uint8_t i = 0; i < 6; ++i) {
     f.println("currentCalibration" + String(i) + "=" + String(cfg.currentCalibration[i], 3));
