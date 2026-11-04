@@ -340,6 +340,26 @@ void loadConfig() {
       w.x = clampInt(w.x, 0, 240 - w.w); w.y = clampInt(w.y, 40, 290 - w.h);
     }
   }
+  // Upgrade the previous default Wi-Fi-only page without disturbing user-customized layouts.
+  if (cfg.pageCount >= 2) {
+    PageConfig& systemPage = cfg.pages[1];
+    if (systemPage.title == "Wi-Fi" && systemPage.widgetCount == 1) {
+      WidgetConfig& systemWidget = systemPage.widgets[0];
+      if (systemWidget.label == "Состояние Wi-Fi" && systemWidget.elementCount == 1 &&
+          systemWidget.elements[0].kind == ELEMENT_WIFI_STATUS &&
+          systemWidget.elements[0].label == "Состояние Wi-Fi") {
+        systemPage.title = "Система";
+        systemWidget.label = "Системные функции";
+        systemWidget.elementCount = 5;
+        systemWidget.elements[0].label = "Время"; systemWidget.elements[0].kind = ELEMENT_CLOCK; systemWidget.elements[0].sourceId = 0; systemWidget.elements[0].metric = 0; systemWidget.elements[0].fontSize = 2; systemWidget.elements[0].color = 1;
+        systemWidget.elements[1].label = "Дата"; systemWidget.elements[1].kind = ELEMENT_CLOCK; systemWidget.elements[1].sourceId = 0; systemWidget.elements[1].metric = 1; systemWidget.elements[1].fontSize = 1; systemWidget.elements[1].color = 0;
+        systemWidget.elements[2].label = "Wi-Fi"; systemWidget.elements[2].kind = ELEMENT_WIFI_STATUS; systemWidget.elements[2].sourceId = 0; systemWidget.elements[2].metric = 0; systemWidget.elements[2].fontSize = 1; systemWidget.elements[2].color = 2;
+        systemWidget.elements[3].label = "Управление Wi-Fi"; systemWidget.elements[3].kind = ELEMENT_WIFI_CONTROL; systemWidget.elements[3].sourceId = 0; systemWidget.elements[3].metric = 2; systemWidget.elements[3].fontSize = 1; systemWidget.elements[3].color = 3;
+        systemWidget.elements[4].label = "Выбор сети"; systemWidget.elements[4].kind = ELEMENT_WIFI_NETWORK; systemWidget.elements[4].sourceId = 0; systemWidget.elements[4].metric = 0; systemWidget.elements[4].fontSize = 1; systemWidget.elements[4].color = 0;
+        legacyLayoutMigrated = true;
+      }
+    }
+  }
   // Migrate the currently configured network from the older single-network config.
   if (cfg.ssid.length() && findSavedNetwork(cfg.ssid) < 0) addOrUpdateSavedNetwork(cfg.ssid, cfg.password);
   // Rewrite old layouts once, so legacy block types disappear from LittleFS.
