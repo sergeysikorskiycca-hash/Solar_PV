@@ -61,10 +61,17 @@ void setDefaults() {
 }
 
 bool isKnownWidgetType(const String& type) {
-  return type == "power" || type == "voltage" || type == "current" ||
-         type == "battery" || type == "wifiStatus" || type == "wifiControl" ||
-         type == "text" || type == "custom" || type == "strings" || type == "stringsVoltage" ||
-         type == "stringsCurrent" || type == "stringsPower" || type == "clock" || type == "calibration";
+  // The editor and save API expose exactly one block type.
+  return type == "custom";
+}
+
+// Accept old names only while reading LittleFS so existing layouts can be migrated.
+static bool isLoadableWidgetType(const String& type) {
+  return isKnownWidgetType(type) || type == "power" || type == "voltage" ||
+         type == "current" || type == "battery" || type == "wifiStatus" ||
+         type == "wifiControl" || type == "text" || type == "strings" ||
+         type == "stringsVoltage" || type == "stringsCurrent" ||
+         type == "stringsPower" || type == "clock" || type == "calibration";
 }
 
 static String decodeWidgetText(const String& input) {
@@ -98,12 +105,18 @@ void initializeDefaultPages() {
     w.type = types[i]; w.label = labels[i]; w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.elementCount = 0; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0; w.x = xs[i]; w.y = ys[i];
     w.w = ws[i]; w.h = hs[i]; w.enabled = enabled[i];
   }
-  cfg.pages[1].title = "Wi-Fi";
+  cfg.pages[1].title = "Система";
   cfg.pages[1].showTitle = true;
   cfg.pages[1].widgetCount = 1;
   WidgetConfig& wifi = cfg.pages[1].widgets[0];
-  wifi.type = "custom"; wifi.label = "Состояние Wi-Fi"; wifi.text = ""; wifi.headingSize = 1; wifi.showHeading = true; wifi.contentSize = 1; wifi.stringCount = 2; wifi.elementCount = 1; wifi.locked = false; wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
-  wifi.elements[0].label = "Состояние Wi-Fi"; wifi.elements[0].kind = ELEMENT_WIFI_STATUS; wifi.elements[0].sourceId = 0; wifi.elements[0].metric = 0; wifi.elements[0].fontSize = 1; wifi.elements[0].color = 0;
+  wifi.type = "custom"; wifi.label = "Системные функции"; wifi.headingSize = 1; wifi.showHeading = true;
+  wifi.contentSize = 1; wifi.stringCount = 2; wifi.elementCount = 5; wifi.locked = false;
+  wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
+  wifi.elements[0].label = "Время"; wifi.elements[0].kind = ELEMENT_CLOCK; wifi.elements[0].sourceId = 0; wifi.elements[0].metric = 0; wifi.elements[0].fontSize = 2; wifi.elements[0].color = 1;
+  wifi.elements[1].label = "Дата"; wifi.elements[1].kind = ELEMENT_CLOCK; wifi.elements[1].sourceId = 0; wifi.elements[1].metric = 1; wifi.elements[1].fontSize = 1; wifi.elements[1].color = 0;
+  wifi.elements[2].label = "Wi-Fi"; wifi.elements[2].kind = ELEMENT_WIFI_STATUS; wifi.elements[2].sourceId = 0; wifi.elements[2].metric = 0; wifi.elements[2].fontSize = 1; wifi.elements[2].color = 2;
+  wifi.elements[3].label = "Управление Wi-Fi"; wifi.elements[3].kind = ELEMENT_WIFI_CONTROL; wifi.elements[3].sourceId = 0; wifi.elements[3].metric = 2; wifi.elements[3].fontSize = 1; wifi.elements[3].color = 3;
+  wifi.elements[4].label = "Выбор сети"; wifi.elements[4].kind = ELEMENT_WIFI_NETWORK; wifi.elements[4].sourceId = 0; wifi.elements[4].metric = 0; wifi.elements[4].fontSize = 1; wifi.elements[4].color = 0;
   wifi.x = 8; wifi.y = 55; wifi.w = 224; wifi.h = 220; wifi.enabled = true;
   for (uint8_t p = 2; p < MAX_PAGES; p++) { cfg.pages[p].title = ""; cfg.pages[p].showTitle = true; cfg.pages[p].widgetCount = 0; }
 }
@@ -148,7 +161,7 @@ bool loadPageKey(const String& key, const String& value) {
     else if (elementField == "Color") element.color = clampInt(value.toInt(), 0, 5);
     else return false;
   }
-  else if (suffix == "Type") { if (isKnownWidgetType(value)) w.type = value; }
+  else if (suffix == "Type") { if (isLoadableWidgetType(value)) w.type = value; }
   else if (suffix == "Label") w.label = sanitizeTitle(value);
   else if (suffix == "Text") {
     const String legacyText = decodeWidgetText(value);
@@ -248,7 +261,7 @@ void loadConfig() {
     cfg.pages[p].widgetCount = clampInt(cfg.pages[p].widgetCount, 0, MAX_WIDGETS_PER_PAGE);
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      if (!isKnownWidgetType(w.type)) w.type = "power";
+      if (!isLoadableWidgetType(w.type)) w.type = "custom";
       w.headingSize = clampInt(w.headingSize, 0, 5); w.contentSize = clampInt(w.contentSize, 0, 5);
       w.stringCount = clampInt(w.stringCount ? w.stringCount : 2, 1, 6);
       // Convert legacy fixed-type string monitors into editable universal rows.
