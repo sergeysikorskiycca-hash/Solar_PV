@@ -64,7 +64,7 @@ void setDefaults() {
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
     for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.locked = false; w.showHeading = true; w.showBorder = true; w.headingAlign = 0; w.contentAlign = 0;
+      w.headingSize = 0; w.contentSize = 2; w.stringCount = 2; w.locked = false; w.showHeading = true; w.showBorder = true; w.headingAlign = 0; w.contentAlign = 0;
       w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0;
     }
   }
@@ -153,8 +153,8 @@ bool loadPageKey(const String& key, const String& value) {
   if (suffix == "Type") { if (isKnownWidgetType(value)) w.type = value; }
   else if (suffix == "Label") w.label = sanitizeTitle(value);
   else if (suffix == "Text") w.text = decodeWidgetText(value);
-  else if (suffix == "HeadingSize") w.headingSize = clampInt(value.toInt(), 0, 4);
-  else if (suffix == "ContentSize") w.contentSize = clampInt(value.toInt(), 0, 4);
+  else if (suffix == "HeadingSize") w.headingSize = clampInt(value.toInt(), 0, 5);
+  else if (suffix == "ContentSize") w.contentSize = clampInt(value.toInt(), 0, 5);
   else if (suffix == "StringCount") w.stringCount = clampInt(value.toInt(), 1, 6);
   else if (suffix == "Locked") w.locked = value == "1";
   else if (suffix == "ShowHeading") w.showHeading = value == "1";
@@ -179,6 +179,7 @@ void loadConfig() {
   if (!f) return;
   for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) { savedNetworks[i].ssid = ""; savedNetworks[i].password = ""; }
   bool genericPagesLoaded = false;
+  bool fontScaleVersion2 = false;
   while (f.available()) {
     String line = f.readStringUntil('\n');
     line.trim();
@@ -191,6 +192,7 @@ void loadConfig() {
     else if (key == "ssid") cfg.ssid = value;
     else if (key == "password") cfg.password = value;
     else if (key == "title") cfg.title = sanitizeTitle(value);
+    else if (key == "fontScaleVersion") fontScaleVersion2 = value.toInt() >= 2;
     else if (key == "uiStringPrefix") cfg.uiTexts.stringPrefix = sanitizeUiText(value,"Стринг");
     else if (key == "uiCurrentLabel") cfg.uiTexts.currentLabel = sanitizeUiText(value,"Ток");
     else if (key == "uiVoltageLabel") cfg.uiTexts.voltageLabel = sanitizeUiText(value,"Напр.");
@@ -237,6 +239,27 @@ void loadConfig() {
   }
   f.close();
   if (!genericPagesLoaded) initializeDefaultPages();
+  // Version 1 used: 0=13px, 1=13px, 2=16px, 3=15px, 4=20px, 5=24px.
+  // Version 2 removes the duplicate 13px option and inserts a 27px Cyrillic size.
+  // Keep existing user choices as close as possible when migrating old LittleFS settings.
+  if (genericPagesLoaded && !fontScaleVersion2) {
+    for (uint8_t p = 0; p < MAX_PAGES; ++p) {
+      for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; ++i) {
+        WidgetConfig& w = cfg.pages[p].widgets[i];
+        auto migrateFontSize = [](uint8_t oldSize) -> uint8_t {
+          switch (oldSize) {
+            case 0: case 1: return 0;
+            case 2: return 2;
+            case 3: return 1;
+            case 4: return 3;
+            default: return 4; // old 24px "Сверхкрупный"
+          }
+        };
+        w.headingSize = migrateFontSize(w.headingSize);
+        w.contentSize = migrateFontSize(w.contentSize);
+      }
+    }
+  }
   cfg.pageCount = clampInt(cfg.pageCount, 1, MAX_PAGES);
   cfg.tftPage = clampInt(cfg.tftPage, 1, cfg.pageCount);
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
@@ -244,7 +267,7 @@ void loadConfig() {
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
       if (!isKnownWidgetType(w.type)) w.type = "power";
-      w.headingSize = clampInt(w.headingSize, 0, 4); w.contentSize = clampInt(w.contentSize, 0, 4);
+      w.headingSize = clampInt(w.headingSize, 0, 5); w.contentSize = clampInt(w.contentSize, 0, 5);
       w.stringCount = clampInt(w.stringCount ? w.stringCount : 2, 1, 6);
       w.headingAlign = clampInt(w.headingAlign, 0, 2); w.contentAlign = clampInt(w.contentAlign, 0, 2);
       w.headingColor = clampInt(w.headingColor, 0, 5); w.contentColor = clampInt(w.contentColor, 0, 5); w.backgroundColor = clampInt(w.backgroundColor, 0, 6);
@@ -278,6 +301,7 @@ bool saveConfig() {
   f.println("ssid=" + cfg.ssid);
   f.println("password=" + cfg.password);
   f.println("title=" + sanitizeTitle(cfg.title));
+  f.println("fontScaleVersion=2");
   f.println("uiStringPrefix=" + sanitizeUiText(cfg.uiTexts.stringPrefix,"Стринг"));
   f.println("uiCurrentLabel=" + sanitizeUiText(cfg.uiTexts.currentLabel,"Ток"));
   f.println("uiVoltageLabel=" + sanitizeUiText(cfg.uiTexts.voltageLabel,"Напр."));
