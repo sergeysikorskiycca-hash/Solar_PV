@@ -118,7 +118,7 @@ void drawWidget(const WidgetConfig& widget) {
     const uint8_t strings = widget.stringCount >= 2 && widget.stringCount <= 6 ? widget.stringCount : 2;
     const int lineHeight = FONT_HEIGHTS[cs] + 3; int lineY = contentBaseline;
     for (uint8_t s = 0; s < strings; ++s) {
-      drawAlignedText("Стринг " + String(s + 1), x, lineY, w, cs, widget.contentAlign, widget.headingColor); lineY += lineHeight;
+      drawAlignedText(cfg.uiTexts.stringPrefix + " " + String(s + 1), x, lineY, w, cs, widget.contentAlign, widget.headingColor); lineY += lineHeight;
       const uint8_t currentRow = s * 2, voltageRow = currentRow + 1;
       const bool currentSelected = calibrationInlineActive && calibrationRow == currentRow;
       const bool voltageSelected = calibrationInlineActive && calibrationRow == voltageRow;
@@ -126,11 +126,11 @@ void drawWidget(const WidgetConfig& widget) {
       const String currentActual = fresh ? String(stringSensorCurrent[s], 2) : "--";
       const String voltageActual = fresh ? String(stringSensorVoltage[s], 1) : "--";
       drawAlignedText(String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                      "Ток " + currentActual + " > " + calibrationTargetText(calibrationEditing, currentSelected, true, currentActual) + " А",
+                      cfg.uiTexts.currentLabel + " " + currentActual + " > " + calibrationTargetText(calibrationEditing, currentSelected, true, currentActual) + " А",
                       x + 3, lineY, w - 3, cs, widget.contentAlign,
                       currentSelected ? 3 : widget.contentColor); lineY += lineHeight;
       drawAlignedText(String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                      "Напр. " + voltageActual + " > " + calibrationTargetText(calibrationEditing, voltageSelected, false, voltageActual) + " В",
+                      cfg.uiTexts.voltageLabel + " " + voltageActual + " > " + calibrationTargetText(calibrationEditing, voltageSelected, false, voltageActual) + " В",
                       x + 3, lineY, w - 3, cs, widget.contentAlign,
                       voltageSelected ? 3 : widget.contentColor); lineY += lineHeight;
     }
@@ -162,7 +162,7 @@ void drawWidget(const WidgetConfig& widget) {
         else if (widget.type == "stringsPower") reading = String(stringSensorPower[i], 1);
         else reading = String(stringSensorVoltage[i], 1);
       }
-      drawAlignedText("Стринг " + String(i + 1) + ": " + reading + " " + unit,
+      drawAlignedText(cfg.uiTexts.stringPrefix + " " + String(i + 1) + ": " + reading + " " + unit,
                       x, lineY, w, cs, widget.contentAlign, widget.contentColor);
       lineY += lineHeight;
     }
@@ -173,23 +173,23 @@ void drawWidget(const WidgetConfig& widget) {
     auto line=[&](const String& s,uint16_t color){if(lineY<=y+h-4)drawAlignedText(s,x,lineY,w,cs,widget.contentAlign,color);lineY+=lineHeight;};
     bool router = wifiControlApplyPending ? wifiControlPendingRouter : routerModeEnabled;
     bool ap = wifiControlApplyPending ? wifiControlPendingAp : setupApEnabled;
-    line(String(wifiControlSelectedRow==0?"> ":"  ")+"Роутер: "+(router?"ВКЛ":"ВЫКЛ"),wifiControlSelectedRow==0?0x07FF:(router?0x07E0:0xF800));
-    line(String(wifiControlSelectedRow==1?"> ":"  ")+"Точка: "+(ap?"ВКЛ":"ВЫКЛ"),wifiControlSelectedRow==1?0x07FF:(ap?0x07E0:0xF800));
+    line(String(wifiControlSelectedRow==0?"> ":"  ")+cfg.uiTexts.routerLabel + ": "+(router?"ВКЛ":"ВЫКЛ"),wifiControlSelectedRow==0?0x07FF:(router?0x07E0:0xF800));
+    line(String(wifiControlSelectedRow==1?"> ":"  ")+cfg.uiTexts.apLabel + ": "+(ap?"ВКЛ":"ВЫКЛ"),wifiControlSelectedRow==1?0x07FF:(ap?0x07E0:0xF800));
     if(wifiControlApplyPending) {
       uint32_t remaining = (int32_t)(wifiControlApplyAt - millis()) > 0 ? (wifiControlApplyAt - millis() + 999UL) / 1000UL : 0;
-      line("Применение через "+String(remaining)+" сек.",0xFFE0);
+      line(cfg.uiTexts.applyLabel + " "+String(remaining)+" сек.",0xFFE0);
     } else {
-      line("ВВЕРХ/ВНИЗ: выбор",0xBDF7);
-      line("OK: изменить (5 сек.)",0xBDF7);
+      line(cfg.uiTexts.selectHint,0xBDF7);
+      line(cfg.uiTexts.changeHint,0xBDF7);
     }
     return;
   }
   if(widget.type=="wifiStatus") {
     int lineY=contentBaseline, lineHeight=FONT_HEIGHTS[cs]+5;
     auto drawLine=[&](const String& value){if(lineY<=y+h-4)drawAlignedText(value,x,lineY,w,cs,widget.contentAlign,widget.contentColor);lineY+=lineHeight;};
-    if(WiFi.status()==WL_CONNECTED){drawLine("Сеть: "+cfg.ssid);drawLine("Сигнал: "+String(WiFi.RSSI())+" dBm");drawLine("IP: "+WiFi.localIP().toString());}
-    else {drawLine("Роутер не подключён");drawLine("Сеть: "+cfg.ssid);}
-    if(apActive&&lineY<y+h-4){drawLine("Точка настройки:");drawLine("IP: "+WiFi.softAPIP().toString());} return;
+    if(WiFi.status()==WL_CONNECTED){drawLine(cfg.uiTexts.networkLabel + ": "+cfg.ssid);drawLine(cfg.uiTexts.signalLabel + ": "+String(WiFi.RSSI())+" dBm");drawLine("IP: "+WiFi.localIP().toString());}
+    else {drawLine(cfg.uiTexts.noRouterLabel);drawLine(cfg.uiTexts.networkLabel + ": "+cfg.ssid);}
+    if(apActive&&lineY<y+h-4){drawLine(cfg.uiTexts.apSetupLabel);drawLine("IP: "+WiFi.softAPIP().toString());} return;
   }
   String value = "--";
   if (widget.type == "power") {
@@ -230,7 +230,7 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
   } else if (widget.type == "calibration") {
     const uint8_t strings = widget.stringCount >= 2 && widget.stringCount <= 6 ? widget.stringCount : 2;
     for (uint8_t s = 0; s < strings && count + 3 <= 18; ++s) {
-      out[count] = "Стринг " + String(s + 1); colors[count++] = widgetColor(widget.headingColor);
+      out[count] = cfg.uiTexts.stringPrefix + " " + String(s + 1); colors[count++] = widgetColor(widget.headingColor);
       const uint8_t currentRow = s * 2, voltageRow = currentRow + 1;
       const bool currentSelected = calibrationInlineActive && calibrationRow == currentRow;
       const bool voltageSelected = calibrationInlineActive && calibrationRow == voltageRow;
@@ -238,10 +238,10 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
       const String currentActual = fresh ? String(stringSensorCurrent[s], 2) : "--";
       const String voltageActual = fresh ? String(stringSensorVoltage[s], 1) : "--";
       out[count] = String(currentSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                   "Ток " + currentActual + " > " + calibrationTargetText(calibrationEditing, currentSelected, true, currentActual) + " А";
+                   cfg.uiTexts.currentLabel + " " + currentActual + " > " + calibrationTargetText(calibrationEditing, currentSelected, true, currentActual) + " А";
       colors[count++] = currentSelected ? 0xFFE0 : widgetColor(widget.contentColor);
       out[count] = String(voltageSelected ? (calibrationEditing ? "* " : "> ") : "  ") +
-                   "Напр. " + voltageActual + " > " + calibrationTargetText(calibrationEditing, voltageSelected, false, voltageActual) + " В";
+                   cfg.uiTexts.voltageLabel + " " + voltageActual + " > " + calibrationTargetText(calibrationEditing, voltageSelected, false, voltageActual) + " В";
       colors[count++] = voltageSelected ? 0xFFE0 : widgetColor(widget.contentColor);
     }
   } else if (widget.type == "wifiStatus") {
@@ -250,11 +250,11 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
       out[count] = "Сигнал: " + String(WiFi.RSSI()) + " dBm"; colors[count++] = widgetColor(widget.contentColor);
       out[count] = "IP: " + WiFi.localIP().toString(); colors[count++] = widgetColor(widget.contentColor);
     } else {
-      out[count] = "Роутер не подключён"; colors[count++] = widgetColor(widget.contentColor);
+      out[count] = cfg.uiTexts.noRouterLabel; colors[count++] = widgetColor(widget.contentColor);
       out[count] = "Сеть: " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);
     }
     if (apActive && count <= 4) {
-      out[count] = "Точка настройки:"; colors[count++] = widgetColor(widget.contentColor);
+      out[count] = cfg.uiTexts.apSetupLabel; colors[count++] = widgetColor(widget.contentColor);
       out[count] = "IP: " + WiFi.softAPIP().toString(); colors[count++] = widgetColor(widget.contentColor);
     }
   } else if (widget.type == "wifiControl") {
@@ -268,8 +268,8 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
       uint32_t remaining = (int32_t)(wifiControlApplyAt - millis()) > 0 ? (wifiControlApplyAt - millis() + 999UL) / 1000UL : 0;
       out[count] = "Применение через " + String(remaining) + " сек."; colors[count++] = 0xFFE0;
     } else {
-      out[count] = "ВВЕРХ/ВНИЗ: выбор"; colors[count++] = 0xBDF7;
-      out[count] = "OK: изменить (5 сек.)"; colors[count++] = 0xBDF7;
+      out[count] = cfg.uiTexts.selectHint; colors[count++] = 0xBDF7;
+      out[count] = cfg.uiTexts.changeHint; colors[count++] = 0xBDF7;
     }
   } else if (widget.type == "strings" || widget.type == "stringsVoltage" ||
              widget.type == "stringsCurrent" || widget.type == "stringsPower") {
@@ -283,7 +283,7 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
         else if (widget.type == "stringsPower") reading = String(stringSensorPower[i], 1);
         else reading = String(stringSensorVoltage[i], 1);
       }
-      out[count] = "Стринг " + String(i + 1) + ": " + reading + " " + unit;
+      out[count] = cfg.uiTexts.stringPrefix + " " + String(i + 1) + ": " + reading + " " + unit;
       colors[count++] = widgetColor(widget.contentColor);
     }
   } else if (widget.type == "power" || widget.type == "voltage" || widget.type == "current" || widget.type == "battery") {
