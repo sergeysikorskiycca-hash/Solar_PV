@@ -390,7 +390,6 @@ void handleSaveDisplay() {
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
       JsonObject source = sourceWidgets[i].as<JsonObject>();
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      w.legacyType = 0; w.legacyStringCount = 0;
       w.label = sanitizeTitle(String(source["label"] | "Блок"));
       w.headingSize = clampInt(source["headingSize"] | 1, 0, 5); w.contentSize = clampInt(source["contentSize"] | 2, 0, 5);
       JsonArray sourceElements = source["elements"].as<JsonArray>();

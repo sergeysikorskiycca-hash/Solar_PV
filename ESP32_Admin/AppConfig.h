@@ -35,8 +35,6 @@ struct WidgetElementConfig {
 struct WidgetConfig {
   String label;
   uint8_t headingSize, contentSize;
-  uint8_t legacyType; // Temporary legacy type code, cleared after loading.
-  uint8_t legacyStringCount; // Temporary old string count, cleared after loading.
   uint8_t elementCount; // Number of configured rows in a universal widget.
   WidgetElementConfig elements[MAX_WIDGET_ELEMENTS];
   bool locked; // Prevents accidental position and size changes in the web editor

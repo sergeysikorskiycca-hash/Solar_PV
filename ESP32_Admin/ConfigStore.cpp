@@ -53,7 +53,7 @@ void setDefaults() {
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
     for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      w.headingSize = 0; w.contentSize = 2; w.legacyType = 0; w.legacyStringCount = 0; w.elementCount = 0; w.locked = false; w.showHeading = true; w.showBorder = true; w.headingAlign = 0; w.contentAlign = 0;
+      w.headingSize = 0; w.contentSize = 2; w.elementCount = 0; w.locked = false; w.showHeading = true; w.showBorder = true; w.headingAlign = 0; w.contentAlign = 0;
       w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0;
     }
   }
@@ -66,6 +66,10 @@ enum LegacyWidgetType : uint8_t {
   LEGACY_TEXT, LEGACY_STRINGS, LEGACY_STRINGS_VOLTAGE, LEGACY_STRINGS_CURRENT,
   LEGACY_STRINGS_POWER, LEGACY_CLOCK, LEGACY_CALIBRATION, LEGACY_UNKNOWN
 };
+
+// One-time compatibility data is kept outside the active universal widget model.
+static uint8_t legacyWidgetTypes[MAX_PAGES][MAX_WIDGETS_PER_PAGE];
+static uint8_t legacyStringCounts[MAX_PAGES][MAX_WIDGETS_PER_PAGE];
 
 static uint8_t legacyWidgetTypeFromName(const String& type) {
   if (type == "custom") return LEGACY_UNIVERSAL;
@@ -112,7 +116,7 @@ void initializeDefaultPages() {
   bool enabled[4] = {true, true, true, true};
   for (uint8_t i = 0; i < 4; i++) {
     WidgetConfig& w = cfg.pages[0].widgets[i];
-    w.label = labels[i]; w.headingSize = 1; w.contentSize = 2; w.legacyType = 0; w.legacyStringCount = 0; w.elementCount = 0; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0; w.x = xs[i]; w.y = ys[i];
+    w.label = labels[i]; w.headingSize = 1; w.contentSize = 2; w.elementCount = 0; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0; w.x = xs[i]; w.y = ys[i];
     w.w = ws[i]; w.h = hs[i]; w.enabled = enabled[i];
   }
   cfg.pages[1].title = "Система";
@@ -120,7 +124,7 @@ void initializeDefaultPages() {
   cfg.pages[1].widgetCount = 1;
   WidgetConfig& wifi = cfg.pages[1].widgets[0];
   wifi.label = "Системные функции"; wifi.headingSize = 1; wifi.showHeading = true;
-  wifi.contentSize = 1; wifi.legacyType = 0; wifi.legacyStringCount = 0; wifi.elementCount = 5; wifi.locked = false;
+  wifi.contentSize = 1; wifi.elementCount = 5; wifi.locked = false;
   wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
   wifi.elements[0].label = "Время"; wifi.elements[0].kind = ELEMENT_CLOCK; wifi.elements[0].sourceId = 0; wifi.elements[0].metric = 0; wifi.elements[0].fontSize = 2; wifi.elements[0].color = 1;
   wifi.elements[1].label = "Дата"; wifi.elements[1].kind = ELEMENT_CLOCK; wifi.elements[1].sourceId = 0; wifi.elements[1].metric = 1; wifi.elements[1].fontSize = 1; wifi.elements[1].color = 0;
@@ -171,7 +175,7 @@ bool loadPageKey(const String& key, const String& value) {
     else if (elementField == "Color") element.color = clampInt(value.toInt(), 0, 5);
     else return false;
   }
-  else if (suffix == "Type") { w.legacyType = legacyWidgetTypeFromName(value); }
+  else if (suffix == "Type") { legacyWidgetTypes[p][wi] = legacyWidgetTypeFromName(value); }
   else if (suffix == "Label") w.label = sanitizeTitle(value);
   else if (suffix == "Text") {
     const String legacyText = decodeWidgetText(value);
@@ -185,7 +189,7 @@ bool loadPageKey(const String& key, const String& value) {
   }
   else if (suffix == "HeadingSize") w.headingSize = clampInt(value.toInt(), 0, 5);
   else if (suffix == "ContentSize") w.contentSize = clampInt(value.toInt(), 0, 5);
-  else if (suffix == "StringCount") w.legacyStringCount = clampInt(value.toInt(), 1, 6);
+  else if (suffix == "StringCount") legacyStringCounts[p][wi] = clampInt(value.toInt(), 1, 6);
   else if (suffix == "Locked") w.locked = value == "1";
   else if (suffix == "ShowHeading") w.showHeading = value == "1";
   else if (suffix == "ShowBorder") w.showBorder = value == "1";
@@ -204,6 +208,8 @@ bool loadPageKey(const String& key, const String& value) {
 }
 void loadConfig() {
   setDefaults();
+  memset(legacyWidgetTypes, 0, sizeof(legacyWidgetTypes));
+  memset(legacyStringCounts, 0, sizeof(legacyStringCounts));
   if (!fsReady) return;
   File f = LittleFS.open(CONFIG_PATH, "r");
   if (!f) return;
@@ -273,13 +279,14 @@ void loadConfig() {
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
       w.headingSize = clampInt(w.headingSize, 0, 5); w.contentSize = clampInt(w.contentSize, 0, 5);
-      const uint8_t legacyType = w.legacyType;
+      const uint8_t legacyType = legacyWidgetTypes[p][i];
+      const uint8_t legacyStringCount = legacyStringCounts[p][i];
       if (legacyType != LEGACY_NONE) legacyLayoutMigrated = true;
       const bool firstElementMissing = w.elementCount == 0 || !w.elements[0].label.length();
       if (legacyType == LEGACY_STRINGS || legacyType == LEGACY_STRINGS_VOLTAGE ||
           legacyType == LEGACY_STRINGS_CURRENT || legacyType == LEGACY_STRINGS_POWER) {
         if (firstElementMissing) {
-          const uint8_t count = w.legacyStringCount ? w.legacyStringCount : 2;
+          const uint8_t count = legacyStringCount ? legacyStringCount : 2;
           w.elementCount = clampInt(count, 1, MAX_WIDGET_ELEMENTS);
           for (uint8_t e = 0; e < w.elementCount; ++e) {
             WidgetElementConfig& element = w.elements[e];
@@ -304,7 +311,7 @@ void loadConfig() {
         w.elementCount = 1; w.elements[0].label = "Управление Wi-Fi"; w.elements[0].kind = ELEMENT_WIFI_CONTROL;
         w.elements[0].metric = 2; w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
       } else if (legacyType == LEGACY_CALIBRATION && w.elementCount == 0) {
-        const uint8_t count = w.legacyStringCount ? w.legacyStringCount : 2;
+        const uint8_t count = legacyStringCount ? legacyStringCount : 2;
         w.elementCount = clampInt(count, 2, 6);
         for (uint8_t e = 0; e < w.elementCount; ++e) {
           w.elements[e].label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
@@ -323,7 +330,6 @@ void loadConfig() {
         w.elements[0].metric = legacyType == LEGACY_CURRENT ? 1 : (legacyType == LEGACY_POWER ? 2 : (legacyType == LEGACY_BATTERY ? 3 : 0));
         w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
       }
-      w.legacyType = 0; w.legacyStringCount = 0;
       w.elementCount = clampInt(w.elementCount, 0, MAX_WIDGET_ELEMENTS);
       for (uint8_t e = 0; e < w.elementCount; ++e) {
         WidgetElementConfig& element = w.elements[e];
