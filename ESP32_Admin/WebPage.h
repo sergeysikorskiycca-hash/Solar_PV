@@ -76,7 +76,7 @@ const backgroundPalette=['#101820','#001B2E','#073326','#302044','#481D20','#303
 const typeLabels={custom:'Универсальный блок'};
 let pages=[],editorPage=0,devicePage=0,selectedWidget=-1,followDevice=true,pointerEdit=null;
 let networkStatus='',networkLabel='Wi-Fi: —',savedNetworks=[],wifiMode={router:false,ap:true,apActive:true};
-let stringTelemetry=[];
+let stringTelemetry=[],gatewayTelemetry={valid:false,voltage:0,current:0,power:0};
 let currentCalibration=[1,1,1,1,1,1],voltageCalibration=[1,1,1,1,1,1];
 const $=id=>document.getElementById(id);
 function clone(x){return JSON.parse(JSON.stringify(x))}
@@ -102,7 +102,7 @@ function normalizePage(p,i){return {title:p.title||('Страница '+(i+1)),s
 function ensurePages(){if(!pages.length)pages=[{title:'Показатели',showTitle:true,widgets:clone(defaults)},{title:'Wi-Fi',showTitle:true,widgets:[{type:'custom',label:'Состояние Wi-Fi',elements:[{label:'Состояние Wi-Fi',kind:2,sourceId:0,metric:0,fontSize:1,color:0}],x:8,y:55,w:224,h:220,enabled:true}]}];pages=pages.slice(0,MAX_PAGES).map(normalizePage)}
 
 const customFontSizes=[9,12,15,20,24,27],customPalette=['#FFFFFF','#00D5FF','#39E75F','#FFD400','#FF4D4D','#FF8C00'];
-function customElementText(element){const kind=Number(element.kind)||0,metric=Number(element.metric)||0;if(kind===6)return element.label;if(kind===1)return element.label+': '+(metric===1?'--.--.----':'--:--:--');if(kind===2)return element.label+': '+(networkStatus||'Wi-Fi не подключён');if(kind===3)return element.label+': '+uiTexts.routerLabel+' '+(wifiMode.router?'ВКЛ':'ВЫКЛ')+' / '+uiTexts.apLabel+' '+(wifiMode.ap?'ВКЛ':'ВЫКЛ');if(kind===4){const v=stringTelemetry.find(x=>Number(x.id)===Number(element.sourceId));return element.label+': '+(v&&v.valid?Number(v.current).toFixed(2)+' А / '+Number(v.voltage).toFixed(1)+' В':'нет данных')}if(kind===5)return element.label+': '+(networkLabel||'Wi-Fi');const v=stringTelemetry.find(x=>Number(x.id)===Number(element.sourceId));const unit=metric===1?'А':metric===2?'Вт':metric===3?'%':'В';if(metric===3)return element.label+': -- %';if(Number(element.sourceId)===7&&metric===2){const total=stringTelemetry.filter(x=>x&&x.valid).reduce((a,x)=>a+Number(x.power||0),0);return element.label+': '+total.toFixed(1)+' Вт'}if(!v||!v.valid)return element.label+': — '+unit;const value=metric===1?Number(v.current).toFixed(2):metric===2?Number(v.power).toFixed(1):Number(v.voltage).toFixed(1);return element.label+': '+value+' '+unit}
+function customElementText(element){const kind=Number(element.kind)||0,metric=Number(element.metric)||0;if(kind===6)return element.label;if(kind===1)return element.label+': '+(metric===1?'--.--.----':'--:--:--');if(kind===2)return element.label+': '+(networkStatus||'Wi-Fi не подключён');if(kind===3)return element.label+': '+uiTexts.routerLabel+' '+(wifiMode.router?'ВКЛ':'ВЫКЛ')+' / '+uiTexts.apLabel+' '+(wifiMode.ap?'ВКЛ':'ВЫКЛ');if(kind===4){const v=stringTelemetry.find(x=>Number(x.id)===Number(element.sourceId));return element.label+': '+(v&&v.valid?Number(v.current).toFixed(2)+' А / '+Number(v.voltage).toFixed(1)+' В':'нет данных')}if(kind===5)return element.label+': '+(networkLabel||'Wi-Fi');const unit=metric===1?'А':metric===2?'Вт':metric===3?'%':'В';if(metric===3)return element.label+': -- %';if(Number(element.sourceId)===0){if(!gatewayTelemetry.valid)return element.label+': — '+unit;const value=metric===1?Number(gatewayTelemetry.current).toFixed(2):metric===2?Number(gatewayTelemetry.power).toFixed(1):Number(gatewayTelemetry.voltage).toFixed(1);return element.label+': '+value+' '+unit}if(Number(element.sourceId)===7&&metric===2){const total=stringTelemetry.filter(x=>x&&x.valid).reduce((a,x)=>a+Number(x.power||0),0);return element.label+': '+total.toFixed(1)+' Вт'}const v=stringTelemetry.find(x=>Number(x.id)===Number(element.sourceId));if(!v||!v.valid)return element.label+': — '+unit;const value=metric===1?Number(v.current).toFixed(2):metric===2?Number(v.power).toFixed(1):Number(v.voltage).toFixed(1);return element.label+': '+value+' '+unit}
 function updateCustomPreviews(){document.querySelectorAll('.custom-lines').forEach(root=>{const i=Number(root.closest('.widget')?.dataset.index);const w=pages[editorPage]?.widgets[i];if(!w||w.type!=='custom')return;root.innerHTML='';(w.elements||[]).forEach(e=>{const line=document.createElement('div');line.className='custom-line';line.textContent=customElementText(e);line.style.fontSize=customFontSizes[e.fontSize]+'px';line.style.color=customPalette[e.color];root.appendChild(line)})})}
 function customField(title,control){const wrap=document.createElement('label');wrap.textContent=title;wrap.appendChild(control);return wrap}
 function customSelect(options,value){const select=document.createElement('select');options.forEach(o=>select.add(new Option(o[1],String(o[0]))));select.value=String(value);return select}
@@ -225,7 +225,7 @@ function applyActiveCalibration(c){
 }
 function loadConfig(c){
  renderUiTexts(c.uiTexts||{});
- stringTelemetry=Array.isArray(c.stringTelemetry)?c.stringTelemetry:[];
+ stringTelemetry=Array.isArray(c.stringTelemetry)?c.stringTelemetry:[];gatewayTelemetry=c.gatewayTelemetry||gatewayTelemetry;
  currentCalibration=normalizeCalibration(c.currentCalibration);voltageCalibration=normalizeCalibration(c.voltageCalibration);applyActiveCalibration(c);
  $('netStatus').textContent=c.networkStatus||'Wi-Fi не подключён';
  if(c.clock){$('clockDate').value=c.clock.date||'';$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
@@ -242,7 +242,7 @@ function collectData(){
 }
 async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
-  stringTelemetry=Array.isArray(c.stringTelemetry)?c.stringTelemetry:[];currentCalibration=normalizeCalibration(c.currentCalibration);voltageCalibration=normalizeCalibration(c.voltageCalibration);applyActiveCalibration(c);updateCustomPreviews();
+  stringTelemetry=Array.isArray(c.stringTelemetry)?c.stringTelemetry:[];gatewayTelemetry=c.gatewayTelemetry||gatewayTelemetry;currentCalibration=normalizeCalibration(c.currentCalibration);voltageCalibration=normalizeCalibration(c.voltageCalibration);applyActiveCalibration(c);updateCustomPreviews();
   const p=Math.max(0,Math.min((Number(c.tftPage)||1)-1,Math.max(0,pages.length-1)));
   if(p!==devicePage){devicePage=p;if(followDevice)editorPage=Math.min(devicePage,pages.length-1);renderAll()}
   if(c.clock){if(document.activeElement!==$('clockDate'))$('clockDate').value=c.clock.date||'';if(document.activeElement!==$('clockTime'))$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
