@@ -157,7 +157,10 @@ void drawWidget(const WidgetConfig& widget) {
     drawWrappedText(widget,widget.text,contentBaseline,avail>0?avail/lineHeight+1:0); return;
   }
   if (widget.type == "custom") {
-    int lineY = contentBaseline;
+    const uint8_t firstSize = widget.elementCount && widget.elements[0].fontSize <= 5 ? widget.elements[0].fontSize : cs;
+    int lineY = widget.showHeading
+        ? headingBaseline + FONT_HEIGHTS[hs] / 2 + FONT_HEIGHTS[firstSize] + 3
+        : y + FONT_HEIGHTS[firstSize] + 5;
     for (uint8_t i = 0; i < widget.elementCount && i < MAX_WIDGET_ELEMENTS && lineY <= y + h - 4; ++i) {
       const WidgetElementConfig& element = widget.elements[i];
       const char* unit = "В";
@@ -341,9 +344,10 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
     const uint8_t headingSize = widget.headingSize <= 5 ? widget.headingSize : 1;
     const uint8_t contentSize = widget.contentSize <= 5 ? widget.contentSize : 2;
     const int headingBaseline = widget.y + FONT_HEIGHTS[headingSize] + 3;
+    const uint8_t firstSize = widget.elementCount && widget.elements[0].fontSize <= 5 ? widget.elements[0].fontSize : contentSize;
     const int firstBaseline = widget.showHeading
-        ? headingBaseline + FONT_HEIGHTS[headingSize] / 2 + FONT_HEIGHTS[contentSize] + 3
-        : widget.y + FONT_HEIGHTS[contentSize] + 5;
+        ? headingBaseline + FONT_HEIGHTS[headingSize] / 2 + FONT_HEIGHTS[firstSize] + 3
+        : widget.y + FONT_HEIGHTS[firstSize] + 5;
     const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
     bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y ||
         cache.w != widget.w || cache.h != widget.h || cache.firstBaseline != firstBaseline ||
@@ -354,7 +358,7 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
       if (!cache.initialized || cache.fontSizes[i] != size) layoutChanged = true;
     }
     if (layoutChanged) {
-      const int top = firstBaseline - FONT_HEIGHTS[contentSize] + 1;
+      const int top = firstBaseline - FONT_HEIGHTS[firstSize] + 1;
       const int bottom = widget.y + widget.h - 3;
       if (bottom > top) tft.fillRect(widget.x + 2, top, widget.w - 4, bottom - top, widgetBackground(widget.backgroundColor));
     }
