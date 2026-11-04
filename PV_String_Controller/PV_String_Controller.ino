@@ -49,6 +49,8 @@ struct SensorData
     float current;
     float power;
     float shuntVoltage;
+    uint16_t currentCalibrationPermille;
+    uint16_t voltageCalibrationPermille;
 
     uint32_t packetNumber;
 };
@@ -108,9 +110,16 @@ static bool setCalibration(uint8_t sensorId, float currentFactor, float voltageF
     if (sensorId < 1 || sensorId > SENSOR_COUNT || !isfinite(currentFactor) || !isfinite(voltageFactor) ||
         currentFactor < 0.001f || currentFactor > 99.999f || voltageFactor < 0.001f || voltageFactor > 99.999f) return false;
     uint8_t index = sensorId - 1;
+    const float oldCurrentFactor = currentCalibration[index];
+    const float oldVoltageFactor = voltageCalibration[index];
     currentCalibration[index] = currentFactor;
     voltageCalibration[index] = voltageFactor;
-    if (!saveCalibration()) return false;
+    if (!saveCalibration()) {
+        currentCalibration[index] = oldCurrentFactor;
+        voltageCalibration[index] = oldVoltageFactor;
+        Serial.println("Calibration not applied: EEPROM commit failed; previous factors restored");
+        return false;
+    }
     Serial.printf("Calibration sensor %u: I=%.3f U=%.3f\n", (unsigned)sensorId, currentFactor, voltageFactor);
     return true;
 }
@@ -212,6 +221,8 @@ void readINA226(uint8_t index)
     data.current = current;
     data.power = power;
     data.shuntVoltage = shuntVoltage * 1000.0f;
+    data.currentCalibrationPermille = (uint16_t)lroundf(currentCalibration[index] * 1000.0f);
+    data.voltageCalibrationPermille = (uint16_t)lroundf(voltageCalibration[index] * 1000.0f);
     data.packetNumber = packetCounter[index]++;
 }
 
