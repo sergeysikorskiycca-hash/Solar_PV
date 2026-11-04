@@ -544,8 +544,8 @@ struct GatewayPacket {
   uint8_t month, day, hour, minute, second;
   uint8_t sensorId;
   float voltage, current, power;
-  uint16_t currentCalibrationPermille;
-  uint16_t voltageCalibrationPermille;
+  uint16_t currentCalibrationX600;
+  uint16_t voltageCalibrationX600;
   uint16_t sensorPacketNumber;
   int8_t espNowRssi;          // dBm; valid when flags bit 2 is set
   uint8_t crc;
@@ -673,9 +673,9 @@ static void processGatewayPacket() {
         stringSensorVoltage[index] = packet.voltage;
         stringSensorCurrent[index] = packet.current;
         stringSensorPower[index] = packet.power;
-        activeCurrentCalibration[index] = packet.currentCalibrationPermille / 1000.0f;
-        activeVoltageCalibration[index] = packet.voltageCalibrationPermille / 1000.0f;
-        activeCalibrationValid[index] = packet.currentCalibrationPermille >= 1 && packet.voltageCalibrationPermille >= 1;
+        activeCurrentCalibration[index] = packet.currentCalibrationX600 / 600.0f;
+        activeVoltageCalibration[index] = packet.voltageCalibrationX600 / 600.0f;
+        activeCalibrationValid[index] = packet.currentCalibrationX600 >= 1 && packet.voltageCalibrationX600 >= 1;
       }
       gatewayOnline = true;
       if (millis() - lastGatewayLogMs >= 1000UL) {
