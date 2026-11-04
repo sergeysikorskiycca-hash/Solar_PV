@@ -53,25 +53,36 @@ void setDefaults() {
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
     for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      w.headingSize = 0; w.contentSize = 2; w.stringCount = 2; w.elementCount = 0; w.locked = false; w.showHeading = true; w.showBorder = true; w.headingAlign = 0; w.contentAlign = 0;
+      w.headingSize = 0; w.contentSize = 2; w.legacyType = 0; w.legacyStringCount = 0; w.elementCount = 0; w.locked = false; w.showHeading = true; w.showBorder = true; w.headingAlign = 0; w.contentAlign = 0;
       w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0;
     }
   }
   initializeDefaultPages();
 }
 
-bool isKnownWidgetType(const String& type) {
-  // The editor and save API expose exactly one block type.
-  return type == "custom";
-}
+enum LegacyWidgetType : uint8_t {
+  LEGACY_NONE = 0, LEGACY_UNIVERSAL, LEGACY_POWER, LEGACY_VOLTAGE,
+  LEGACY_CURRENT, LEGACY_BATTERY, LEGACY_WIFI_STATUS, LEGACY_WIFI_CONTROL,
+  LEGACY_TEXT, LEGACY_STRINGS, LEGACY_STRINGS_VOLTAGE, LEGACY_STRINGS_CURRENT,
+  LEGACY_STRINGS_POWER, LEGACY_CLOCK, LEGACY_CALIBRATION, LEGACY_UNKNOWN
+};
 
-// Accept old names only while reading LittleFS so existing layouts can be migrated.
-static bool isLoadableWidgetType(const String& type) {
-  return isKnownWidgetType(type) || type == "power" || type == "voltage" ||
-         type == "current" || type == "battery" || type == "wifiStatus" ||
-         type == "wifiControl" || type == "text" || type == "strings" ||
-         type == "stringsVoltage" || type == "stringsCurrent" ||
-         type == "stringsPower" || type == "clock" || type == "calibration";
+static uint8_t legacyWidgetTypeFromName(const String& type) {
+  if (type == "custom") return LEGACY_UNIVERSAL;
+  if (type == "power") return LEGACY_POWER;
+  if (type == "voltage") return LEGACY_VOLTAGE;
+  if (type == "current") return LEGACY_CURRENT;
+  if (type == "battery") return LEGACY_BATTERY;
+  if (type == "wifiStatus") return LEGACY_WIFI_STATUS;
+  if (type == "wifiControl") return LEGACY_WIFI_CONTROL;
+  if (type == "text") return LEGACY_TEXT;
+  if (type == "strings") return LEGACY_STRINGS;
+  if (type == "stringsVoltage") return LEGACY_STRINGS_VOLTAGE;
+  if (type == "stringsCurrent") return LEGACY_STRINGS_CURRENT;
+  if (type == "stringsPower") return LEGACY_STRINGS_POWER;
+  if (type == "clock") return LEGACY_CLOCK;
+  if (type == "calibration") return LEGACY_CALIBRATION;
+  return LEGACY_UNKNOWN;
 }
 
 static String decodeWidgetText(const String& input) {
@@ -93,7 +104,6 @@ void initializeDefaultPages() {
   cfg.pages[0].title = "Показатели";
   cfg.pages[0].showTitle = true;
   cfg.pages[0].widgetCount = 4;
-  const char* types[4] = {"custom", "custom", "custom", "custom"};
   String labels[4] = {"Блок 1", "Блок 2", "Блок 3", "Блок 4"};
   int xs[4] = {8, 8, 125, 8};
   int ys[4] = {55, 125, 125, 205};
@@ -102,15 +112,15 @@ void initializeDefaultPages() {
   bool enabled[4] = {true, true, true, true};
   for (uint8_t i = 0; i < 4; i++) {
     WidgetConfig& w = cfg.pages[0].widgets[i];
-    w.type = types[i]; w.label = labels[i]; w.headingSize = 1; w.contentSize = 2; w.stringCount = 2; w.elementCount = 0; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0; w.x = xs[i]; w.y = ys[i];
+    w.label = labels[i]; w.headingSize = 1; w.contentSize = 2; w.legacyType = 0; w.legacyStringCount = 0; w.elementCount = 0; w.locked = false; w.showHeading = true; w.headingAlign = 0; w.contentAlign = 0; w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0; w.x = xs[i]; w.y = ys[i];
     w.w = ws[i]; w.h = hs[i]; w.enabled = enabled[i];
   }
   cfg.pages[1].title = "Система";
   cfg.pages[1].showTitle = true;
   cfg.pages[1].widgetCount = 1;
   WidgetConfig& wifi = cfg.pages[1].widgets[0];
-  wifi.type = "custom"; wifi.label = "Системные функции"; wifi.headingSize = 1; wifi.showHeading = true;
-  wifi.contentSize = 1; wifi.stringCount = 2; wifi.elementCount = 5; wifi.locked = false;
+  wifi.label = "Системные функции"; wifi.headingSize = 1; wifi.showHeading = true;
+  wifi.contentSize = 1; wifi.legacyType = 0; wifi.legacyStringCount = 0; wifi.elementCount = 5; wifi.locked = false;
   wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
   wifi.elements[0].label = "Время"; wifi.elements[0].kind = ELEMENT_CLOCK; wifi.elements[0].sourceId = 0; wifi.elements[0].metric = 0; wifi.elements[0].fontSize = 2; wifi.elements[0].color = 1;
   wifi.elements[1].label = "Дата"; wifi.elements[1].kind = ELEMENT_CLOCK; wifi.elements[1].sourceId = 0; wifi.elements[1].metric = 1; wifi.elements[1].fontSize = 1; wifi.elements[1].color = 0;
@@ -161,7 +171,7 @@ bool loadPageKey(const String& key, const String& value) {
     else if (elementField == "Color") element.color = clampInt(value.toInt(), 0, 5);
     else return false;
   }
-  else if (suffix == "Type") { if (isLoadableWidgetType(value)) w.type = value; }
+  else if (suffix == "Type") { w.legacyType = legacyWidgetTypeFromName(value); }
   else if (suffix == "Label") w.label = sanitizeTitle(value);
   else if (suffix == "Text") {
     const String legacyText = decodeWidgetText(value);
@@ -175,7 +185,7 @@ bool loadPageKey(const String& key, const String& value) {
   }
   else if (suffix == "HeadingSize") w.headingSize = clampInt(value.toInt(), 0, 5);
   else if (suffix == "ContentSize") w.contentSize = clampInt(value.toInt(), 0, 5);
-  else if (suffix == "StringCount") w.stringCount = clampInt(value.toInt(), 1, 6);
+  else if (suffix == "StringCount") w.legacyStringCount = clampInt(value.toInt(), 1, 6);
   else if (suffix == "Locked") w.locked = value == "1";
   else if (suffix == "ShowHeading") w.showHeading = value == "1";
   else if (suffix == "ShowBorder") w.showBorder = value == "1";
@@ -200,6 +210,7 @@ void loadConfig() {
   for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) { savedNetworks[i].ssid = ""; savedNetworks[i].password = ""; }
   bool genericPagesLoaded = false;
   bool fontScaleVersion2 = false;
+  bool legacyLayoutMigrated = false;
   while (f.available()) {
     String line = f.readStringUntil('\n');
     line.trim();
@@ -261,67 +272,58 @@ void loadConfig() {
     cfg.pages[p].widgetCount = clampInt(cfg.pages[p].widgetCount, 0, MAX_WIDGETS_PER_PAGE);
     for (uint8_t i = 0; i < cfg.pages[p].widgetCount; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      if (!isLoadableWidgetType(w.type)) w.type = "custom";
       w.headingSize = clampInt(w.headingSize, 0, 5); w.contentSize = clampInt(w.contentSize, 0, 5);
-      w.stringCount = clampInt(w.stringCount ? w.stringCount : 2, 1, 6);
-      // Convert legacy fixed-type string monitors into editable universal rows.
-      if (w.type == "strings" || w.type == "stringsVoltage" || w.type == "stringsCurrent" || w.type == "stringsPower") {
-        const String legacyType = w.type;
-        if (w.elementCount == 0) {
-          w.elementCount = w.stringCount;
+      const uint8_t legacyType = w.legacyType;
+      if (legacyType != LEGACY_NONE) legacyLayoutMigrated = true;
+      const bool firstElementMissing = w.elementCount == 0 || !w.elements[0].label.length();
+      if (legacyType == LEGACY_STRINGS || legacyType == LEGACY_STRINGS_VOLTAGE ||
+          legacyType == LEGACY_STRINGS_CURRENT || legacyType == LEGACY_STRINGS_POWER) {
+        if (firstElementMissing) {
+          const uint8_t count = w.legacyStringCount ? w.legacyStringCount : 2;
+          w.elementCount = clampInt(count, 1, MAX_WIDGET_ELEMENTS);
           for (uint8_t e = 0; e < w.elementCount; ++e) {
             WidgetElementConfig& element = w.elements[e];
             element.label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
-            element.kind = ELEMENT_SENSOR;
-            element.sourceId = e + 1;
-            element.metric = legacyType == "stringsCurrent" ? 1 : (legacyType == "stringsPower" ? 2 : 0);
-            element.fontSize = w.contentSize;
-            element.color = w.contentColor;
+            element.kind = ELEMENT_SENSOR; element.sourceId = e + 1;
+            element.metric = legacyType == LEGACY_STRINGS_CURRENT ? 1 : (legacyType == LEGACY_STRINGS_POWER ? 2 : 0);
+            element.fontSize = w.contentSize; element.color = w.contentColor;
           }
         }
-        w.type = "custom";
-      }
-      // Convert fixed-purpose blocks into elements of the universal block.
-      if (w.type != "custom" && w.type != "strings" && w.type != "stringsVoltage" &&
-          w.type != "stringsCurrent" && w.type != "stringsPower") {
-        const String legacyType = w.type;
-        if (legacyType == "clock" && w.elementCount == 0) {
-          w.elementCount = 2;
-          w.elements[0].label = "Время"; w.elements[0].kind = ELEMENT_CLOCK; w.elements[0].metric = 0;
-          w.elements[1].label = "Дата"; w.elements[1].kind = ELEMENT_CLOCK; w.elements[1].metric = 1;
-          for (uint8_t e = 0; e < 2; ++e) { w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor; }
-        } else if (legacyType == "wifiStatus" && w.elementCount == 0) {
-          w.elementCount = 4;
-          const char* labels[4] = {"Статус", "Сеть", "Сигнал", "IP"};
-          for (uint8_t e = 0; e < 4; ++e) {
-            w.elements[e].label = labels[e]; w.elements[e].kind = ELEMENT_WIFI_STATUS;
-            w.elements[e].metric = e; w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor;
-          }
-        } else if (legacyType == "wifiControl" && w.elementCount == 0) {
-          w.elementCount = 1;
-          w.elements[0].label = "Управление Wi-Fi"; w.elements[0].kind = ELEMENT_WIFI_CONTROL;
-          w.elements[0].metric = 2; w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
-        } else if (legacyType == "calibration" && w.elementCount == 0) {
-          w.elementCount = clampInt(w.stringCount, 2, 6);
-          for (uint8_t e = 0; e < w.elementCount; ++e) {
-            w.elements[e].label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
-            w.elements[e].kind = ELEMENT_CALIBRATION; w.elements[e].sourceId = e + 1; w.elements[e].metric = 2;
-            w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor;
-          }
-        } else if (legacyType == "text") {
-          if (w.elementCount == 0) {
-            w.elementCount = 1; w.elements[0].label = "Текст"; w.elements[0].kind = ELEMENT_TEXT;
-            w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
-          }
-        } else if ((legacyType == "power" || legacyType == "voltage" || legacyType == "current" || legacyType == "battery") && w.elementCount == 0) {
-          w.elementCount = 1; w.elements[0].kind = ELEMENT_SENSOR;
-          w.elements[0].label = legacyType == "power" ? "Мощность PV" : (legacyType == "voltage" ? "Напряжение" : (legacyType == "current" ? "Ток" : "Аккумулятор"));
-          w.elements[0].sourceId = legacyType == "power" ? 7 : 0;
-          w.elements[0].metric = legacyType == "current" ? 1 : (legacyType == "power" ? 2 : (legacyType == "battery" ? 3 : 0));
-          w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
+      } else if (legacyType == LEGACY_CLOCK && w.elementCount == 0) {
+        w.elementCount = 2;
+        w.elements[0].label = "Время"; w.elements[0].kind = ELEMENT_CLOCK; w.elements[0].metric = 0;
+        w.elements[1].label = "Дата"; w.elements[1].kind = ELEMENT_CLOCK; w.elements[1].metric = 1;
+        for (uint8_t e = 0; e < 2; ++e) { w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor; }
+      } else if (legacyType == LEGACY_WIFI_STATUS && w.elementCount == 0) {
+        w.elementCount = 4; const char* labels[4] = {"Статус", "Сеть", "Сигнал", "IP"};
+        for (uint8_t e = 0; e < 4; ++e) {
+          w.elements[e].label = labels[e]; w.elements[e].kind = ELEMENT_WIFI_STATUS;
+          w.elements[e].metric = e; w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor;
         }
-        w.type = "custom";
+      } else if (legacyType == LEGACY_WIFI_CONTROL && w.elementCount == 0) {
+        w.elementCount = 1; w.elements[0].label = "Управление Wi-Fi"; w.elements[0].kind = ELEMENT_WIFI_CONTROL;
+        w.elements[0].metric = 2; w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
+      } else if (legacyType == LEGACY_CALIBRATION && w.elementCount == 0) {
+        const uint8_t count = w.legacyStringCount ? w.legacyStringCount : 2;
+        w.elementCount = clampInt(count, 2, 6);
+        for (uint8_t e = 0; e < w.elementCount; ++e) {
+          w.elements[e].label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
+          w.elements[e].kind = ELEMENT_CALIBRATION; w.elements[e].sourceId = e + 1; w.elements[e].metric = 2;
+          w.elements[e].fontSize = w.contentSize; w.elements[e].color = w.contentColor;
+        }
+      } else if (legacyType == LEGACY_TEXT && w.elementCount == 0) {
+        w.elementCount = 1; w.elements[0].label = "Текст"; w.elements[0].kind = ELEMENT_TEXT;
+        w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
+      } else if ((legacyType == LEGACY_POWER || legacyType == LEGACY_VOLTAGE ||
+                  legacyType == LEGACY_CURRENT || legacyType == LEGACY_BATTERY) && w.elementCount == 0) {
+        w.elementCount = 1; w.elements[0].kind = ELEMENT_SENSOR;
+        w.elements[0].label = legacyType == LEGACY_POWER ? "Мощность PV" :
+                               (legacyType == LEGACY_VOLTAGE ? "Напряжение" : (legacyType == LEGACY_CURRENT ? "Ток" : "Аккумулятор"));
+        w.elements[0].sourceId = legacyType == LEGACY_POWER ? 7 : 0;
+        w.elements[0].metric = legacyType == LEGACY_CURRENT ? 1 : (legacyType == LEGACY_POWER ? 2 : (legacyType == LEGACY_BATTERY ? 3 : 0));
+        w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
       }
+      w.legacyType = 0; w.legacyStringCount = 0;
       w.elementCount = clampInt(w.elementCount, 0, MAX_WIDGET_ELEMENTS);
       for (uint8_t e = 0; e < w.elementCount; ++e) {
         WidgetElementConfig& element = w.elements[e];
@@ -340,6 +342,8 @@ void loadConfig() {
   }
   // Migrate the currently configured network from the older single-network config.
   if (cfg.ssid.length() && findSavedNetwork(cfg.ssid) < 0) addOrUpdateSavedNetwork(cfg.ssid, cfg.password);
+  // Rewrite old layouts once, so legacy block types disappear from LittleFS.
+  if (legacyLayoutMigrated) saveConfig();
 }
 
 int findSavedNetwork(const String& ssid) {
@@ -390,7 +394,6 @@ bool saveConfig() {
     for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
       const WidgetConfig& w = cfg.pages[p].widgets[i];
       String prefix = "p" + String(p) + "w" + String(i);
-      f.println(prefix + "Type=" + w.type);
       f.println(prefix + "Label=" + sanitizeTitle(w.label));
       f.println(prefix + "HeadingSize=" + String(w.headingSize)); f.println(prefix + "ContentSize=" + String(w.contentSize));
       f.println(prefix + "ElementCount=" + String(w.elementCount));
