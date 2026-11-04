@@ -15,10 +15,18 @@ struct SavedNetwork {
 };
 
 // One independently configured data row inside a universal widget.
+enum WidgetElementKind : uint8_t {
+  ELEMENT_SENSOR = 0, ELEMENT_CLOCK = 1, ELEMENT_WIFI_STATUS = 2,
+  ELEMENT_WIFI_CONTROL = 3, ELEMENT_CALIBRATION = 4,
+  ELEMENT_WIFI_NETWORK = 5, ELEMENT_TEXT = 6
+};
+
+// One configurable item inside the universal widget.
 struct WidgetElementConfig {
   String label;
-  uint8_t sourceId; // Physical sensor ID, 1..6.
-  uint8_t metric;   // 0=voltage, 1=current, 2=power.
+  uint8_t kind;     // WidgetElementKind.
+  uint8_t sourceId; // 0=gateway, 1..6=string sensor, 7=total PV power.
+  uint8_t metric;   // Kind-specific option.
   uint8_t fontSize; // 0..5.
   uint8_t color;    // 0..5.
 };
