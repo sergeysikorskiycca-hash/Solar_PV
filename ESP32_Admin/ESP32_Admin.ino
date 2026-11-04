@@ -589,7 +589,7 @@ static void gatewayOnReceive(int count) {
   if (valid) {
     GatewayPacket packet = {};
     if (received == 31) {
-      // Backward compatibility until the gateway is updated to send RSSI.
+      // Compact 31-byte gateway frame; the final byte is its CRC.
       memcpy(&packet, raw, 30);
       packet.espNowRssi = -127;
       valid = gatewayCrc8(raw, 30) == raw[30];
@@ -642,7 +642,7 @@ static void processGatewayPacket() {
     bool valid = length == sizeof(packet) || length == 31;
     if (valid) {
       if (length == 31) {
-        // Legacy 31-byte frame: its final byte is CRC, not RSSI.
+        // Compact 31-byte gateway frame; its final byte is the CRC.
         memcpy(&packet, raw, 30);
         packet.espNowRssi = -127;
         valid = gatewayCrc8(raw, 30) == raw[30];
