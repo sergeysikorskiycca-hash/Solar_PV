@@ -146,9 +146,10 @@ function renderCustomEditor(w){
   if(k===4) {const hint=document.createElement('p');hint.className='hint';hint.textContent='Коэффициенты и целевые показания настраиваются в разделе калибровки ниже.';row.appendChild(hint)}
   root.appendChild(row);
  });
- const tools=$('systemElementTools');tools.style.display='block';
+ const tools=$('systemElementTools');
  const kindsNow=new Set(w.elements.map(e=>Number(e.kind)||0));
  const panels=[['clockSettingsPanel',kindsNow.has(1)],['wifiModePanel',kindsNow.has(3)],['wifiDefaultsPanel',kindsNow.has(3)],['wifiConnectionPanel',kindsNow.has(5)]];
+ tools.style.display=panels.some(([,show])=>show)?'block':'none';
  panels.forEach(([id,show])=>{const panel=$(id);if(panel){panel.style.display=show?'block':'none';tools.appendChild(panel)}});
  $('addCustomElement').disabled=w.elements.length>=MAX_WIDGET_ELEMENTS;
 }
