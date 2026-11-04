@@ -676,6 +676,12 @@ static void processGatewayPacket() {
         activeCurrentCalibration[index] = packet.currentCalibrationX600 / 600.0f;
         activeVoltageCalibration[index] = packet.voltageCalibrationX600 / 600.0f;
         activeCalibrationValid[index] = packet.currentCalibrationX600 >= 1 && packet.voltageCalibrationX600 >= 1;
+        // The sensor is authoritative: keep browser and IR calibration math aligned
+        // with the coefficients actually applied by the live sensor.
+        if (activeCalibrationValid[index]) {
+          cfg.currentCalibration[index] = activeCurrentCalibration[index];
+          cfg.voltageCalibration[index] = activeVoltageCalibration[index];
+        }
       }
       gatewayOnline = true;
       if (millis() - lastGatewayLogMs >= 1000UL) {
