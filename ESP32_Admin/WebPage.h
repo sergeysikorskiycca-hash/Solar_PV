@@ -125,7 +125,7 @@ function renderCustomEditor(w){
   const k=Number(element.kind)||0;
   if(k===0||k===4){
    const sourceOptions=k===4?[[1,'Датчик 1'],[2,'Датчик 2'],[3,'Датчик 3'],[4,'Датчик 4'],[5,'Датчик 5'],[6,'Датчик 6']]:[[0,'ESP32 / шлюз'],[1,'Датчик 1'],[2,'Датчик 2'],[3,'Датчик 3'],[4,'Датчик 4'],[5,'Датчик 5'],[6,'Датчик 6'],[7,'Сумма мощности']];
-   const source=customSelect(sourceOptions,element.sourceId??1);source.addEventListener('change',()=>{element.sourceId=Number(source.value);updateCustomPreviews()});bottom.appendChild(customField('Источник',source));
+   const source=customSelect(sourceOptions,element.sourceId??1);source.addEventListener('change',()=>{element.sourceId=Number(source.value);if(k===0&&element.sourceId===7)element.metric=2;renderAll()});bottom.appendChild(customField('Источник',source));
   }
   let metricOptions=null,metricTitle='Параметр';
   if(k===0)metricOptions=[[0,'Напряжение'],[1,'Ток'],[2,'Мощность'],[3,'Заряд батареи']];
