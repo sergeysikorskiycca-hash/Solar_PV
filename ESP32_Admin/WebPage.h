@@ -113,6 +113,7 @@ function renderCustomEditor(w){
  const kinds=[[0,'Данные датчика'],[1,'Часы / дата'],[2,'Состояние Wi-Fi'],[3,'Управление Wi-Fi'],[4,'Калибровка датчика'],[5,'Выбор Wi-Fi сети'],[6,'Текстовая строка']];
  const sizeOptions=[[0,'Компактный'],[1,'Небольшой'],[2,'Средний'],[3,'Крупный'],[4,'Очень крупный'],[5,'Максимальный']];
  const colorOptions=[[0,'Белый'],[1,'Голубой'],[2,'Зелёный'],[3,'Жёлтый'],[4,'Красный'],[5,'Оранжевый']];
+ let rtcAttached=false;
  w.elements.forEach((element,index)=>{
   const row=document.createElement('div');row.className='element-editor';
   const top=document.createElement('div');top.className='row';
@@ -141,7 +142,7 @@ function renderCustomEditor(w){
   const up=document.createElement('button');up.type='button';up.textContent='↑';up.disabled=index===0;up.title='Переместить выше';up.addEventListener('click',()=>{const a=w.elements;[a[index-1],a[index]]=[a[index],a[index-1]];renderAll()});
   const down=document.createElement('button');down.type='button';down.textContent='↓';down.disabled=index===w.elements.length-1;down.title='Переместить ниже';down.addEventListener('click',()=>{const a=w.elements;[a[index+1],a[index]]=[a[index],a[index+1]];renderAll()});
   const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='Удалить';remove.addEventListener('click',()=>{w.elements.splice(index,1);renderAll()});
-  actions.append(up,down,remove);bottom.appendChild(actions);row.appendChild(bottom);  if(k===1) {const rtcPanel=$('clockSettingsPanel');rtcPanel.style.display='block';row.appendChild(rtcPanel)}
+  actions.append(up,down,remove);bottom.appendChild(actions);row.appendChild(bottom);  if(k===1&&!rtcAttached) {const rtcPanel=$('clockSettingsPanel');rtcPanel.style.display='block';row.appendChild(rtcPanel);rtcAttached=true}
   if(k===3||k===5) {const hint=document.createElement('p');hint.className='hint';hint.textContent=k===3?'Переключение режима Wi-Fi доступно в системных настройках и с ИК-пульта.':'Поиск сетей, выбор SSID и пароль доступны в системной панели Wi-Fi ниже.';row.appendChild(hint)}
   if(k===4) {const hint=document.createElement('p');hint.className='hint';hint.textContent='Коэффициенты и целевые показания настраиваются в разделе калибровки ниже.';row.appendChild(hint)}
   root.appendChild(row);
