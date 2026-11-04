@@ -73,6 +73,76 @@ static String calibrationTargetText(bool editing, bool selected, bool currentRow
   result = result.substring(0, position) + "[" + result.charAt(position) + "]" + result.substring(position + 1);
   return result;
 }
+static String widgetElementText(const WidgetElementConfig& element) {
+  if (element.kind == ELEMENT_TEXT) return element.label;
+  if (element.kind == ELEMENT_CLOCK) {
+    extern bool gatewayTimeValid;
+    extern uint16_t gatewayYear;
+    extern uint8_t gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond;
+    if (!gatewayTimeValid) return element.label + ": --";
+    String time = String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" +
+                  String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" +
+                  String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond);
+    String date = String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." +
+                  String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear);
+    return element.label + ": " + (element.metric == 1 ? date : (element.metric == 2 ? time + " " + date : time));
+  }
+  if (element.kind == ELEMENT_WIFI_STATUS) {
+    String value;
+    switch (element.metric) {
+      case 1: value = cfg.ssid.length() ? cfg.ssid : "—"; break;
+      case 2: value = WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) + " dBm" : "—"; break;
+      case 3: value = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "—"; break;
+      case 4: value = apActive ? "ВКЛ" : "ВЫКЛ"; break;
+      case 5: value = apActive ? WiFi.softAPIP().toString() : "—"; break;
+      default: value = WiFi.status() == WL_CONNECTED ? "Подключён" : "Нет подключения"; break;
+    }
+    return element.label + ": " + value;
+  }
+  if (element.kind == ELEMENT_WIFI_CONTROL) {
+    bool router = wifiControlApplyPending ? wifiControlPendingRouter : routerModeEnabled;
+    bool ap = wifiControlApplyPending ? wifiControlPendingAp : setupApEnabled;
+    const bool showRouter = element.metric == 0 || (element.metric == 2 && wifiControlSelectedRow == 0);
+    return String(wifiControlSelectedRow == (showRouter ? 0 : 1) ? "> " : "  ") +
+           (showRouter ? cfg.uiTexts.routerLabel + ": " + (router ? "ВКЛ" : "ВЫКЛ")
+                       : cfg.uiTexts.apLabel + ": " + (ap ? "ВКЛ" : "ВЫКЛ"));
+  }
+  if (element.kind == ELEMENT_WIFI_NETWORK)
+    return element.label + ": " + (cfg.ssid.length() ? cfg.ssid : "не выбрана");
+  if (element.kind == ELEMENT_CALIBRATION) {
+    const uint8_t sensor = element.sourceId > 0 ? element.sourceId - 1 : 0;
+    const bool fresh = sensor < 6 && stringSensorFresh(sensor);
+    const String current = fresh ? String(stringSensorCurrent[sensor], 2) : "--";
+    const String voltage = fresh ? String(stringSensorVoltage[sensor], 1) : "--";
+    const bool selected = calibrationInlineActive && calibrationRow / 2 == sensor;
+    const String currentText = calibrationTargetText(calibrationEditing, selected && calibrationRow % 2 == 0, true, current);
+    const String voltageText = calibrationTargetText(calibrationEditing, selected && calibrationRow % 2 == 1, false, voltage);
+    return element.label + ": " + currentText + " А / " + voltageText + " В";
+  }
+
+  const char* unit = element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : (element.metric == 3 ? "%" : "В"));
+  String value = "--";
+  if (element.metric == 3) return element.label + ": -- %";
+  if (element.sourceId == 0) {
+    if (gatewayOnline && gatewaySensorValid) {
+      if (element.metric == 1) value = String(gatewayCurrent, 2);
+      else if (element.metric == 2) value = String(gatewayPower, 1);
+      else value = String(gatewayVoltage, 1);
+    }
+  } else if (element.sourceId == 7 && element.metric == 2) {
+    float total = 0.0f; bool any = false;
+    for (uint8_t i = 0; i < 6; ++i) if (stringSensorFresh(i)) { total += stringSensorPower[i]; any = true; }
+    if (any) value = String(total, 1);
+  } else {
+    const uint8_t sensor = element.sourceId - 1;
+    if (element.sourceId <= 6 && stringSensorFresh(sensor)) {
+      if (element.metric == 1) value = String(stringSensorCurrent[sensor], 2);
+      else if (element.metric == 2) value = String(stringSensorPower[sensor], 1);
+      else value = String(stringSensorVoltage[sensor], 1);
+    }
+  }
+  return element.label + ": " + value + " " + unit;
+}
 static const uint16_t WIDGET_BACKGROUNDS[7] = { 0x0841, 0x001B, 0x0326, 0x3009, 0x4804, 0x3186, ST77XX_BLACK };
 static uint16_t widgetBackground(uint8_t color) { return WIDGET_BACKGROUNDS[color <= 6 ? color : 0]; }
 static void drawAlignedText(const String& text, int x, int y, int w, uint8_t size, uint8_t align, uint8_t color) {
@@ -163,11 +233,9 @@ void drawWidget(const WidgetConfig& widget) {
         : y + FONT_HEIGHTS[firstSize] + 5;
     for (uint8_t i = 0; i < widget.elementCount && i < MAX_WIDGET_ELEMENTS && lineY <= y + h - 4; ++i) {
       const WidgetElementConfig& element = widget.elements[i];
-      const char* unit = "В";
-      String reading = widgetElementReading(element, unit);
       const uint8_t fontSize = element.fontSize <= 5 ? element.fontSize : cs;
-      drawAlignedText(element.label + ": " + reading + " " + unit,
-                      x, lineY, w, fontSize, widget.contentAlign, element.color);
+      drawAlignedText(widgetElementText(element), x, lineY, w, fontSize,
+                      widget.contentAlign, element.color);
       lineY += FONT_HEIGHTS[fontSize] + 4;
     }
     return;
@@ -366,9 +434,7 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
     for (uint8_t i = 0; i < count; ++i) {
       const WidgetElementConfig& element = widget.elements[i];
       const uint8_t size = element.fontSize <= 5 ? element.fontSize : contentSize;
-      const char* unit = "В";
-      const String reading = widgetElementReading(element, unit);
-      const String line = element.label + ": " + reading + " " + unit;
+      const String line = widgetElementText(element);
       const uint16_t color = widgetColor(element.color);
       if (lineY <= widget.y + widget.h - 4 &&
           (layoutChanged || cache.lines[i] != line || cache.colors[i] != color)) {
