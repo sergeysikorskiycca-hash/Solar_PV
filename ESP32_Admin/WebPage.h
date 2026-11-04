@@ -116,7 +116,7 @@ function renderCustomEditor(w){
   const row=document.createElement('div');row.className='element-editor';
   const top=document.createElement('div');top.className='row';
   const kind=customSelect(kinds,element.kind??0);
-  kind.addEventListener('change',()=>{element.kind=Number(kind.value);if(element.kind===3||element.kind===4)element.metric=2;else if(element.kind===1)element.metric=0;renderAll()});
+  kind.addEventListener('change',()=>{element.kind=Number(kind.value);if(element.kind===3||element.kind===4)element.metric=2;else if(element.kind===1)element.metric=0;if(element.kind===4&&(Number(element.sourceId)<1||Number(element.sourceId)>6))element.sourceId=1;renderAll()});
   top.appendChild(customField('Тип элемента',kind));
   const label=document.createElement('input');label.type='text';label.maxLength=54;label.value=element.label;
   label.addEventListener('input',()=>{element.label=label.value.slice(0,54);updateCustomPreviews()});
