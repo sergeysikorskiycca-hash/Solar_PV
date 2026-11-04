@@ -35,6 +35,7 @@ struct CalibrationRecord { uint32_t magic; float currentCalibration[SENSOR_COUNT
 struct LegacyCalibrationRecord { uint32_t magic; float currentCalibration; };
 float currentCalibration[SENSOR_COUNT] = { 1.00f, 1.00f };
 float voltageCalibration[SENSOR_COUNT] = { 1.00f, 1.00f };
+static bool eepromReady = false;
 
 uint8_t receiverMac[] = {
     0xBC, 0xFF, 0x4D, 0xF9, 0x96, 0x5D
@@ -72,19 +73,34 @@ static ESPNowCalibrationCommand pendingCalibrationCommand = {};
 
 // Сохраняет коэффициенты обоих каналов в EEPROM.
 bool saveCalibration() {
+    if (!eepromReady) eepromReady = EEPROM.begin(sizeof(CalibrationRecord));
+    if (!eepromReady) { Serial.println("EEPROM INIT ERROR"); return false; }
     CalibrationRecord record = {};
     record.magic = EEPROM_MAGIC;
     memcpy(record.currentCalibration, currentCalibration, sizeof(currentCalibration));
     memcpy(record.voltageCalibration, voltageCalibration, sizeof(voltageCalibration));
     EEPROM.put(0, record);
     if (!EEPROM.commit()) { Serial.println("EEPROM SAVE ERROR"); return false; }
-    Serial.println("Calibration factors saved to EEPROM");
+
+    // Reopen the emulated EEPROM so verification reads the flash contents,
+    // not only the RAM cache that was just written.
+    EEPROM.end();
+    eepromReady = EEPROM.begin(sizeof(CalibrationRecord));
+    if (!eepromReady) { Serial.println("EEPROM REOPEN ERROR"); return false; }
+    CalibrationRecord verify = {};
+    EEPROM.get(0, verify);
+    if (memcmp(&verify, &record, sizeof(record)) != 0) {
+        Serial.println("EEPROM VERIFY ERROR");
+        return false;
+    }
+    Serial.println("Calibration factors saved and verified in EEPROM");
     return true;
 }
 
 // Загружает новую запись или переносит прежнюю калибровку v2.
 void loadCurrentCalibration() {
-    EEPROM.begin(sizeof(CalibrationRecord));
+    eepromReady = EEPROM.begin(sizeof(CalibrationRecord));
+    if (!eepromReady) { Serial.println("EEPROM INIT ERROR; calibration defaults remain active"); return; }
     uint32_t storedMagic = 0;
     EEPROM.get(0, storedMagic);
     if (storedMagic == EEPROM_MAGIC) {
