@@ -68,10 +68,10 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <script>
 const MAX_PAGES=8,MAX_WIDGETS=12,MAX_WIDGET_ELEMENTS=12;
 const defaults=[
- {type:'power',label:'Мощность PV',x:8,y:55,w:224,h:58,enabled:true},
- {type:'voltage',label:'Напряжение',x:8,y:125,w:106,h:58,enabled:true},
- {type:'current',label:'Ток',x:125,y:125,w:106,h:58,enabled:true},
- {type:'battery',label:'Аккумулятор',x:8,y:205,w:224,h:58,enabled:true}
+ {type:'custom',label:'Блок 1',x:8,y:55,w:224,h:58,enabled:true},
+ {type:'custom',label:'Блок 2',x:8,y:125,w:106,h:58,enabled:true},
+ {type:'custom',label:'Блок 3',x:125,y:125,w:106,h:58,enabled:true},
+ {type:'custom',label:'Блок 4',x:8,y:205,w:224,h:58,enabled:true}
 ];
 const backgroundPalette=['#101820','#001B2E','#073326','#302044','#481D20','#30343B','#000000'];
 const typeLabels={power:'Мощность PV',voltage:'Напряжение',current:'Ток',battery:'Аккумулятор',wifiStatus:'Состояние Wi-Fi',wifiControl:'Управление Wi-Fi',calibration:'Калибровка тока и напряжения',strings:'Мониторинг напряжения стрингов',stringsVoltage:'Мониторинг напряжения стрингов',stringsCurrent:'Мониторинг тока стрингов',stringsPower:'Мониторинг мощности стрингов',clock:'Часы и дата',text:'Текст',custom:'Универсальный блок'};
