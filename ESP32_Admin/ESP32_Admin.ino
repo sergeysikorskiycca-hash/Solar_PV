@@ -306,7 +306,7 @@ String makeConfigJson() {
       for (uint8_t e = 0; e < w.elementCount && e < MAX_WIDGET_ELEMENTS; ++e) {
         const WidgetElementConfig& element = w.elements[e];
         if (e) j += ",";
-        j += "{\"label\":\"" + jsonEscape(element.label) + "\",\"sourceId\":" + String(element.sourceId) +
+        j += "{\"label\":\"" + jsonEscape(element.label) + "\",\"kind\":" + String(element.kind) + ",\"sourceId\":" + String(element.sourceId) +
              ",\"metric\":" + String(element.metric) + ",\"fontSize\":" + String(element.fontSize) +
              ",\"color\":" + String(element.color) + "}";
       }
@@ -412,8 +412,9 @@ void handleSaveDisplay() {
       for (uint8_t e = 0; e < w.elementCount; ++e) {
         JsonObject sourceElement = sourceElements[e].as<JsonObject>();
         WidgetElementConfig& element = w.elements[e];
-        element.sourceId = clampInt(sourceElement["sourceId"] | 1, 1, 6);
-        element.metric = clampInt(sourceElement["metric"] | 0, 0, 2);
+        element.kind = clampInt(sourceElement["kind"] | ELEMENT_SENSOR, ELEMENT_SENSOR, ELEMENT_TEXT);
+        element.sourceId = clampInt(sourceElement["sourceId"] | 1, 0, 7);
+        element.metric = clampInt(sourceElement["metric"] | 0, 0, 5);
         element.fontSize = clampInt(sourceElement["fontSize"] | 2, 0, 5);
         element.color = clampInt(sourceElement["color"] | 3, 0, 5);
         String elementLabel = String(sourceElement["label"] | "");
