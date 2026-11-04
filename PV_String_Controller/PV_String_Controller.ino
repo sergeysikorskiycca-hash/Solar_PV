@@ -84,7 +84,6 @@ bool saveCalibration() {
 
     // Reopen the emulated EEPROM so verification reads the flash contents,
     // not only the RAM cache that was just written.
-    EEPROM.end();
     if (!EEPROM.end()) { eepromReady = false; Serial.println("EEPROM REOPEN ERROR"); return false; }
     EEPROM.begin(sizeof(CalibrationRecord));
     eepromReady = true;
