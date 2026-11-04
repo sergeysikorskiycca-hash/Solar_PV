@@ -251,7 +251,7 @@ static void makeDynamicLines(const WidgetConfig& widget, String out[], uint16_t 
       out[count] = "IP: " + WiFi.localIP().toString(); colors[count++] = widgetColor(widget.contentColor);
     } else {
       out[count] = cfg.uiTexts.noRouterLabel; colors[count++] = widgetColor(widget.contentColor);
-      out[count] = "Сеть: " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);
+      out[count] = cfg.uiTexts.networkLabel + ": " + cfg.ssid; colors[count++] = widgetColor(widget.contentColor);
     }
     if (apActive && count <= 4) {
       out[count] = cfg.uiTexts.apSetupLabel; colors[count++] = widgetColor(widget.contentColor);
