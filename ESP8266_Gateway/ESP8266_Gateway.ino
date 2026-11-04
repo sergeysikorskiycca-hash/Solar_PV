@@ -6,9 +6,8 @@
   ESP-NOW sensor channel: 1. The gateway forwards the latest sensor sample
   together with cached DS3231 time at 10 Hz.
 
-  Sensor packet layout must match the existing SOLAR_STRING_1 sender:
-  char name[20]; uint8_t sensorId; float voltage,current,power,shuntVoltage;
-  uint32_t packetNumber;
+  Sensor packet layout matches SOLAR_STRING_1 and includes the active
+  current/voltage calibration factors scaled by 600.
 */
 
 #include <Arduino.h>
