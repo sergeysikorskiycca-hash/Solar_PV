@@ -118,7 +118,7 @@ uint32_t gatewayLastPacketMs = 0;
 uint16_t gatewayYear = 0;
 uint8_t gatewayMonth = 0, gatewayDay = 0, gatewayHour = 0, gatewayMinute = 0, gatewaySecond = 0;
 uint8_t gatewaySensorId = 0;
-float gatewayVoltage = 0.0f, gatewayCurrent = 0.0f, gatewayPower = 0.0f, gatewayShuntVoltage = 0.0f;
+float gatewayVoltage = 0.0f, gatewayCurrent = 0.0f, gatewayPower = 0.0f;
 uint16_t gatewaySensorPacketNumber = 0;
 bool gatewaySensorValid = false;
 
@@ -129,6 +129,9 @@ uint32_t stringSensorLastSeenMs[MAX_STRING_SENSORS] = {};
 float stringSensorVoltage[MAX_STRING_SENSORS] = {};
 float stringSensorCurrent[MAX_STRING_SENSORS] = {};
 float stringSensorPower[MAX_STRING_SENSORS] = {};
+float activeCurrentCalibration[MAX_STRING_SENSORS] = {};
+float activeVoltageCalibration[MAX_STRING_SENSORS] = {};
+bool activeCalibrationValid[MAX_STRING_SENSORS] = {};
 static const uint32_t STRING_SENSOR_TIMEOUT_MS = 3500UL;
 
 static uint32_t lastIndicatorDraw = 0;
@@ -261,6 +264,13 @@ String makeConfigJson() {
          ",\"current\":" + String(stringSensorCurrent[i], 4) +
          ",\"power\":" + String(stringSensorPower[i], 2) + "}";
   }
+  j += "],";
+  j += "\"activeCurrentCalibration\":[";
+  for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) { if (i) j += ","; j += String(activeCurrentCalibration[i], 3); }
+  j += "],\"activeVoltageCalibration\":[";
+  for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) { if (i) j += ","; j += String(activeVoltageCalibration[i], 3); }
+  j += "],\"activeCalibrationValid\":[";
+  for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) { if (i) j += ","; bool fresh = activeCalibrationValid[i] && stringSensorValid[i] && millis() - stringSensorLastSeenMs[i] <= STRING_SENSOR_TIMEOUT_MS; j += fresh ? "true" : "false"; }
   j += "],";
   j += "\"currentCalibration\":[";
   for (uint8_t i = 0; i < 6; ++i) { if (i) j += ","; j += String(cfg.currentCalibration[i], 3); }
@@ -533,7 +543,9 @@ struct GatewayPacket {
   uint16_t year;
   uint8_t month, day, hour, minute, second;
   uint8_t sensorId;
-  float voltage, current, power, shuntVoltage;
+  float voltage, current, power;
+  uint16_t currentCalibrationPermille;
+  uint16_t voltageCalibrationPermille;
   uint16_t sensorPacketNumber;
   int8_t espNowRssi;          // dBm; valid when flags bit 2 is set
   uint8_t crc;
@@ -653,7 +665,6 @@ static void processGatewayPacket() {
       gatewayVoltage = packet.voltage;
       gatewayCurrent = packet.current;
       gatewayPower = packet.power;
-      gatewayShuntVoltage = packet.shuntVoltage;
       gatewaySensorPacketNumber = packet.sensorPacketNumber;
       if (gatewaySensorValid && packet.sensorId >= 1 && packet.sensorId <= MAX_STRING_SENSORS) {
         const uint8_t index = packet.sensorId - 1;
@@ -662,6 +673,9 @@ static void processGatewayPacket() {
         stringSensorVoltage[index] = packet.voltage;
         stringSensorCurrent[index] = packet.current;
         stringSensorPower[index] = packet.power;
+        activeCurrentCalibration[index] = packet.currentCalibrationPermille / 1000.0f;
+        activeVoltageCalibration[index] = packet.voltageCalibrationPermille / 1000.0f;
+        activeCalibrationValid[index] = packet.currentCalibrationPermille >= 1 && packet.voltageCalibrationPermille >= 1;
       }
       gatewayOnline = true;
       if (millis() - lastGatewayLogMs >= 1000UL) {
@@ -674,9 +688,10 @@ static void processGatewayPacket() {
           Serial.print(F("Gateway RTC: unavailable"));
         }
         if (gatewaySensorValid) {
-          Serial.printf(" | sensor %u: %.2f V, %.3f A, %.1f W, shunt %.3f mV, packet %u\n",
+          Serial.printf(" | sensor %u: %.2f V, %.3f A, %.1f W, K=%.3f KU=%.3f, packet %u\n",
                         (unsigned)gatewaySensorId, gatewayVoltage, gatewayCurrent, gatewayPower,
-                        gatewayShuntVoltage, (unsigned)gatewaySensorPacketNumber);
+                        activeCurrentCalibration[gatewaySensorId - 1], activeVoltageCalibration[gatewaySensorId - 1],
+                        (unsigned)gatewaySensorPacketNumber);
         } else {
           Serial.println(F(" | sensor data unavailable"));
         }
