@@ -49,8 +49,8 @@ struct SensorData
     float current;
     float power;
     float shuntVoltage;
-    uint16_t currentCalibrationPermille;
-    uint16_t voltageCalibrationPermille;
+    uint16_t currentCalibrationX600;
+    uint16_t voltageCalibrationX600;
 
     uint32_t packetNumber;
 };
@@ -221,8 +221,8 @@ void readINA226(uint8_t index)
     data.current = current;
     data.power = power;
     data.shuntVoltage = shuntVoltage * 1000.0f;
-    data.currentCalibrationPermille = (uint16_t)lroundf(currentCalibration[index] * 1000.0f);
-    data.voltageCalibrationPermille = (uint16_t)lroundf(voltageCalibration[index] * 1000.0f);
+    data.currentCalibrationPermille = (uint16_t)lroundf(currentCalibration[index] * 600.0f);
+    data.voltageCalibrationPermille = (uint16_t)lroundf(voltageCalibration[index] * 600.0f);
     data.packetNumber = packetCounter[index]++;
 }
 
