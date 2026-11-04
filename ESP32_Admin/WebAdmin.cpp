@@ -45,6 +45,7 @@ static void readUiText(JsonObjectConst doc,const char* key,String& target,const 
 void handleSaveUiTexts() {
  DynamicJsonDocument doc(2048);
  if(deserializeJson(doc,server.arg("plain"))){server.send(400,"application/json; charset=utf-8","{\\"ok\\":false,\\"message\\":\\"Некорректные тексты интерфейса.\\"}");return;}
+ UiTexts oldTexts=cfg.uiTexts;
  JsonObjectConst values=doc.as<JsonObjectConst>();
  readUiText(values,"stringPrefix",cfg.uiTexts.stringPrefix,"Стринг");
  readUiText(values,"currentLabel",cfg.uiTexts.currentLabel,"Ток");
@@ -58,6 +59,6 @@ void handleSaveUiTexts() {
  readUiText(values,"selectHint",cfg.uiTexts.selectHint,"ВВЕРХ/ВНИЗ: выбор");
  readUiText(values,"changeHint",cfg.uiTexts.changeHint,"OK: изменить (5 сек.)");
  readUiText(values,"applyLabel",cfg.uiTexts.applyLabel,"Применение через");
- if(!saveConfig()){server.send(500,"application/json; charset=utf-8","{\\"ok\\":false,\\"message\\":\\"Не удалось сохранить подписи в LittleFS.\\"}");return;}
+ if(!saveConfig()){cfg.uiTexts=oldTexts;server.send(500,"application/json; charset=utf-8","{\\"ok\\":false,\\"message\\":\\"Не удалось сохранить подписи в LittleFS.\\"}");return;}
  renderTFT();server.send(200,"application/json; charset=utf-8","{\\"ok\\":true,\\"message\\":\\"Подписи интерфейса сохранены.\\"}");
 }
