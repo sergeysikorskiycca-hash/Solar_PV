@@ -125,7 +125,8 @@ void initializeDefaultPages() {
   cfg.pages[1].showTitle = true;
   cfg.pages[1].widgetCount = 1;
   WidgetConfig& wifi = cfg.pages[1].widgets[0];
-  wifi.type = "wifiStatus"; wifi.label = "Состояние Wi-Fi"; wifi.text = ""; wifi.headingSize = 1; wifi.showHeading = true; wifi.contentSize = 1; wifi.stringCount = 2; wifi.elementCount = 0; wifi.locked = false; wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
+  wifi.type = "custom"; wifi.label = "Состояние Wi-Fi"; wifi.text = ""; wifi.headingSize = 1; wifi.showHeading = true; wifi.contentSize = 1; wifi.stringCount = 2; wifi.elementCount = 1; wifi.locked = false; wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
+  wifi.elements[0].label = "Состояние Wi-Fi"; wifi.elements[0].kind = ELEMENT_WIFI_STATUS; wifi.elements[0].sourceId = 0; wifi.elements[0].metric = 0; wifi.elements[0].fontSize = 1; wifi.elements[0].color = 0;
   wifi.x = 8; wifi.y = 55; wifi.w = 224; wifi.h = 220; wifi.enabled = true;
   for (uint8_t p = 2; p < MAX_PAGES; p++) { cfg.pages[p].title = ""; cfg.pages[p].showTitle = true; cfg.pages[p].widgetCount = 0; }
 }
