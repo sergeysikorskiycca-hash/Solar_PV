@@ -48,15 +48,26 @@ uint32_t wifiControlApplyAt = 0;
 static bool hasWifiControlOnCurrentPage() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return false;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
-  for (uint8_t i = 0; i < page.widgetCount; ++i)
-    if (page.widgets[i].enabled && page.widgets[i].type == "wifiControl") return true;
+  for (uint8_t i = 0; i < page.widgetCount; ++i) {
+    const WidgetConfig& widget = page.widgets[i];
+    if (!widget.enabled) continue;
+    for (uint8_t e = 0; e < widget.elementCount; ++e)
+      if (widget.elements[e].kind == ELEMENT_WIFI_CONTROL) return true;
+  }
   return false;
 }
 static void refreshWifiControlWidget() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
-  for (uint8_t i = 0; i < page.widgetCount; ++i)
-    if (page.widgets[i].enabled && page.widgets[i].type == "wifiControl") updateWidgetIncremental(page.widgets[i], cfg.tftPage - 1, i);
+  for (uint8_t i = 0; i < page.widgetCount; ++i) {
+    const WidgetConfig& widget = page.widgets[i];
+    if (!widget.enabled) continue;
+    for (uint8_t e = 0; e < widget.elementCount; ++e)
+      if (widget.elements[e].kind == ELEMENT_WIFI_CONTROL) {
+        updateWidgetIncremental(widget, cfg.tftPage - 1, i);
+        break;
+      }
+  }
 }
 static void handleInlineWifiControl(uint32_t code) {
   if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
@@ -1173,23 +1184,47 @@ uint32_t calibrationTargetScaled = 0; // Desired real value, stored as thousandt
 static uint8_t calibrationStringCount() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return 2;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
-  for (uint8_t i = 0; i < page.widgetCount; ++i)
-    if (page.widgets[i].enabled && page.widgets[i].type == "calibration") return clampInt(page.widgets[i].stringCount, 1, 6);
-  return 2;
+  uint8_t count = 0;
+  for (uint8_t i = 0; i < page.widgetCount; ++i) {
+    const WidgetConfig& widget = page.widgets[i];
+    if (!widget.enabled) continue;
+    for (uint8_t e = 0; e < widget.elementCount; ++e)
+      if (widget.elements[e].kind == ELEMENT_CALIBRATION && count < 6) ++count;
+  }
+  return count ? count : 2;
 }
 static bool hasCalibrationWidgetOnCurrentPage() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return false;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
-  for (uint8_t i = 0; i < page.widgetCount; ++i)
-    if (page.widgets[i].enabled && page.widgets[i].type == "calibration") return true;
+  for (uint8_t i = 0; i < page.widgetCount; ++i) {
+    const WidgetConfig& widget = page.widgets[i];
+    if (!widget.enabled) continue;
+    for (uint8_t e = 0; e < widget.elementCount; ++e)
+      if (widget.elements[e].kind == ELEMENT_CALIBRATION) return true;
+  }
   return false;
 }
+static uint8_t selectedCalibrationSensorIndex() {
+  if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return 0;
+  PageConfig& page = cfg.pages[cfg.tftPage - 1];
+  uint8_t ordinal = 0;
+  for (uint8_t i = 0; i < page.widgetCount; ++i) {
+    const WidgetConfig& widget = page.widgets[i];
+    if (!widget.enabled) continue;
+    for (uint8_t e = 0; e < widget.elementCount; ++e) {
+      const WidgetElementConfig& element = widget.elements[e];
+      if (element.kind != ELEMENT_CALIBRATION) continue;
+      if (ordinal++ == calibrationRow / 2) return element.sourceId ? element.sourceId - 1 : 0;
+    }
+  }
+  return 0;
+}
 static float& selectedCalibrationValue() {
-  const uint8_t stringIndex = calibrationRow / 2;
+  const uint8_t stringIndex = selectedCalibrationSensorIndex();
   return (calibrationRow % 2 == 0) ? cfg.currentCalibration[stringIndex] : cfg.voltageCalibration[stringIndex];
 }
 static float selectedCalibrationMeasurement() {
-  const uint8_t index = calibrationRow / 2;
+  const uint8_t index = selectedCalibrationSensorIndex();
   if (index >= MAX_STRING_SENSORS || !stringSensorValid[index] ||
       millis() - stringSensorLastSeenMs[index] > STRING_SENSOR_TIMEOUT_MS) return NAN;
   return (calibrationRow % 2 == 0) ? stringSensorCurrent[index] : stringSensorVoltage[index];
@@ -1211,9 +1246,15 @@ static void beginCalibrationTargetEdit() {
 static void refreshCalibrationWidget() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
-  for (uint8_t i = 0; i < page.widgetCount; ++i)
-    if (page.widgets[i].enabled && page.widgets[i].type == "calibration")
-      updateWidgetIncremental(page.widgets[i], cfg.tftPage - 1, i);
+  for (uint8_t i = 0; i < page.widgetCount; ++i) {
+    const WidgetConfig& widget = page.widgets[i];
+    if (!widget.enabled) continue;
+    for (uint8_t e = 0; e < widget.elementCount; ++e)
+      if (widget.elements[e].kind == ELEMENT_CALIBRATION) {
+        updateWidgetIncremental(widget, cfg.tftPage - 1, i);
+        break;
+      }
+  }
 }
 static void handleInlineCalibration(uint32_t code) {
   if (code == IR_CODE_BACK || code == IR_CODE_MENU) {
