@@ -67,18 +67,6 @@ bool isKnownWidgetType(const String& type) {
          type == "stringsCurrent" || type == "stringsPower" || type == "clock" || type == "calibration";
 }
 
-static String encodeWidgetText(const String& input) {
-  String out;
-  out.reserve(input.length() + 8);
-  for (size_t i = 0; i < input.length(); i++) {
-    char c = input[i];
-    if (c == '\\') out += "\\\\";
-    else if (c == '\n') out += "\\n";
-    else if (c != '\r' && ((uint8_t)c >= 0x20 || c == '\t')) out += c;
-  }
-  return out;
-}
-
 static String decodeWidgetText(const String& input) {
   String out;
   out.reserve(input.length());
@@ -140,7 +128,11 @@ bool loadPageKey(const String& key, const String& value) {
   int wi = key.substring(wPos + 1, wiEnd).toInt();
   if (wi < 0 || wi >= MAX_WIDGETS_PER_PAGE) return true;
   String suffix = key.substring(wiEnd); WidgetConfig& w = cfg.pages[p].widgets[wi];
-  if (suffix == "ElementCount") w.elementCount = clampInt(value.toInt(), 0, MAX_WIDGET_ELEMENTS);
+  if (suffix == "ElementCount") {
+    const uint8_t storedCount = clampInt(value.toInt(), 0, MAX_WIDGET_ELEMENTS);
+    if (!(storedCount == 0 && w.elementCount == 1 && w.elements[0].kind == ELEMENT_TEXT))
+      w.elementCount = storedCount;
+  }
   else if (suffix.startsWith("Element")) {
     int elementEnd = 7;
     while (elementEnd < suffix.length() && isDigit(suffix[elementEnd])) elementEnd++;
@@ -158,7 +150,16 @@ bool loadPageKey(const String& key, const String& value) {
   }
   else if (suffix == "Type") { if (isKnownWidgetType(value)) w.type = value; }
   else if (suffix == "Label") w.label = sanitizeTitle(value);
-  else if (suffix == "Text") w.text = decodeWidgetText(value);
+  else if (suffix == "Text") {
+    const String legacyText = decodeWidgetText(value);
+    if (legacyText.length() && w.elementCount == 0) {
+      w.elementCount = 1;
+      w.elements[0].label = sanitizeTitle(legacyText);
+      w.elements[0].kind = ELEMENT_TEXT;
+      w.elements[0].sourceId = 0; w.elements[0].metric = 0;
+      w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
+    }
+  }
   else if (suffix == "HeadingSize") w.headingSize = clampInt(value.toInt(), 0, 5);
   else if (suffix == "ContentSize") w.contentSize = clampInt(value.toInt(), 0, 5);
   else if (suffix == "StringCount") w.stringCount = clampInt(value.toInt(), 1, 6);
@@ -376,9 +377,7 @@ bool saveConfig() {
       String prefix = "p" + String(p) + "w" + String(i);
       f.println(prefix + "Type=" + w.type);
       f.println(prefix + "Label=" + sanitizeTitle(w.label));
-      f.println(prefix + "Text=" + encodeWidgetText(w.text));
       f.println(prefix + "HeadingSize=" + String(w.headingSize)); f.println(prefix + "ContentSize=" + String(w.contentSize));
-      f.println(prefix + "StringCount=" + String(w.stringCount ? w.stringCount : 2));
       f.println(prefix + "ElementCount=" + String(w.elementCount));
       for (uint8_t e = 0; e < w.elementCount && e < MAX_WIDGET_ELEMENTS; ++e) {
         const WidgetElementConfig& element = w.elements[e];
