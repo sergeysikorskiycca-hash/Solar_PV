@@ -19,6 +19,9 @@ extern bool wifiStatusInlineActive;
 extern bool wifiStatusPendingRouter;
 extern bool wifiStatusPendingAp;
 extern uint8_t wifiStatusSelectedRow;
+extern bool routerModeEnabled;
+extern bool setupApEnabled;
+extern bool apActive;
 extern bool calibrationInlineActive;
 extern bool calibrationEditing;
 extern uint8_t calibrationRow;
@@ -77,14 +80,6 @@ static uint8_t calibrationElementOrdinal(const WidgetElementConfig* target) {
   }
   return 255;
 }
-static bool wifiStatusElementVisible(const WidgetElementConfig& element) {
-  if (element.kind != ELEMENT_WIFI_STATUS) return true;
-  if (wifiStatusInlineActive && (element.metric == 0 || element.metric == 4)) return true;
-  if (element.metric == 0) return cfg.showWifiRouterStatus;
-  if (element.metric == 4) return cfg.showWifiApStatus;
-  return true;
-}
-
 static String widgetElementText(const WidgetElementConfig& element) {
   if (element.kind == ELEMENT_TEXT) return element.label;
   if (element.kind == ELEMENT_CLOCK) {
@@ -104,16 +99,16 @@ static String widgetElementText(const WidgetElementConfig& element) {
       const bool routerRow = element.metric == 0;
       const bool selected = wifiStatusSelectedRow == (routerRow ? 0 : 1);
       const bool visible = routerRow ? wifiStatusPendingRouter : wifiStatusPendingAp;
-      return String(selected ? "> " : "  ") + element.label + ": " + (visible ? "ПОКАЗЫВАТЬ" : "СКРЫТЬ");
+      return String(selected ? "> " : "  ") + element.label + ": " + (visible ? "ВКЛ" : "ВЫКЛ");
     }
     String value;
     switch (element.metric) {
       case 1: value = cfg.ssid.length() ? cfg.ssid : "—"; break;
       case 2: value = WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) + " dBm" : "—"; break;
       case 3: value = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "—"; break;
-      case 4: value = apActive ? "ВКЛ" : "ВЫКЛ"; break;
+      case 4: value = setupApEnabled ? (apActive ? "ВКЛ" : "ОШИБКА") : "ВЫКЛ"; break;
       case 5: value = apActive ? WiFi.softAPIP().toString() : "—"; break;
-      default: value = WiFi.status() == WL_CONNECTED ? "Подключён" : "Нет подключения"; break;
+      default: value = routerModeEnabled ? (WiFi.status() == WL_CONNECTED ? "ВКЛ" : "ВКЛ (нет связи)") : "ВЫКЛ"; break;
     }
     return element.label + ": " + value;
   }
@@ -182,14 +177,13 @@ void drawWidget(const WidgetConfig& widget) {
   if (widget.showHeading) drawAlignedText(widget.label, x, headingBaseline, w, hs, widget.headingAlign, widget.headingColor);
   const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
   uint8_t firstVisible = 0;
-  while (firstVisible < count && !wifiStatusElementVisible(widget.elements[firstVisible])) ++firstVisible;
+  while (firstVisible < count) ++firstVisible;
   const uint8_t firstSize = firstVisible < count && widget.elements[firstVisible].fontSize <= 5 ? widget.elements[firstVisible].fontSize : cs;
   int lineY = widget.showHeading
       ? headingBaseline + FONT_HEIGHTS[hs] / 2 + FONT_HEIGHTS[firstSize] + 3
       : y + FONT_HEIGHTS[firstSize] + 5;
   for (uint8_t i = 0; i < count && lineY <= y + h - 4; ++i) {
     const WidgetElementConfig& element = widget.elements[i];
-    if (!wifiStatusElementVisible(element)) continue;
     const uint8_t size = element.fontSize <= 5 ? element.fontSize : cs;
     drawAlignedText(widgetElementText(element), x, lineY, w, size, widget.contentAlign, element.color);
     lineY += FONT_HEIGHTS[size] + 4;
@@ -200,7 +194,7 @@ struct IncrementalWidgetCache {
   bool initialized;
   int x, y, w, h, firstBaseline, lineHeight;
   uint8_t contentSize, align, color, background, count;
-  bool showRouterStatus, showApStatus, wifiEditing;
+  bool wifiEditing;
   String lines[18];
   uint16_t colors[18];
   uint8_t fontSizes[18];
@@ -215,7 +209,7 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
   const int headingBaseline = widget.y + FONT_HEIGHTS[headingSize] + 3;
   const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
   uint8_t firstVisible = 0;
-  while (firstVisible < count && !wifiStatusElementVisible(widget.elements[firstVisible])) ++firstVisible;
+  while (firstVisible < count) ++firstVisible;
   const uint8_t firstSize = firstVisible < count && widget.elements[firstVisible].fontSize <= 5 ? widget.elements[firstVisible].fontSize : contentSize;
   const int firstBaseline = widget.showHeading
       ? headingBaseline + FONT_HEIGHTS[headingSize] / 2 + FONT_HEIGHTS[firstSize] + 3
@@ -223,8 +217,7 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
   bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y ||
       cache.w != widget.w || cache.h != widget.h || cache.firstBaseline != firstBaseline ||
       cache.background != widget.backgroundColor || cache.count != count ||
-      cache.align != widget.contentAlign || cache.showRouterStatus != cfg.showWifiRouterStatus ||
-      cache.showApStatus != cfg.showWifiApStatus || cache.wifiEditing != wifiStatusInlineActive;
+      cache.align != widget.contentAlign || cache.wifiEditing != wifiStatusInlineActive;
   for (uint8_t i = 0; i < count; ++i) {
     const uint8_t size = widget.elements[i].fontSize <= 5 ? widget.elements[i].fontSize : contentSize;
     if (!cache.initialized || cache.fontSizes[i] != size) layoutChanged = true;
@@ -237,7 +230,6 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
   int lineY = firstBaseline;
   for (uint8_t i = 0; i < count; ++i) {
     const WidgetElementConfig& element = widget.elements[i];
-    if (!wifiStatusElementVisible(element)) continue;
     const uint8_t size = element.fontSize <= 5 ? element.fontSize : contentSize;
     const String line = widgetElementText(element);
     const uint16_t color = widgetColor(element.color);
@@ -256,8 +248,7 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
   cache.firstBaseline = firstBaseline; cache.lineHeight = FONT_HEIGHTS[contentSize] + 4;
   cache.contentSize = contentSize; cache.align = widget.contentAlign;
   cache.color = widget.contentColor; cache.background = widget.backgroundColor;
-  cache.count = count; cache.showRouterStatus = cfg.showWifiRouterStatus;
-  cache.showApStatus = cfg.showWifiApStatus; cache.wifiEditing = wifiStatusInlineActive;
+  cache.count = count; cache.wifiEditing = wifiStatusInlineActive;
   cache.initialized = true;
 }
 void resetIncrementalWidgetCache() {
