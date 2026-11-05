@@ -57,8 +57,6 @@ struct PageConfig {
 struct AppConfig {
   bool defaultRouterMode;
   bool defaultSetupAp;
-  bool showWifiRouterStatus;
-  bool showWifiApStatus;
   String ssid;
   String password;
   String title;
