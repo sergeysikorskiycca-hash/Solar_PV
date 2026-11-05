@@ -311,7 +311,7 @@ String makeConfigJson() {
       if (i) j += ",";
       const WidgetConfig& w = page.widgets[i];
       j += "{\"label\":\"" + jsonEscape(w.label) + "\",\"showHeading\":" + String(w.showHeading ? "true" : "false") + ",\"showBorder\":" + String(w.showBorder ? "true" : "false") + ",";
-      j += "\"headingSize\":" + String(w.headingSize) + ",\"contentSize\":" + String(w.contentSize) + ",\"locked\":" + String(w.locked ? "true" : "false") + ",\"headingAlign\":" + String(w.headingAlign) + ",\"contentAlign\":" + String(w.contentAlign) + ",\"headingColor\":" + String(w.headingColor) + ",\"contentColor\":" + String(w.contentColor) + ",\"backgroundColor\":" + String(w.backgroundColor) + ",";
+      j += "\"headingSize\":" + String(w.headingSize) + ",\"contentSize\":" + String(w.contentSize) + ",\"rowSpacing\":" + String(w.rowSpacing) + ",\"locked\":" + String(w.locked ? "true" : "false") + ",\"headingAlign\":" + String(w.headingAlign) + ",\"contentAlign\":" + String(w.contentAlign) + ",\"headingColor\":" + String(w.headingColor) + ",\"contentColor\":" + String(w.contentColor) + ",\"backgroundColor\":" + String(w.backgroundColor) + ",";
       j += "\"x\":" + String(w.x) + ",\"y\":" + String(w.y) + ",\"w\":" + String(w.w) + ",\"h\":" + String(w.h) + ",";
       j += "\"enabled\":" + String(w.enabled ? "true" : "false") + ",\"elementCount\":" + String(w.elementCount) + ",\"elements\":[";
       for (uint8_t e = 0; e < w.elementCount && e < MAX_WIDGET_ELEMENTS; ++e) {
@@ -416,6 +416,7 @@ void handleSaveDisplay() {
       WidgetConfig& w = cfg.pages[p].widgets[i];
       w.label = sanitizeTitle(String(source["label"] | "Блок"));
       w.headingSize = clampInt(source["headingSize"] | 1, 0, 5); w.contentSize = clampInt(source["contentSize"] | 2, 0, 5);
+      w.rowSpacing = clampInt(source["rowSpacing"] | 4, 0, 20);
       JsonArray sourceElements = source["elements"].as<JsonArray>();
       w.elementCount = clampInt(sourceElements.size(), 0, MAX_WIDGET_ELEMENTS);
       for (uint8_t e = 0; e < w.elementCount; ++e) {
@@ -429,7 +430,6 @@ void handleSaveDisplay() {
         element.color = clampInt(sourceElement["color"] | 3, 0, 5);
         String elementLabel = String(sourceElement["label"] | "");
         if (sourceElement["kind"].as<uint8_t>() == ELEMENT_WIFI_CONTROL) elementLabel = "Состояние точки";
-        if (!elementLabel.length()) elementLabel = "Стринг " + String(element.sourceId);
         element.label = sanitizeTitle(elementLabel);
       }
       w.locked = source["locked"] | false; w.showHeading = source["showHeading"] | true; w.showBorder = source["showBorder"] | true;
