@@ -106,7 +106,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
       case 1: value = cfg.ssid.length() ? cfg.ssid : "—"; break;
       case 2: value = WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) + " dBm" : "—"; break;
       case 3: value = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "—"; break;
-      case 4: value = setupApEnabled ? (apActive ? "ВКЛ" : "ОШИБКА") : "ВЫКЛ"; break;
+      case 4: value = apActive ? "ВКЛ" : "ВЫКЛ"; break;
       case 5: value = apActive ? WiFi.softAPIP().toString() : "—"; break;
       default: value = routerModeEnabled ? "ВКЛ" : "ВЫКЛ"; break;
     }
