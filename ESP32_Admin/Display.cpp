@@ -108,7 +108,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
       case 3: value = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "—"; break;
       case 4: value = setupApEnabled ? (apActive ? "ВКЛ" : "ОШИБКА") : "ВЫКЛ"; break;
       case 5: value = apActive ? WiFi.softAPIP().toString() : "—"; break;
-      default: value = routerModeEnabled ? (WiFi.status() == WL_CONNECTED ? "ВКЛ" : "ВКЛ (нет связи)") : "ВЫКЛ"; break;
+      default: value = routerModeEnabled ? "ВКЛ" : "ВЫКЛ"; break;
     }
     return element.label + ": " + value;
   }
