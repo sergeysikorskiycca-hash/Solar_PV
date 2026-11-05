@@ -402,8 +402,6 @@ void handleSaveDisplay() {
     if (currentCal.size() > i) cfg.currentCalibration[i] = constrain(currentCal[i].as<float>(), 0.001f, 99.999f);
     if (voltageCal.size() > i) cfg.voltageCalibration[i] = constrain(voltageCal[i].as<float>(), 0.001f, 99.999f);
   }
-  cfg.showWifiRouterStatus = doc["showWifiRouterStatus"] | cfg.showWifiRouterStatus;
-  cfg.showWifiApStatus = doc["showWifiApStatus"] | cfg.showWifiApStatus;
   cfg.pageCount = requestedCount;
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
     JsonObject sourcePage = sourcePages[p].as<JsonObject>();
