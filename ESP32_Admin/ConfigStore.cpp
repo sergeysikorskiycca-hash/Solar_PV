@@ -44,8 +44,6 @@ int clampInt(int value, int low, int high) {
 void setDefaults() {
   cfg.defaultRouterMode = false;
   cfg.defaultSetupAp = true;
-  cfg.showWifiRouterStatus = true;
-  cfg.showWifiApStatus = true;
   cfg.ssid = "";
   cfg.password = "";
   cfg.title = "SOLAR PV";
@@ -233,8 +231,6 @@ void loadConfig() {
     String value = line.substring(eq + 1);
     if (key == "defaultRouterMode") cfg.defaultRouterMode = value == "1";
     else if (key == "defaultSetupAp") cfg.defaultSetupAp = value == "1";
-    else if (key == "showWifiRouterStatus") cfg.showWifiRouterStatus = value == "1";
-    else if (key == "showWifiApStatus") cfg.showWifiApStatus = value == "1";
     else if (key == "ssid") cfg.ssid = value;
     else if (key == "password") cfg.password = value;
     else if (key == "title") cfg.title = sanitizeTitle(value);
@@ -409,8 +405,6 @@ bool saveConfig() {
   if (!f) return false;
   f.println(String("defaultRouterMode=") + (cfg.defaultRouterMode ? "1" : "0"));
   f.println(String("defaultSetupAp=") + (cfg.defaultSetupAp ? "1" : "0"));
-  f.println(String("showWifiRouterStatus=") + (cfg.showWifiRouterStatus ? "1" : "0"));
-  f.println(String("showWifiApStatus=") + (cfg.showWifiApStatus ? "1" : "0"));
   f.println("ssid=" + cfg.ssid);
   f.println("password=" + cfg.password);
   f.println("title=" + sanitizeTitle(cfg.title));
