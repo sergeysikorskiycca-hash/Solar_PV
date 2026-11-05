@@ -80,20 +80,24 @@ static void handleInlineWifiStatus(uint32_t code) {
   if (code == IR_CODE_UP) wifiStatusSelectedRow = 0;
   else if (code == IR_CODE_DOWN) wifiStatusSelectedRow = 1;
   else if (code == IR_CODE_LEFT || code == IR_CODE_RIGHT) {
-    const bool show = code == IR_CODE_RIGHT;
-    if (wifiStatusSelectedRow == 0) wifiStatusPendingRouter = show;
-    else wifiStatusPendingAp = show;
+    const bool enabled = code == IR_CODE_RIGHT;
+    if (wifiStatusSelectedRow == 0) wifiStatusPendingRouter = enabled;
+    else wifiStatusPendingAp = enabled;
     refreshWifiStatusWidget();
     return;
   } else if (code == IR_CODE_OK) {
-    const bool oldRouter = cfg.showWifiRouterStatus;
-    const bool oldAp = cfg.showWifiApStatus;
-    cfg.showWifiRouterStatus = wifiStatusPendingRouter;
-    cfg.showWifiApStatus = wifiStatusPendingAp;
-    if (!saveConfig()) {
-      cfg.showWifiRouterStatus = oldRouter;
-      cfg.showWifiApStatus = oldAp;
-      Serial.println(F("ERROR: Wi-Fi status display settings could not be saved."));
+    const bool oldRouterDefault = cfg.defaultRouterMode;
+    const bool oldApDefault = cfg.defaultSetupAp;
+    cfg.defaultRouterMode = wifiStatusPendingRouter;
+    cfg.defaultSetupAp = wifiStatusPendingAp;
+    if (saveConfig()) {
+      routerModeEnabled = wifiStatusPendingRouter;
+      setupApEnabled = wifiStatusPendingAp;
+      applyWiFiMode();
+    } else {
+      cfg.defaultRouterMode = oldRouterDefault;
+      cfg.defaultSetupAp = oldApDefault;
+      Serial.println(F("ERROR: Wi-Fi mode settings could not be saved; current services were not changed."));
     }
     wifiStatusInlineActive = false;
     renderTFT();
@@ -322,7 +326,7 @@ String makeConfigJson() {
     j += "]}";
   }
   j += "]}";
-  j.remove(j.length() - 1); j += ",\"wifiMode\":{\"router\":" + String(routerModeEnabled ? "true" : "false") + ",\"ap\":" + String(setupApEnabled ? "true" : "false") + ",\"apActive\":" + String(apActive ? "true" : "false") + ",\"defaultRouter\":" + String(cfg.defaultRouterMode ? "true" : "false") + ",\"defaultAp\":" + String(cfg.defaultSetupAp ? "true" : "false") + "},\"wifiStatusDisplay\":{\"router\":" + String(cfg.showWifiRouterStatus ? "true" : "false") + ",\"ap\":" + String(cfg.showWifiApStatus ? "true" : "false") + "}}";
+  j.remove(j.length() - 1); j += ",\"wifiMode\":{\"router\":" + String(routerModeEnabled ? "true" : "false") + ",\"ap\":" + String(setupApEnabled ? "true" : "false") + ",\"apActive\":" + String(apActive ? "true" : "false") + ",\"defaultRouter\":" + String(cfg.defaultRouterMode ? "true" : "false") + ",\"defaultAp\":" + String(cfg.defaultSetupAp ? "true" : "false") + "}}";
   return j;
 }
 
@@ -511,7 +515,7 @@ void handleWiFiMode() {
   routerModeEnabled = doc["router"] | routerModeEnabled;
   setupApEnabled = doc["ap"] | setupApEnabled;
   applyWiFiMode();
-  server.send(200, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Временный режим применён. После перезагрузки включится только точка SolarPV-Setup.\"}");
+  server.send(200, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Текущий режим применён. Постоянные настройки запуска не изменены.\"}");
 }
 
 void handleSaveWiFi() {
@@ -1402,8 +1406,8 @@ static void handleIRRemote() {
   if (wifiStatusInlineActive) { handleInlineWifiStatus(code); return; }
   if (hasWifiStatusWidgetOnCurrentPage() &&
       (code == IR_CODE_UP || code == IR_CODE_DOWN || code == IR_CODE_LEFT || code == IR_CODE_RIGHT)) {
-    wifiStatusPendingRouter = cfg.showWifiRouterStatus;
-    wifiStatusPendingAp = cfg.showWifiApStatus;
+    wifiStatusPendingRouter = routerModeEnabled;
+    wifiStatusPendingAp = setupApEnabled;
     wifiStatusSelectedRow = 0;
     wifiStatusInlineActive = true;
     handleInlineWifiStatus(code);
