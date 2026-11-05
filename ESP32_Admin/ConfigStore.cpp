@@ -44,6 +44,8 @@ int clampInt(int value, int low, int high) {
 void setDefaults() {
   cfg.defaultRouterMode = false;
   cfg.defaultSetupAp = true;
+  cfg.showWifiRouterStatus = true;
+  cfg.showWifiApStatus = true;
   cfg.ssid = "";
   cfg.password = "";
   cfg.title = "SOLAR PV";
@@ -128,8 +130,8 @@ void initializeDefaultPages() {
   wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
   wifi.elements[0].label = "Время"; wifi.elements[0].kind = ELEMENT_CLOCK; wifi.elements[0].sourceId = 0; wifi.elements[0].metric = 0; wifi.elements[0].fontSize = 2; wifi.elements[0].color = 1;
   wifi.elements[1].label = "Дата"; wifi.elements[1].kind = ELEMENT_CLOCK; wifi.elements[1].sourceId = 0; wifi.elements[1].metric = 1; wifi.elements[1].fontSize = 1; wifi.elements[1].color = 0;
-  wifi.elements[2].label = "Wi-Fi"; wifi.elements[2].kind = ELEMENT_WIFI_STATUS; wifi.elements[2].sourceId = 0; wifi.elements[2].metric = 0; wifi.elements[2].fontSize = 1; wifi.elements[2].color = 2;
-  wifi.elements[3].label = "Управление Wi-Fi"; wifi.elements[3].kind = ELEMENT_WIFI_CONTROL; wifi.elements[3].sourceId = 0; wifi.elements[3].metric = 2; wifi.elements[3].fontSize = 1; wifi.elements[3].color = 3;
+  wifi.elements[2].label = "Состояние роутера"; wifi.elements[2].kind = ELEMENT_WIFI_STATUS; wifi.elements[2].sourceId = 0; wifi.elements[2].metric = 0; wifi.elements[2].fontSize = 1; wifi.elements[2].color = 2;
+  wifi.elements[3].label = "Состояние точки"; wifi.elements[3].kind = ELEMENT_WIFI_STATUS; wifi.elements[3].sourceId = 0; wifi.elements[3].metric = 4; wifi.elements[3].fontSize = 1; wifi.elements[3].color = 3;
   wifi.elements[4].label = "Выбор сети"; wifi.elements[4].kind = ELEMENT_WIFI_NETWORK; wifi.elements[4].sourceId = 0; wifi.elements[4].metric = 0; wifi.elements[4].fontSize = 1; wifi.elements[4].color = 0;
   wifi.x = 8; wifi.y = 55; wifi.w = 224; wifi.h = 220; wifi.enabled = true;
   for (uint8_t p = 2; p < MAX_PAGES; p++) { cfg.pages[p].title = ""; cfg.pages[p].showTitle = true; cfg.pages[p].widgetCount = 0; }
@@ -231,6 +233,8 @@ void loadConfig() {
     String value = line.substring(eq + 1);
     if (key == "defaultRouterMode") cfg.defaultRouterMode = value == "1";
     else if (key == "defaultSetupAp") cfg.defaultSetupAp = value == "1";
+    else if (key == "showWifiRouterStatus") cfg.showWifiRouterStatus = value == "1";
+    else if (key == "showWifiApStatus") cfg.showWifiApStatus = value == "1";
     else if (key == "ssid") cfg.ssid = value;
     else if (key == "password") cfg.password = value;
     else if (key == "title") cfg.title = sanitizeTitle(value);
@@ -339,6 +343,12 @@ void loadConfig() {
       for (uint8_t e = 0; e < w.elementCount; ++e) {
         WidgetElementConfig& element = w.elements[e];
         element.kind = clampInt(element.kind, ELEMENT_SENSOR, ELEMENT_TEXT);
+        if (element.kind == ELEMENT_WIFI_CONTROL) {
+          element.kind = ELEMENT_WIFI_STATUS;
+          element.metric = 4;
+          element.label = "Состояние точки";
+          legacyLayoutMigrated = true;
+        }
         element.sourceId = clampInt(element.sourceId, 0, 7);
         element.metric = clampInt(element.metric, 0, 5);
         element.fontSize = clampInt(element.fontSize, 0, 5);
@@ -364,8 +374,8 @@ void loadConfig() {
         systemWidget.elementCount = 5;
         systemWidget.elements[0].label = "Время"; systemWidget.elements[0].kind = ELEMENT_CLOCK; systemWidget.elements[0].sourceId = 0; systemWidget.elements[0].metric = 0; systemWidget.elements[0].fontSize = 2; systemWidget.elements[0].color = 1;
         systemWidget.elements[1].label = "Дата"; systemWidget.elements[1].kind = ELEMENT_CLOCK; systemWidget.elements[1].sourceId = 0; systemWidget.elements[1].metric = 1; systemWidget.elements[1].fontSize = 1; systemWidget.elements[1].color = 0;
-        systemWidget.elements[2].label = "Wi-Fi"; systemWidget.elements[2].kind = ELEMENT_WIFI_STATUS; systemWidget.elements[2].sourceId = 0; systemWidget.elements[2].metric = 0; systemWidget.elements[2].fontSize = 1; systemWidget.elements[2].color = 2;
-        systemWidget.elements[3].label = "Управление Wi-Fi"; systemWidget.elements[3].kind = ELEMENT_WIFI_CONTROL; systemWidget.elements[3].sourceId = 0; systemWidget.elements[3].metric = 2; systemWidget.elements[3].fontSize = 1; systemWidget.elements[3].color = 3;
+        systemWidget.elements[2].label = "Состояние роутера"; systemWidget.elements[2].kind = ELEMENT_WIFI_STATUS; systemWidget.elements[2].sourceId = 0; systemWidget.elements[2].metric = 0; systemWidget.elements[2].fontSize = 1; systemWidget.elements[2].color = 2;
+        systemWidget.elements[3].label = "Состояние точки"; systemWidget.elements[3].kind = ELEMENT_WIFI_STATUS; systemWidget.elements[3].sourceId = 0; systemWidget.elements[3].metric = 4; systemWidget.elements[3].fontSize = 1; systemWidget.elements[3].color = 3;
         systemWidget.elements[4].label = "Выбор сети"; systemWidget.elements[4].kind = ELEMENT_WIFI_NETWORK; systemWidget.elements[4].sourceId = 0; systemWidget.elements[4].metric = 0; systemWidget.elements[4].fontSize = 1; systemWidget.elements[4].color = 0;
         legacyLayoutMigrated = true;
       }
@@ -399,6 +409,8 @@ bool saveConfig() {
   if (!f) return false;
   f.println(String("defaultRouterMode=") + (cfg.defaultRouterMode ? "1" : "0"));
   f.println(String("defaultSetupAp=") + (cfg.defaultSetupAp ? "1" : "0"));
+  f.println(String("showWifiRouterStatus=") + (cfg.showWifiRouterStatus ? "1" : "0"));
+  f.println(String("showWifiApStatus=") + (cfg.showWifiApStatus ? "1" : "0"));
   f.println("ssid=" + cfg.ssid);
   f.println("password=" + cfg.password);
   f.println("title=" + sanitizeTitle(cfg.title));

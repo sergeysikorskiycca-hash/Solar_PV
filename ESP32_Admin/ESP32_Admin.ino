@@ -40,50 +40,65 @@ extern bool routerModeEnabled;
 extern bool setupApEnabled;
 void applyWiFiMode();
 
-bool wifiControlPendingRouter = false;
-bool wifiControlPendingAp = true;
-bool wifiControlApplyPending = false;
-uint8_t wifiControlSelectedRow = 0;
-uint32_t wifiControlApplyAt = 0;
-static bool hasWifiControlOnCurrentPage() {
+bool wifiStatusInlineActive = false;
+bool wifiStatusPendingRouter = true;
+bool wifiStatusPendingAp = true;
+uint8_t wifiStatusSelectedRow = 0;
+static bool hasWifiStatusWidgetOnCurrentPage() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return false;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
   for (uint8_t i = 0; i < page.widgetCount; ++i) {
     const WidgetConfig& widget = page.widgets[i];
     if (!widget.enabled) continue;
-    for (uint8_t e = 0; e < widget.elementCount; ++e)
-      if (widget.elements[e].kind == ELEMENT_WIFI_CONTROL) return true;
+    for (uint8_t e = 0; e < widget.elementCount; ++e) {
+      const WidgetElementConfig& element = widget.elements[e];
+      if (element.kind == ELEMENT_WIFI_STATUS && (element.metric == 0 || element.metric == 4)) return true;
+    }
   }
   return false;
 }
-static void refreshWifiControlWidget() {
+static void refreshWifiStatusWidget() {
   if (cfg.tftPage < 1 || cfg.tftPage > cfg.pageCount) return;
   PageConfig& page = cfg.pages[cfg.tftPage - 1];
   for (uint8_t i = 0; i < page.widgetCount; ++i) {
     const WidgetConfig& widget = page.widgets[i];
     if (!widget.enabled) continue;
-    for (uint8_t e = 0; e < widget.elementCount; ++e)
-      if (widget.elements[e].kind == ELEMENT_WIFI_CONTROL) {
-        updateWidgetIncremental(widget, cfg.tftPage - 1, i);
-        break;
-      }
+    bool hasStatus = false;
+    for (uint8_t e = 0; e < widget.elementCount; ++e) {
+      const WidgetElementConfig& element = widget.elements[e];
+      if (element.kind == ELEMENT_WIFI_STATUS && (element.metric == 0 || element.metric == 4)) { hasStatus = true; break; }
+    }
+    if (hasStatus) updateWidgetIncremental(widget, cfg.tftPage - 1, i);
   }
 }
-static void handleInlineWifiControl(uint32_t code) {
-  if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
-    wifiControlSelectedRow = wifiControlSelectedRow ? 0 : 1;
-    refreshWifiControlWidget();
-  } else if (code == IR_CODE_OK) {
-    if (!wifiControlApplyPending) {
-      wifiControlPendingRouter = routerModeEnabled;
-      wifiControlPendingAp = setupApEnabled;
-    }
-    if (wifiControlSelectedRow == 0) wifiControlPendingRouter = !wifiControlPendingRouter;
-    else wifiControlPendingAp = !wifiControlPendingAp;
-    wifiControlApplyPending = true;
-    wifiControlApplyAt = millis() + 5000UL;
-    refreshWifiControlWidget();
+static void handleInlineWifiStatus(uint32_t code) {
+  if (code == IR_CODE_BACK || code == IR_CODE_MENU) {
+    wifiStatusInlineActive = false;
+    renderTFT();
+    return;
   }
+  if (code == IR_CODE_UP) wifiStatusSelectedRow = 0;
+  else if (code == IR_CODE_DOWN) wifiStatusSelectedRow = 1;
+  else if (code == IR_CODE_LEFT || code == IR_CODE_RIGHT) {
+    if (wifiStatusSelectedRow == 0) wifiStatusPendingRouter = !wifiStatusPendingRouter;
+    else wifiStatusPendingAp = !wifiStatusPendingAp;
+    refreshWifiStatusWidget();
+    return;
+  } else if (code == IR_CODE_OK) {
+    const bool oldRouter = cfg.showWifiRouterStatus;
+    const bool oldAp = cfg.showWifiApStatus;
+    cfg.showWifiRouterStatus = wifiStatusPendingRouter;
+    cfg.showWifiApStatus = wifiStatusPendingAp;
+    if (!saveConfig()) {
+      cfg.showWifiRouterStatus = oldRouter;
+      cfg.showWifiApStatus = oldAp;
+      Serial.println(F("ERROR: Wi-Fi status display settings could not be saved."));
+    }
+    wifiStatusInlineActive = false;
+    renderTFT();
+    return;
+  }
+  refreshWifiStatusWidget();
 }
 
 static volatile uint8_t clockCommandSequence = 0;
@@ -306,7 +321,7 @@ String makeConfigJson() {
     j += "]}";
   }
   j += "]}";
-  j.remove(j.length() - 1); j += ",\"wifiMode\":{\"router\":" + String(routerModeEnabled ? "true" : "false") + ",\"ap\":" + String(setupApEnabled ? "true" : "false") + ",\"apActive\":" + String(apActive ? "true" : "false") + ",\"defaultRouter\":" + String(cfg.defaultRouterMode ? "true" : "false") + ",\"defaultAp\":" + String(cfg.defaultSetupAp ? "true" : "false") + "}}";
+  j.remove(j.length() - 1); j += ",\"wifiMode\":{\"router\":" + String(routerModeEnabled ? "true" : "false") + ",\"ap\":" + String(setupApEnabled ? "true" : "false") + ",\"apActive\":" + String(apActive ? "true" : "false") + ",\"defaultRouter\":" + String(cfg.defaultRouterMode ? "true" : "false") + ",\"defaultAp\":" + String(cfg.defaultSetupAp ? "true" : "false") + "},\"wifiStatusDisplay\":{\"router\":" + String(cfg.showWifiRouterStatus ? "true" : "false") + ",\"ap\":" + String(cfg.showWifiApStatus ? "true" : "false") + "}}";
   return j;
 }
 
@@ -382,6 +397,8 @@ void handleSaveDisplay() {
     if (currentCal.size() > i) cfg.currentCalibration[i] = constrain(currentCal[i].as<float>(), 0.001f, 99.999f);
     if (voltageCal.size() > i) cfg.voltageCalibration[i] = constrain(voltageCal[i].as<float>(), 0.001f, 99.999f);
   }
+  cfg.showWifiRouterStatus = doc["showWifiRouterStatus"] | cfg.showWifiRouterStatus;
+  cfg.showWifiApStatus = doc["showWifiApStatus"] | cfg.showWifiApStatus;
   cfg.pageCount = requestedCount;
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
     JsonObject sourcePage = sourcePages[p].as<JsonObject>();
@@ -404,9 +421,11 @@ void handleSaveDisplay() {
         element.kind = clampInt(sourceElement["kind"] | ELEMENT_SENSOR, ELEMENT_SENSOR, ELEMENT_TEXT);
         element.sourceId = clampInt(sourceElement["sourceId"] | 1, 0, 7);
         element.metric = clampInt(sourceElement["metric"] | 0, 0, 5);
+        if (element.kind == ELEMENT_WIFI_CONTROL) { element.kind = ELEMENT_WIFI_STATUS; element.metric = 4; }
         element.fontSize = clampInt(sourceElement["fontSize"] | 2, 0, 5);
         element.color = clampInt(sourceElement["color"] | 3, 0, 5);
         String elementLabel = String(sourceElement["label"] | "");
+        if (sourceElement["kind"].as<uint8_t>() == ELEMENT_WIFI_CONTROL) elementLabel = "Состояние точки";
         if (!elementLabel.length()) elementLabel = "Стринг " + String(element.sourceId);
         element.label = sanitizeTitle(elementLabel);
       }
@@ -1379,9 +1398,17 @@ static void handleIRRemote() {
     drawOtaConfirm();
     return;
   }
-  if (hasWifiControlOnCurrentPage() && (code == IR_CODE_UP || code == IR_CODE_DOWN || code == IR_CODE_OK)) { handleInlineWifiControl(code); return; }
-  if (code == IR_CODE_SETUP) rtOpenWifi();
-  else if (code == IR_CODE_MENU) rtOpen();
+  if (wifiStatusInlineActive) { handleInlineWifiStatus(code); return; }
+  if (hasWifiStatusWidgetOnCurrentPage() &&
+      (code == IR_CODE_UP || code == IR_CODE_DOWN || code == IR_CODE_LEFT || code == IR_CODE_RIGHT)) {
+    wifiStatusPendingRouter = cfg.showWifiRouterStatus;
+    wifiStatusPendingAp = cfg.showWifiApStatus;
+    wifiStatusSelectedRow = 0;
+    wifiStatusInlineActive = true;
+    handleInlineWifiStatus(code);
+    return;
+  }
+  if (code == IR_CODE_MENU) rtOpen();
   else if (code == IR_CODE_LEFT || code == IR_CODE_BACK) showTFTPage(cfg.tftPage > 1 ? cfg.tftPage - 1 : cfg.pageCount);
   else if (code == IR_CODE_RIGHT || code == IR_CODE_FORWARD) showTFTPage(cfg.tftPage < cfg.pageCount ? cfg.tftPage + 1 : 1);
   else if (code == IR_CODE_TITLE || code == IR_CODE_BEGINNING) showTFTPage(1);
@@ -1453,21 +1480,6 @@ void loop() {
 
   if (restartAt != 0 && (long)(millis() - restartAt) >= 0) {
     ESP.restart();
-  }
-
-  static uint32_t lastWifiControlRefresh = 0;
-  if (wifiControlApplyPending && rtMode == RT_CLOSED && millis() - lastWifiControlRefresh >= 1000UL) {
-    lastWifiControlRefresh = millis();
-    refreshWifiControlWidget();
-  }
-
-  if (wifiControlApplyPending && (long)(millis() - wifiControlApplyAt) >= 0) {
-    routerModeEnabled = wifiControlPendingRouter;
-    setupApEnabled = wifiControlPendingAp;
-    applyWiFiMode();
-    wifiControlApplyPending = false;
-    refreshWifiControlWidget();
-    Serial.println(F("Inline Wi-Fi control applied after 5 seconds."));
   }
 
   // Common incremental renderer checks each visible widget; only changed lines are painted.

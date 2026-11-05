@@ -21,7 +21,6 @@
 #define IR_CODE_DISPLAY         0x10EFBA45
 #define IR_CODE_SEARCH          0x10EF7A85
 #define IR_CODE_TITLE           0x10EFC03F
-#define IR_CODE_SETUP           0x10EFF807
 #define IR_CODE_SUB_T           0x10EF807F
 #define IR_CODE_AUDIO           0x10EFB847
 #define IR_CODE_UP              0x10EFD827
