@@ -80,8 +80,9 @@ static void handleInlineWifiStatus(uint32_t code) {
   if (code == IR_CODE_UP) wifiStatusSelectedRow = 0;
   else if (code == IR_CODE_DOWN) wifiStatusSelectedRow = 1;
   else if (code == IR_CODE_LEFT || code == IR_CODE_RIGHT) {
-    if (wifiStatusSelectedRow == 0) wifiStatusPendingRouter = !wifiStatusPendingRouter;
-    else wifiStatusPendingAp = !wifiStatusPendingAp;
+    const bool show = code == IR_CODE_RIGHT;
+    if (wifiStatusSelectedRow == 0) wifiStatusPendingRouter = show;
+    else wifiStatusPendingAp = show;
     refreshWifiStatusWidget();
     return;
   } else if (code == IR_CODE_OK) {
