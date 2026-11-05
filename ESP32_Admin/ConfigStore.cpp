@@ -53,7 +53,7 @@ void setDefaults() {
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
     for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
-      w.headingSize = 0; w.contentSize = 2; w.elementCount = 0; w.locked = false; w.showHeading = true; w.showBorder = true; w.headingAlign = 0; w.contentAlign = 0;
+      w.headingSize = 0; w.contentSize = 2; w.elementCount = 0; w.locked = false; w.showHeading = true; w.showBorder = true; w.headingAlign = 0; w.contentAlign = 0; w.rowSpacing = 4;
       w.headingColor = 0; w.contentColor = 3; w.backgroundColor = 0;
     }
   }
@@ -125,7 +125,7 @@ void initializeDefaultPages() {
   WidgetConfig& wifi = cfg.pages[1].widgets[0];
   wifi.label = "Системные функции"; wifi.headingSize = 1; wifi.showHeading = true;
   wifi.contentSize = 1; wifi.elementCount = 5; wifi.locked = false;
-  wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
+  wifi.headingAlign = 0; wifi.contentAlign = 0; wifi.rowSpacing = 4; wifi.headingColor = 0; wifi.contentColor = 0; wifi.backgroundColor = 0;
   wifi.elements[0].label = "Время"; wifi.elements[0].kind = ELEMENT_CLOCK; wifi.elements[0].sourceId = 0; wifi.elements[0].metric = 0; wifi.elements[0].fontSize = 2; wifi.elements[0].color = 1;
   wifi.elements[1].label = "Дата"; wifi.elements[1].kind = ELEMENT_CLOCK; wifi.elements[1].sourceId = 0; wifi.elements[1].metric = 1; wifi.elements[1].fontSize = 1; wifi.elements[1].color = 0;
   wifi.elements[2].label = "Состояние роутера"; wifi.elements[2].kind = ELEMENT_WIFI_STATUS; wifi.elements[2].sourceId = 0; wifi.elements[2].metric = 0; wifi.elements[2].fontSize = 1; wifi.elements[2].color = 2;
@@ -195,6 +195,7 @@ bool loadPageKey(const String& key, const String& value) {
   else if (suffix == "ShowBorder") w.showBorder = value == "1";
   else if (suffix == "HeadingAlign") w.headingAlign = clampInt(value.toInt(), 0, 2);
   else if (suffix == "ContentAlign") w.contentAlign = clampInt(value.toInt(), 0, 2);
+  else if (suffix == "RowSpacing") w.rowSpacing = clampInt(value.toInt(), 0, 20);
   else if (suffix == "HeadingColor") w.headingColor = clampInt(value.toInt(), 0, 5);
   else if (suffix == "ContentColor") w.contentColor = clampInt(value.toInt(), 0, 5);
   else if (suffix == "BackgroundColor") w.backgroundColor = clampInt(value.toInt(), 0, 6);
@@ -349,7 +350,6 @@ void loadConfig() {
         element.metric = clampInt(element.metric, 0, 5);
         element.fontSize = clampInt(element.fontSize, 0, 5);
         element.color = clampInt(element.color, 0, 5);
-        if (!element.label.length()) element.label = "Элемент " + String(e + 1);
       }
       w.headingAlign = clampInt(w.headingAlign, 0, 2); w.contentAlign = clampInt(w.contentAlign, 0, 2);
       w.headingColor = clampInt(w.headingColor, 0, 5); w.contentColor = clampInt(w.contentColor, 0, 5); w.backgroundColor = clampInt(w.backgroundColor, 0, 6);
@@ -451,6 +451,7 @@ bool saveConfig() {
       f.println(prefix + "ShowHeading=" + String(w.showHeading ? "1" : "0"));
       f.println(prefix + "ShowBorder=" + String(w.showBorder ? "1" : "0"));
       f.println(prefix + "HeadingAlign=" + String(w.headingAlign)); f.println(prefix + "ContentAlign=" + String(w.contentAlign));
+      f.println(prefix + "RowSpacing=" + String(w.rowSpacing));
       f.println(prefix + "HeadingColor=" + String(w.headingColor)); f.println(prefix + "ContentColor=" + String(w.contentColor));
       f.println(prefix + "BackgroundColor=" + String(w.backgroundColor));
       f.println(prefix + "X=" + String(w.x)); f.println(prefix + "Y=" + String(w.y));
