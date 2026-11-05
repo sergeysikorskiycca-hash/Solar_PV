@@ -30,22 +30,14 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 <div class="row"><button class="primary" id="newPage">＋ Новая страница</button><button id="followDevice">К странице дисплея</button><button class="danger" id="deletePage">Удалить страницу</button></div>
 <p class="hint">Жёлтая рамка у вкладки показывает страницу, которая сейчас выведена на физический дисплей. Выбирать другую страницу для редактирования можно независимо.</p>
 <div class="status" id="deviceStatus">Получение состояния ESP32…</div></section>
-<section><h2>Подписи системных блоков</h2>
-<p class="hint">Эти подписи выводятся внутри встроенных блоков TFT. Заголовки самих блоков по-прежнему меняются в редакторе страниц.</p>
-<div class="row"><div><label for="uiStringPrefix">Название стринга</label><input id="uiStringPrefix" type="text" maxlength="24"></div><div><label for="uiCurrentLabel">Ток</label><input id="uiCurrentLabel" type="text" maxlength="24"></div></div>
-<div class="row"><div><label for="uiVoltageLabel">Напряжение</label><input id="uiVoltageLabel" type="text" maxlength="24"></div><div><label for="uiRouterLabel">Роутер</label><input id="uiRouterLabel" type="text" maxlength="24"></div></div>
-<div class="row"><div><label for="uiApLabel">Точка доступа</label><input id="uiApLabel" type="text" maxlength="24"></div><div><label for="uiNoRouterLabel">Нет подключения</label><input id="uiNoRouterLabel" type="text" maxlength="40"></div></div>
-<div class="row"><div><label for="uiNetworkLabel">Сеть</label><input id="uiNetworkLabel" type="text" maxlength="24"></div><div><label for="uiSignalLabel">Сигнал</label><input id="uiSignalLabel" type="text" maxlength="24"></div></div>
-<label for="uiApSetupLabel">Точка настройки</label><input id="uiApSetupLabel" type="text" maxlength="32">
-<label for="uiSelectHint">Подсказка выбора</label><input id="uiSelectHint" type="text" maxlength="40">
-<label for="uiChangeHint">Подсказка подтверждения</label><input id="uiChangeHint" type="text" maxlength="40">
-<label for="uiApplyLabel">Надпись ожидания применения</label><input id="uiApplyLabel" type="text" maxlength="32">
-<div class="row" style="margin-top:10px"><button class="primary" id="saveUiTexts">Сохранить подписи</button><button id="resetUiTexts">Вернуть исходные</button></div>
-<div class="status" id="uiTextsStatus" style="margin-top:8px">Подписи загружаются…</div></section>
+
 <section><h2>Библиотека блоков</h2>
 <div class="row" style="margin-top:8px"><button class="primary" id="addWidget">＋ Добавить на страницу</button><button id="deleteWidget">Удалить выбранный блок</button></div>
 <p class="hint">Щёлкни по подписи блока, чтобы изменить её. Перетаскивай блок мышью, размер меняй за зелёный угол.</p><label style="display:flex;align-items:center;gap:8px"><input id="showWidgetHeading" type="checkbox" checked> Показывать заголовок блока</label><label style="display:flex;align-items:center;gap:8px"><input id="showWidgetBorder" type="checkbox" checked> Показывать рамку блока</label><p class="hint">Содержимое и поведение блока задаются списком элементов ниже.</p>
-<div id="customEditor" style="display:none"><h3>Элементы универсального блока</h3><p class="hint">Добавляй строки с любыми датчиками и параметрами. Подпись, размер и цвет настраиваются независимо.</p><div id="customElements"></div><div id="systemElementTools"><section id="clockSettingsPanel"><h2>Часы и дата RTC</h2><p class="hint">Установи время и дату часов DS3231. Команда передаётся на ESP8266-шлюз и записывается в RTC.</p><div class="row"><div><label for="clockDate">Дата</label><input id="clockDate" type="date"></div><div><label for="clockTime">Время</label><input id="clockTime" type="time" step="1"></div></div><button class="primary" id="setClock" style="margin-top:8px;width:100%">Установить время и дату</button><div class="status" id="clockStatus" style="margin-top:8px">Чтение времени устройства…</div></section><section id="wifiModePanel"><h2>Временное управление Wi-Fi</h2><div class="status" id="wifiModeStatus">Загрузка режима…</div><div class="row" style="margin-top:8px"><button id="toggleRouter">Роутер: ВЫКЛ</button><button id="toggleAp">Точка: ВКЛ</button></div><button class="danger" id="wifiOff" style="width:100%;margin-top:8px">Выключить обе сети</button><p class="hint">После перезапуска включится только точка SolarPV-Setup. Если выключить обе сети, админка станет недоступна.</p></section><section id="wifiDefaultsPanel"><h2>Постоянные настройки запуска Wi-Fi</h2><p class="hint">Эти значения сохраняются во флеш-памяти и применяются после перезагрузки. Переключатели выше действуют только до перезапуска.</p><label><input id="defaultRouter" type="checkbox"> Подключаться к домашнему роутеру</label><label><input id="defaultAp" type="checkbox"> Включать точку SolarPV-Setup</label><button class="primary" id="saveWiFiDefaults" style="width:100%;margin-top:8px">Сохранить настройки запуска</button><div class="status" id="wifiDefaultsStatus" style="margin-top:8px">Настройки запуска…</div></section><section id="wifiConnectionPanel"><h2>Подключение к Wi-Fi</h2><div class="status" id="netStatus">Получение состояния устройства…</div>
+<div id="customEditor" style="display:none"><h3>Элементы универсального блока</h3><p class="hint">Добавляй строки с любыми датчиками и параметрами. Подпись, размер и цвет настраиваются независимо.</p><div id="customElements"></div><div id="systemElementTools"><section id="clockSettingsPanel"><h2>Часы и дата RTC</h2><p class="hint">Установи время и дату часов DS3231. Команда передаётся на ESP8266-шлюз и записывается в RTC.</p><div class="row"><div><label for="clockDate">Дата</label><input id="clockDate" type="date"></div><div><label for="clockTime">Время</label><input id="clockTime" type="time" step="1"></div></div><button class="primary" id="setClock" style="margin-top:8px;width:100%">Установить время и дату</button><div class="status" id="clockStatus" style="margin-top:8px">Чтение времени устройства…</div></section><section id="wifiModePanel"><h2>Временное управление Wi-Fi</h2><div class="status" id="wifiModeStatus">Загрузка режима…</div><div class="row" style="margin-top:8px"><button id="toggleRouter">Роутер: ВЫКЛ</button><button id="toggleAp">Точка: ВКЛ</button></div><button class="danger" id="wifiOff" style="width:100%;margin-top:8px">Выключить обе сети</button><p class="hint">После перезапуска включится только точка SolarPV-Setup. Если выключить обе сети, админка станет недоступна.</p></section><section id="wifiDefaultsPanel"><h2>Постоянные настройки запуска Wi-Fi</h2><p class="hint">Эти значения сохраняются во флеш-памяти и применяются после перезагрузки. Переключатели выше действуют только до перезапуска.</p><label><input id="defaultRouter" type="checkbox"> Подключаться к домашнему роутеру</label><label><input id="defaultAp" type="checkbox"> Включать точку SolarPV-Setup</label><button class="primary" id="saveWiFiDefaults" style="width:100%;margin-top:8px">Сохранить настройки запуска</button><div class="status" id="wifiDefaultsStatus" style="margin-top:8px">Настройки запуска…</div></section>
+<section id="sensorUiTextsPanel" style="display:none"><h3>Подписи датчика</h3><p class="hint">Эти названия используются в строках мониторинга и на TFT.</p><div class="row"><div><label for="uiStringPrefix">Название стринга</label><input id="uiStringPrefix" type="text" maxlength="24"></div><div><label for="uiCurrentLabel">Ток</label><input id="uiCurrentLabel" type="text" maxlength="24"></div></div><label for="uiVoltageLabel">Напряжение</label><input id="uiVoltageLabel" type="text" maxlength="24"><div class="row"><button class="primary save-ui-texts">Сохранить подписи</button><button class="reset-ui-texts">Вернуть исходные</button></div><div class="status ui-texts-status">Подписи загружаются…</div></section>
+<section id="wifiUiTextsPanel" style="display:none"><h3>Подписи Wi-Fi</h3><p class="hint">Названия состояния роутера, точки доступа и сети.</p><div class="row"><div><label for="uiRouterLabel">Роутер</label><input id="uiRouterLabel" type="text" maxlength="24"></div><div><label for="uiApLabel">Точка доступа</label><input id="uiApLabel" type="text" maxlength="24"></div></div><label for="uiNoRouterLabel">Нет подключения</label><input id="uiNoRouterLabel" type="text" maxlength="40"><div class="row"><div><label for="uiNetworkLabel">Сеть</label><input id="uiNetworkLabel" type="text" maxlength="24"></div><div><label for="uiSignalLabel">Сигнал</label><input id="uiSignalLabel" type="text" maxlength="24"></div></div><label for="uiApSetupLabel">Точка настройки</label><input id="uiApSetupLabel" type="text" maxlength="32"><div class="row"><button class="primary save-ui-texts">Сохранить подписи</button><button class="reset-ui-texts">Вернуть исходные</button></div><div class="status ui-texts-status">Подписи загружаются…</div></section>
+<section id="remoteUiTextsPanel" style="display:none"><h3>Подсказки ИК-пульта</h3><p class="hint">Эти надписи показываются при управлении с пульта.</p><label for="uiSelectHint">Подсказка выбора</label><input id="uiSelectHint" type="text" maxlength="40"><label for="uiChangeHint">Подсказка подтверждения</label><input id="uiChangeHint" type="text" maxlength="40"><label for="uiApplyLabel">Надпись ожидания применения</label><input id="uiApplyLabel" type="text" maxlength="32"><div class="row"><button class="primary save-ui-texts">Сохранить подписи</button><button class="reset-ui-texts">Вернуть исходные</button></div><div class="status ui-texts-status">Подписи загружаются…</div></section><section id="wifiConnectionPanel"><h2>Подключение к Wi-Fi</h2><div class="status" id="netStatus">Получение состояния устройства…</div>
 <label for="networkList">Найденные и сохранённые сети</label><div class="wifi-scan"><select id="networkList"><option value="">Нажмите «Сканировать»</option></select><button id="scanNetworks">Сканировать</button></div><p class="hint" id="scanStatus">Список ещё не обновлялся.</p>
 <label for="ssid">SSID</label><input id="ssid" type="text" maxlength="32" autocomplete="off"><label for="password">Пароль Wi-Fi</label><input id="password" type="password" maxlength="63" autocomplete="new-password">
 <p class="hint">Для сохранённой сети оставь пароль пустым. Можно хранить до 8 сетей.</p><button class="primary" id="saveWifi" style="margin-top:8px;width:100%">Сохранить Wi-Fi и перезапустить</button></section><section id="calibrationEditor" style="display:none"><h3>Коэффициенты калибровки</h3><div id="calibrationRows"></div><button class="primary" id="applyCalibration" style="width:100%;margin-top:8px">Сохранить коэффициенты</button></section></div><button class="primary" id="addCustomElement" style="width:100%;margin-top:8px">＋ Добавить элемент</button><p class="hint">До 12 элементов в одном блоке. Источник — физический номер датчика, подпись на экране может быть любой.</p></div>
@@ -110,14 +102,14 @@ function customSelect(options,value){const select=document.createElement('select
 function renderCustomEditor(w){
  const root=$('customElements');
  const tools=$('systemElementTools');
- const managedPanels=['clockSettingsPanel','wifiModePanel','wifiDefaultsPanel','wifiConnectionPanel','calibrationEditor'].map(id=>$(id)).filter(Boolean);
+ const managedPanels=['clockSettingsPanel','wifiModePanel','wifiDefaultsPanel','sensorUiTextsPanel','wifiUiTextsPanel','remoteUiTextsPanel','wifiConnectionPanel','calibrationEditor'].map(id=>$(id)).filter(Boolean);
  managedPanels.forEach(panel=>tools.appendChild(panel));
  root.innerHTML='';
  w.elements=Array.isArray(w.elements)?w.elements.slice(0,MAX_WIDGET_ELEMENTS):[];
  const kinds=[[0,'Данные датчика'],[1,'Часы / дата'],[2,'Состояние Wi-Fi'],[3,'Управление Wi-Fi'],[4,'Калибровка датчика'],[5,'Выбор Wi-Fi сети'],[6,'Текстовая строка']];
  const sizeOptions=[[0,'Компактный'],[1,'Небольшой'],[2,'Средний'],[3,'Крупный'],[4,'Очень крупный'],[5,'Максимальный']];
  const colorOptions=[[0,'Белый'],[1,'Голубой'],[2,'Зелёный'],[3,'Жёлтый'],[4,'Красный'],[5,'Оранжевый']];
- let rtcAttached=false,wifiConnectionAttached=false,wifiModeAttached=false,wifiDefaultsAttached=false,calibrationAttached=false;
+ let rtcAttached=false,wifiConnectionAttached=false,wifiModeAttached=false,wifiDefaultsAttached=false,calibrationAttached=false,sensorLabelsAttached=false,wifiLabelsAttached=false,remoteLabelsAttached=false;
  w.elements.forEach((element,index)=>{
   const row=document.createElement('div');row.className='element-editor';
   const top=document.createElement('div');top.className='row';
@@ -149,6 +141,9 @@ function renderCustomEditor(w){
   actions.append(up,down,remove);bottom.appendChild(actions);row.appendChild(bottom);  if(k===1&&!rtcAttached) {const rtcPanel=$('clockSettingsPanel');rtcPanel.style.display='block';row.appendChild(rtcPanel);rtcAttached=true}
   if(k===3&&!wifiModeAttached) {const panel=$('wifiModePanel');panel.style.display='block';row.appendChild(panel);wifiModeAttached=true}
   if(k===3&&!wifiDefaultsAttached) {const panel=$('wifiDefaultsPanel');panel.style.display='block';row.appendChild(panel);wifiDefaultsAttached=true}
+  if(k===0&&!sensorLabelsAttached) {const panel=$('sensorUiTextsPanel');panel.style.display='block';row.appendChild(panel);sensorLabelsAttached=true}
+  if(k===2&&!wifiLabelsAttached) {const panel=$('wifiUiTextsPanel');panel.style.display='block';row.appendChild(panel);wifiLabelsAttached=true}
+  if(k===3&&!remoteLabelsAttached) {const panel=$('remoteUiTextsPanel');panel.style.display='block';row.appendChild(panel);remoteLabelsAttached=true}
   if(k===4&&!calibrationAttached) {const panel=$('calibrationEditor');panel.style.display='block';row.appendChild(panel);calibrationAttached=true}
   if(k===5&&!wifiConnectionAttached) {const wifiPanel=$('wifiConnectionPanel');wifiPanel.style.display='block';row.appendChild(wifiPanel);wifiConnectionAttached=true}
   root.appendChild(row);
@@ -159,6 +154,9 @@ function renderCustomEditor(w){
  if(!wifiModeAttached)$('wifiModePanel').style.display='none';
  if(!wifiDefaultsAttached)$('wifiDefaultsPanel').style.display='none';
  if(!calibrationAttached)$('calibrationEditor').style.display='none';
+ if(!sensorLabelsAttached)$('sensorUiTextsPanel').style.display='none';
+ if(!wifiLabelsAttached)$('wifiUiTextsPanel').style.display='none';
+ if(!remoteLabelsAttached)$('remoteUiTextsPanel').style.display='none';
  tools.style.display='none';
  $('addCustomElement').disabled=w.elements.length>=MAX_WIDGET_ELEMENTS;
 }
@@ -221,11 +219,13 @@ const uiTextDefaults={"stringPrefix":"Стринг","currentLabel":"Ток","vol
 let uiTexts={...uiTextDefaults};const uiTextKeys=Object.keys(uiTextDefaults);
 function renderUiTexts(values){uiTexts={...uiTextDefaults,...(values||{})};uiTextKeys.forEach(key=>{const el=$('ui'+key[0].toUpperCase()+key.slice(1));if(el)el.value=uiTexts[key]||uiTextDefaults[key]});}
 async function saveUiTexts(reset){
- const values={};uiTextKeys.forEach(key=>{const el=$('ui'+key[0].toUpperCase()+key.slice(1));values[key]=reset?uiTextDefaults[key]:el.value});
- try{const r=await fetch('/api/ui-texts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(values)});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Ошибка сохранения');uiTexts=values;renderUiTexts(uiTexts);$('uiTextsStatus').textContent=j.message;renderCanvas();}
- catch(e){$('uiTextsStatus').textContent='Ошибка: '+e.message}
-}$('saveUiTexts').addEventListener('click',()=>saveUiTexts(false));
-$('resetUiTexts').addEventListener('click',()=>{if(confirm('Вернуть исходные подписи?'))saveUiTexts(true)});
+ const values={};uiTextKeys.forEach(key=>{const el=$('ui'+key[0].toUpperCase()+key.slice(1));values[key]=reset?uiTextDefaults[key]:(el?el.value:uiTexts[key])});
+ const statuses=document.querySelectorAll('.ui-texts-status');
+ try{const r=await fetch('/api/ui-texts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(values)});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Ошибка сохранения');uiTexts=values;renderUiTexts(uiTexts);statuses.forEach(el=>el.textContent=j.message);renderCanvas();}
+ catch(e){statuses.forEach(el=>el.textContent='Ошибка: '+e.message)}
+}
+document.querySelectorAll('.save-ui-texts').forEach(el=>el.addEventListener('click',()=>saveUiTexts(false)));
+document.querySelectorAll('.reset-ui-texts').forEach(el=>el.addEventListener('click',()=>{if(confirm('Вернуть исходные подписи?'))saveUiTexts(true)}));
 function applyActiveCalibration(c){
  const valid=Array.isArray(c.activeCalibrationValid)?c.activeCalibrationValid:[];
  const activeCurrent=normalizeCalibration(c.activeCurrentCalibration),activeVoltage=normalizeCalibration(c.activeVoltageCalibration);
