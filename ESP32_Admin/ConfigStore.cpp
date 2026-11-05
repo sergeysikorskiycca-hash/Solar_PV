@@ -211,6 +211,11 @@ void loadConfig() {
   memset(legacyWidgetTypes, 0, sizeof(legacyWidgetTypes));
   memset(legacyStringCounts, 0, sizeof(legacyStringCounts));
   if (!fsReady) return;
+  static const char CONFIG_TEMP_PATH[] = "/solarpv.tmp";
+  static const char CONFIG_BACKUP_PATH[] = "/solarpv.bak";
+  if (!LittleFS.exists(CONFIG_PATH) && LittleFS.exists(CONFIG_BACKUP_PATH)) LittleFS.rename(CONFIG_BACKUP_PATH, CONFIG_PATH);
+  else if (LittleFS.exists(CONFIG_PATH) && LittleFS.exists(CONFIG_BACKUP_PATH)) LittleFS.remove(CONFIG_BACKUP_PATH);
+  if (LittleFS.exists(CONFIG_TEMP_PATH)) LittleFS.remove(CONFIG_TEMP_PATH);
   File f = LittleFS.open(CONFIG_PATH, "r");
   if (!f) return;
   for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; i++) { savedNetworks[i].ssid = ""; savedNetworks[i].password = ""; }
@@ -387,7 +392,10 @@ bool addOrUpdateSavedNetwork(const String& ssid, const String& password) {
 
 bool saveConfig() {
   if (!fsReady) return false;
-  File f = LittleFS.open(CONFIG_PATH, "w");
+  static const char CONFIG_TEMP_PATH[] = "/solarpv.tmp";
+  static const char CONFIG_BACKUP_PATH[] = "/solarpv.bak";
+  if (LittleFS.exists(CONFIG_TEMP_PATH)) LittleFS.remove(CONFIG_TEMP_PATH);
+  File f = LittleFS.open(CONFIG_TEMP_PATH, "w");
   if (!f) return false;
   f.println(String("defaultRouterMode=") + (cfg.defaultRouterMode ? "1" : "0"));
   f.println(String("defaultSetupAp=") + (cfg.defaultSetupAp ? "1" : "0"));
@@ -448,6 +456,18 @@ bool saveConfig() {
     f.println("wifi" + String(i) + "_ssid=" + savedNetworks[i].ssid);
     f.println("wifi" + String(i) + "_password=" + savedNetworks[i].password);
   }
+  f.flush();
+  const bool writeOk = f.getWriteError() == 0;
   f.close();
+  if (!writeOk) { LittleFS.remove(CONFIG_TEMP_PATH); return false; }
+  const bool hadConfig = LittleFS.exists(CONFIG_PATH);
+  if (LittleFS.exists(CONFIG_BACKUP_PATH)) LittleFS.remove(CONFIG_BACKUP_PATH);
+  if (hadConfig && !LittleFS.rename(CONFIG_PATH, CONFIG_BACKUP_PATH)) { LittleFS.remove(CONFIG_TEMP_PATH); return false; }
+  if (!LittleFS.rename(CONFIG_TEMP_PATH, CONFIG_PATH)) {
+    if (hadConfig) LittleFS.rename(CONFIG_BACKUP_PATH, CONFIG_PATH);
+    LittleFS.remove(CONFIG_TEMP_PATH);
+    return false;
+  }
+  if (hadConfig && LittleFS.exists(CONFIG_BACKUP_PATH)) LittleFS.remove(CONFIG_BACKUP_PATH);
   return true;
 }

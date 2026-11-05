@@ -362,6 +362,16 @@ void handleSaveDisplay() {
     server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректный JSON макета.\"}");
     return;
   }
+  JsonArray sourcePages = doc["pages"].as<JsonArray>();
+  uint8_t requestedCount = clampInt(doc["pageCount"] | sourcePages.size(), 1, MAX_PAGES);
+  if (sourcePages.isNull() || sourcePages.size() < requestedCount) {
+    server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"В конфигурации не хватает страниц.\"}");
+    return;
+  }
+  if (!fsReady) {
+    server.send(503, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"LittleFS недоступна. Конфигурация не изменена.\"}");
+    return;
+  }
   if (doc.containsKey("title")) cfg.title = sanitizeTitle(String(doc["title"] | "SOLAR PV"));
   float oldCurrentCalibration[6], oldVoltageCalibration[6];
   memcpy(oldCurrentCalibration, cfg.currentCalibration, sizeof(oldCurrentCalibration));
@@ -371,12 +381,6 @@ void handleSaveDisplay() {
   for (uint8_t i = 0; i < 6; ++i) {
     if (currentCal.size() > i) cfg.currentCalibration[i] = constrain(currentCal[i].as<float>(), 0.001f, 99.999f);
     if (voltageCal.size() > i) cfg.voltageCalibration[i] = constrain(voltageCal[i].as<float>(), 0.001f, 99.999f);
-  }
-  JsonArray sourcePages = doc["pages"].as<JsonArray>();
-  uint8_t requestedCount = clampInt(doc["pageCount"] | sourcePages.size(), 1, MAX_PAGES);
-  if (sourcePages.isNull() || sourcePages.size() < requestedCount) {
-    server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"В конфигурации не хватает страниц.\"}");
-    return;
   }
   cfg.pageCount = requestedCount;
   for (uint8_t p = 0; p < cfg.pageCount; p++) {
@@ -418,10 +422,15 @@ void handleSaveDisplay() {
   }
   cfg.tftPage = clampInt(cfg.tftPage, 1, cfg.pageCount);
   bool ok = saveConfig();
-  if (ok) queueChangedCalibrations(oldCurrentCalibration, oldVoltageCalibration);
+  if (!ok) {
+    loadConfig();
+    renderTFT();
+    server.send(500, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Не удалось сохранить конфигурацию. Загружена предыдущая версия.\"}");
+    return;
+  }
+  queueChangedCalibrations(oldCurrentCalibration, oldVoltageCalibration);
   renderTFT();
-  String message = ok ? "Макет страниц сохранён и применён." : "Макет применён, но не сохранён: файловая система недоступна.";
-  server.send(ok ? 200 : 500, "application/json; charset=utf-8", String("{\"ok\":") + (ok ? "true" : "false") + ",\"message\":\"" + message + "\"}");
+  server.send(200, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Макет страниц сохранён и применён.\"}");
 }
 void handleSetPage() {
   if (server.arg("action") == "create") {
@@ -433,8 +442,13 @@ void handleSetPage() {
   }
   int page = server.arg("page").toInt();
   if (page < 1 || page > cfg.pageCount) { server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Такой страницы нет.\"}"); return; }
+  const uint8_t previousTftPage = cfg.tftPage;
   cfg.tftPage = page;
-  if (!saveConfig()) { server.send(500, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Не удалось сохранить страницу в LittleFS.\"}"); return; }
+  if (!saveConfig()) {
+    cfg.tftPage = previousTftPage;
+    server.send(500, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Не удалось сохранить страницу в LittleFS. Предыдущая страница восстановлена.\"}");
+    return;
+  }
   server.send(200, "application/json; charset=utf-8", String("{\"ok\":true,\"message\":\"На дисплее страница ") + String(page) + "\"}");
   renderTFT();
 }
@@ -458,10 +472,14 @@ void handleSaveWiFiDefaults() {
     server.send(400, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Некорректные настройки.\"}");
     return;
   }
+  const bool oldRouterDefault = cfg.defaultRouterMode;
+  const bool oldApDefault = cfg.defaultSetupAp;
   cfg.defaultRouterMode = doc["router"] | cfg.defaultRouterMode;
   cfg.defaultSetupAp = doc["ap"] | cfg.defaultSetupAp;
   if (!saveConfig()) {
-    server.send(500, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Не удалось сохранить настройки.\"}");
+    cfg.defaultRouterMode = oldRouterDefault;
+    cfg.defaultSetupAp = oldApDefault;
+    server.send(500, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Не удалось сохранить настройки. Предыдущие значения восстановлены.\"}");
     return;
   }
   server.send(200, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Настройки запуска сохранены. Текущий режим не изменён; новые значения применятся после перезагрузки.\"}");
@@ -497,6 +515,10 @@ void handleSaveWiFi() {
     }
   }
   if (effectivePassword.length() > 63) effectivePassword = effectivePassword.substring(0, 63);
+  SavedNetwork previousNetworks[MAX_SAVED_NETWORKS];
+  for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; ++i) previousNetworks[i] = savedNetworks[i];
+  const String previousSsid = cfg.ssid;
+  const String previousPassword = cfg.password;
   if (!addOrUpdateSavedNetwork(newSsid, effectivePassword)) {
     server.send(400, "application/json; charset=utf-8",
                 "{\"ok\":false,\"message\":\"Память заполнена: сохранено 8 сетей.\"}");
@@ -505,8 +527,11 @@ void handleSaveWiFi() {
   cfg.ssid = newSsid;
   cfg.password = effectivePassword;
   if (!saveConfig()) {
+    for (uint8_t i = 0; i < MAX_SAVED_NETWORKS; ++i) savedNetworks[i] = previousNetworks[i];
+    cfg.ssid = previousSsid;
+    cfg.password = previousPassword;
     server.send(500, "application/json; charset=utf-8",
-                "{\"ok\":false,\"message\":\"Не удалось сохранить настройки. Проверьте LittleFS.\"}");
+                "{\"ok\":false,\"message\":\"Не удалось сохранить настройки. Предыдущая конфигурация восстановлена.\"}");
     return;
   }
   server.send(200, "application/json; charset=utf-8",
