@@ -177,7 +177,7 @@ void drawWidget(const WidgetConfig& widget) {
   if (widget.showHeading) drawAlignedText(widget.label, x, headingBaseline, w, hs, widget.headingAlign, widget.headingColor);
   const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
   uint8_t firstVisible = 0;
-  while (firstVisible < count) ++firstVisible;
+  firstVisible = 0;
   const uint8_t firstSize = firstVisible < count && widget.elements[firstVisible].fontSize <= 5 ? widget.elements[firstVisible].fontSize : cs;
   int lineY = widget.showHeading
       ? headingBaseline + FONT_HEIGHTS[hs] / 2 + FONT_HEIGHTS[firstSize] + 3
@@ -209,7 +209,7 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
   const int headingBaseline = widget.y + FONT_HEIGHTS[headingSize] + 3;
   const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
   uint8_t firstVisible = 0;
-  while (firstVisible < count) ++firstVisible;
+  firstVisible = 0;
   const uint8_t firstSize = firstVisible < count && widget.elements[firstVisible].fontSize <= 5 ? widget.elements[firstVisible].fontSize : contentSize;
   const int firstBaseline = widget.showHeading
       ? headingBaseline + FONT_HEIGHTS[headingSize] / 2 + FONT_HEIGHTS[firstSize] + 3
