@@ -81,25 +81,26 @@ static uint8_t calibrationElementOrdinal(const WidgetElementConfig* target) {
   return 255;
 }
 static String widgetElementText(const WidgetElementConfig& element) {
+  const String prefix = element.label.length() ? element.label + ": " : "";
   if (element.kind == ELEMENT_TEXT) return element.label;
   if (element.kind == ELEMENT_CLOCK) {
     extern bool gatewayTimeValid;
     extern uint16_t gatewayYear;
     extern uint8_t gatewayMonth, gatewayDay, gatewayHour, gatewayMinute, gatewaySecond;
-    if (!gatewayTimeValid) return element.label + ": --";
+    if (!gatewayTimeValid) return prefix + "--";
     String time = String(gatewayHour < 10 ? "0" : "") + String(gatewayHour) + ":" +
                   String(gatewayMinute < 10 ? "0" : "") + String(gatewayMinute) + ":" +
                   String(gatewaySecond < 10 ? "0" : "") + String(gatewaySecond);
     String date = String(gatewayDay < 10 ? "0" : "") + String(gatewayDay) + "." +
                   String(gatewayMonth < 10 ? "0" : "") + String(gatewayMonth) + "." + String(gatewayYear);
-    return element.label + ": " + (element.metric == 1 ? date : (element.metric == 2 ? time + " " + date : time));
+    return prefix + (element.metric == 1 ? date : (element.metric == 2 ? time + " " + date : time));
   }
   if (element.kind == ELEMENT_WIFI_STATUS) {
     if (wifiStatusInlineActive && (element.metric == 0 || element.metric == 4)) {
       const bool routerRow = element.metric == 0;
       const bool selected = wifiStatusSelectedRow == (routerRow ? 0 : 1);
       const bool visible = routerRow ? wifiStatusPendingRouter : wifiStatusPendingAp;
-      return String(selected ? "> " : "  ") + element.label + ": " + (visible ? "ВКЛ" : "ВЫКЛ");
+      return String(selected ? "> " : "  ") + prefix + (visible ? "ВКЛ" : "ВЫКЛ");
     }
     String value;
     switch (element.metric) {
@@ -110,10 +111,10 @@ static String widgetElementText(const WidgetElementConfig& element) {
       case 5: value = apActive ? WiFi.softAPIP().toString() : "—"; break;
       default: value = routerModeEnabled ? "ВКЛ" : "ВЫКЛ"; break;
     }
-    return element.label + ": " + value;
+    return prefix + value;
   }
   if (element.kind == ELEMENT_WIFI_NETWORK)
-    return element.label + ": " + (cfg.ssid.length() ? cfg.ssid : "не выбрана");
+    return prefix + (cfg.ssid.length() ? cfg.ssid : "не выбрана");
   if (element.kind == ELEMENT_CALIBRATION) {
     const uint8_t sensor = element.sourceId > 0 ? element.sourceId - 1 : 0;
     const bool fresh = sensor < 6 && stringSensorFresh(sensor);
@@ -123,12 +124,12 @@ static String widgetElementText(const WidgetElementConfig& element) {
     const bool selected = calibrationInlineActive && ordinal != 255 && calibrationRow / 2 == ordinal;
     const String currentText = calibrationTargetText(calibrationEditing, selected && calibrationRow % 2 == 0, true, current);
     const String voltageText = calibrationTargetText(calibrationEditing, selected && calibrationRow % 2 == 1, false, voltage);
-    return element.label + ": " + currentText + " А / " + voltageText + " В";
+    return prefix + currentText + " А / " + voltageText + " В";
   }
 
   const char* unit = element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : (element.metric == 3 ? "%" : "В"));
   String value = "--";
-  if (element.metric == 3) return element.label + ": -- %";
+  if (element.metric == 3) return prefix + "-- %";
   if (element.sourceId == 0) {
     if (gatewayOnline && gatewaySensorValid) {
       if (element.metric == 1) value = String(gatewayCurrent, 2);
@@ -147,7 +148,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
       else value = String(stringSensorVoltage[sensor], 1);
     }
   }
-  return element.label + ": " + value + " " + unit;
+  return prefix + value + " " + unit;
 }
 static const uint16_t WIDGET_BACKGROUNDS[7] = { 0x0841, 0x001B, 0x0326, 0x3009, 0x4804, 0x3186, ST77XX_BLACK };
 static uint16_t widgetBackground(uint8_t color) { return WIDGET_BACKGROUNDS[color <= 6 ? color : 0]; }
@@ -186,14 +187,14 @@ void drawWidget(const WidgetConfig& widget) {
     const WidgetElementConfig& element = widget.elements[i];
     const uint8_t size = element.fontSize <= 5 ? element.fontSize : cs;
     drawAlignedText(widgetElementText(element), x, lineY, w, size, widget.contentAlign, element.color);
-    lineY += FONT_HEIGHTS[size] + 4;
+    lineY += FONT_HEIGHTS[size] + widget.rowSpacing;
   }
 }
 // Per-page/per-widget cache for incremental refresh of dynamic widget content.
 struct IncrementalWidgetCache {
   bool initialized;
   int x, y, w, h, firstBaseline, lineHeight;
-  uint8_t contentSize, align, color, background, count;
+  uint8_t contentSize, align, color, background, count, rowSpacing;
   bool wifiEditing;
   String lines[18];
   uint16_t colors[18];
@@ -217,7 +218,7 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
   bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y ||
       cache.w != widget.w || cache.h != widget.h || cache.firstBaseline != firstBaseline ||
       cache.background != widget.backgroundColor || cache.count != count ||
-      cache.align != widget.contentAlign || cache.wifiEditing != wifiStatusInlineActive;
+      cache.align != widget.contentAlign || cache.rowSpacing != widget.rowSpacing || cache.wifiEditing != wifiStatusInlineActive;
   for (uint8_t i = 0; i < count; ++i) {
     const uint8_t size = widget.elements[i].fontSize <= 5 ? widget.elements[i].fontSize : contentSize;
     if (!cache.initialized || cache.fontSizes[i] != size) layoutChanged = true;
@@ -236,19 +237,19 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
     if (lineY <= widget.y + widget.h - 4 &&
         (layoutChanged || cache.lines[i] != line || cache.colors[i] != color)) {
       tft.fillRect(widget.x + 2, lineY - FONT_HEIGHTS[size] + 1,
-                   widget.w - 4, FONT_HEIGHTS[size] + 4, widgetBackground(widget.backgroundColor));
+                   widget.w - 4, FONT_HEIGHTS[size] + widget.rowSpacing, widgetBackground(widget.backgroundColor));
       drawAlignedText(line, widget.x, lineY, widget.w, size, widget.contentAlign, element.color);
     }
     cache.lines[i] = line;
     cache.colors[i] = color;
     cache.fontSizes[i] = size;
-    lineY += FONT_HEIGHTS[size] + 4;
+    lineY += FONT_HEIGHTS[size] + widget.rowSpacing;
   }
   cache.x = widget.x; cache.y = widget.y; cache.w = widget.w; cache.h = widget.h;
   cache.firstBaseline = firstBaseline; cache.lineHeight = FONT_HEIGHTS[contentSize] + 4;
   cache.contentSize = contentSize; cache.align = widget.contentAlign;
   cache.color = widget.contentColor; cache.background = widget.backgroundColor;
-  cache.count = count; cache.wifiEditing = wifiStatusInlineActive;
+  cache.count = count; cache.rowSpacing = widget.rowSpacing; cache.wifiEditing = wifiStatusInlineActive;
   cache.initialized = true;
 }
 void resetIncrementalWidgetCache() {
