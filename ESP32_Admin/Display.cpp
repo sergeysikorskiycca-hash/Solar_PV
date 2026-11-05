@@ -15,13 +15,10 @@ static bool stringSensorFresh(uint8_t index) {
          millis() - stringSensorLastSeenMs[index] <= 3500UL;
 }
 
-extern bool routerModeEnabled;
-extern bool setupApEnabled;
 extern bool wifiStatusInlineActive;
 extern bool wifiStatusPendingRouter;
 extern bool wifiStatusPendingAp;
 extern uint8_t wifiStatusSelectedRow;
-extern uint32_t wifiControlApplyAt;
 extern bool calibrationInlineActive;
 extern bool calibrationEditing;
 extern uint8_t calibrationRow;

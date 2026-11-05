@@ -126,7 +126,7 @@ function renderCustomEditor(w){
   let metricOptions=null,metricTitle='Параметр';
   if(k===0)metricOptions=[[0,'Напряжение'],[1,'Ток'],[2,'Мощность'],[3,'Заряд батареи']];
   else if(k===1){metricTitle='Отображать';metricOptions=[[0,'Время'],[1,'Дату'],[2,'Время и дату']]}
-  else if(k===2){metricTitle='Информация';metricOptions=[[0,'Состояние'],[1,'Имя сети'],[2,'Уровень сигнала'],[3,'IP роутера'],[4,'Состояние точки'],[5,'IP точки']]}
+  else if(k===2){metricTitle='Информация';metricOptions=[[0,'Состояние роутера'],[1,'Имя сети'],[2,'Уровень сигнала'],[3,'IP роутера'],[4,'Состояние точки'],[5,'IP точки']]}
   else if(k===4){element.metric=2;metricOptions=null}
   if(metricOptions){const metric=customSelect(metricOptions,element.metric??0);metric.addEventListener('change',()=>{element.metric=Number(metric.value);updateCustomPreviews()});bottom.appendChild(customField(metricTitle,metric))}
   const size=customSelect(sizeOptions,element.fontSize);size.addEventListener('change',()=>{element.fontSize=Number(size.value);updateCustomPreviews()});bottom.appendChild(customField('Размер',size));
@@ -251,7 +251,7 @@ async function refreshDeviceState(){
   const p=Math.max(0,Math.min((Number(c.tftPage)||1)-1,Math.max(0,pages.length-1)));
   if(p!==devicePage){devicePage=p;if(followDevice)editorPage=Math.min(devicePage,pages.length-1);renderAll()}
   if(c.clock){if(document.activeElement!==$('clockDate'))$('clockDate').value=c.clock.date||'';if(document.activeElement!==$('clockTime'))$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
-  networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;configuredSsid=c.ssid||'';wifiInfo=c.wifiInfo||wifiInfo;wifiMode=c.wifiMode||wifiMode;if(c.wifiStatusDisplay){showWifiRouterStatus=c.wifiStatusDisplay.router!==false;showWifiApStatus=c.wifiStatusDisplay.ap!==false;$('showWifiRouterStatus').checked=showWifiRouterStatus;$('showWifiApStatus').checked=showWifiApStatus;}renderWiFiMode();updateCustomPreviews();$('netStatus').textContent=networkStatus;$('prevNetwork').textContent=networkLabel;updateDeviceStatus();
+  networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;configuredSsid=c.ssid||'';wifiInfo=c.wifiInfo||wifiInfo;wifiMode=c.wifiMode||wifiMode;renderWiFiMode();updateCustomPreviews();$('netStatus').textContent=networkStatus;$('prevNetwork').textContent=networkLabel;updateDeviceStatus();
  }catch(e){}
 }
 
