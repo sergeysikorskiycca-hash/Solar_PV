@@ -140,6 +140,16 @@ static String widgetElementText(const WidgetElementConfig& element) {
     float total = 0.0f; bool any = false;
     for (uint8_t i = 0; i < 6; ++i) if (stringSensorFresh(i)) { total += stringSensorPower[i]; any = true; }
     if (any) value = String(total, 1);
+  } else if (element.sourceId == 7 && element.metric >= 64) {
+    const uint8_t sensorMask = element.metric - 64;
+    float total = 0.0f; bool any = false;
+    for (uint8_t i = 0; i < 6; ++i) {
+      if ((sensorMask & (1U << i)) && stringSensorFresh(i)) {
+        total += stringSensorPower[i];
+        any = true;
+      }
+    }
+    if (any) value = String(total, 1);
   } else {
     const uint8_t sensor = element.sourceId - 1;
     if (element.sourceId <= 6 && stringSensorFresh(sensor)) {
