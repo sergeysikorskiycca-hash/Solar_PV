@@ -236,19 +236,6 @@ String jsonEscape(const String& s) {
 String makeConfigJson() {
   String j = "{";
   j += "\"title\":\"" + jsonEscape(cfg.title) + "\",";
-  j += "\"uiTexts\":{";
-  j += "\"stringPrefix\":\"" + jsonEscape(cfg.uiTexts.stringPrefix) + "\",";
-  j += "\"currentLabel\":\"" + jsonEscape(cfg.uiTexts.currentLabel) + "\",";
-  j += "\"voltageLabel\":\"" + jsonEscape(cfg.uiTexts.voltageLabel) + "\",";
-  j += "\"routerLabel\":\"" + jsonEscape(cfg.uiTexts.routerLabel) + "\",";
-  j += "\"apLabel\":\"" + jsonEscape(cfg.uiTexts.apLabel) + "\",";
-  j += "\"noRouterLabel\":\"" + jsonEscape(cfg.uiTexts.noRouterLabel) + "\",";
-  j += "\"networkLabel\":\"" + jsonEscape(cfg.uiTexts.networkLabel) + "\",";
-  j += "\"signalLabel\":\"" + jsonEscape(cfg.uiTexts.signalLabel) + "\",";
-  j += "\"apSetupLabel\":\"" + jsonEscape(cfg.uiTexts.apSetupLabel) + "\",";
-  j += "\"selectHint\":\"" + jsonEscape(cfg.uiTexts.selectHint) + "\",";
-  j += "\"changeHint\":\"" + jsonEscape(cfg.uiTexts.changeHint) + "\",";
-  j += "\"applyLabel\":\"" + jsonEscape(cfg.uiTexts.applyLabel) + "\"},";
   j += "\"clock\":{\"valid\":" + String(gatewayTimeValid ? "true" : "false") + ",\"date\":\"";
   if (gatewayTimeValid) { char d[11]; snprintf(d, sizeof(d), "%04u-%02u-%02u", (unsigned)gatewayYear, (unsigned)gatewayMonth, (unsigned)gatewayDay); j += d; }
   j += "\",\"time\":\"";
