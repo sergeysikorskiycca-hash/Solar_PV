@@ -204,6 +204,8 @@ function renderAll(){
  if(isCustom){renderCustomEditor(w);renderCalibrationRows(w.elements.filter(e=>Number(e.kind)===4))}
  syncStyleControls();renderCanvas();$('showOnTft').textContent='Показать страницу '+(editorPage+1)+' на TFT';
 }
+const uiTextDefaults={"stringPrefix":"Стринг","currentLabel":"Ток","voltageLabel":"Напр.","routerLabel":"Роутер","apLabel":"Точка","noRouterLabel":"Роутер не подключён","networkLabel":"Сеть","signalLabel":"Сигнал","apSetupLabel":"Точка настройки:","selectHint":"ВВЕРХ/ВНИЗ: выбор","changeHint":"OK: изменить (5 сек.)","applyLabel":"Применение через"};
+let uiTexts={...uiTextDefaults};
 function applyActiveCalibration(c){
  const valid=Array.isArray(c.activeCalibrationValid)?c.activeCalibrationValid:[];
  const activeCurrent=normalizeCalibration(c.activeCurrentCalibration),activeVoltage=normalizeCalibration(c.activeVoltageCalibration);
