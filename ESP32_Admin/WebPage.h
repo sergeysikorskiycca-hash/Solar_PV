@@ -19,7 +19,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 .screen-title{position:absolute;left:8px;top:7px;font-size:16px;font-weight:bold;white-space:nowrap;max-width:224px;overflow:hidden;text-overflow:ellipsis}
 .widget{position:absolute;background:#101820;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}.widget.selected{outline:2px solid #49b78b;outline-offset:1px}.widget.locked{cursor:default}.widget .name{padding-right:27px;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;outline:none}.widget .name:focus{user-select:text;cursor:text;background:#17212b;border-radius:2px}.widget .value{font-size:15px;color:#ffd400;font-weight:bold;white-space:normal;overflow-wrap:anywhere}.widget .wifi-lines{font-size:12px;line-height:1.2;color:#fff;white-space:normal;overflow-wrap:anywhere}.widget .free-text{font-size:15px;line-height:1.15;color:#fff;white-space:pre-wrap;overflow-wrap:anywhere;user-select:none}.element-editor{background:#101923;border:1px solid #465c73;border-radius:8px;padding:9px;margin:8px 0}.element-editor .row{gap:6px}.element-editor label{flex:1;min-width:105px;margin:4px 0}.element-editor input,.element-editor select{width:100%;min-width:0;padding:7px;border:1px solid #465c73;border-radius:6px;background:#1b2735;color:#fff}.custom-lines{display:flex;flex-direction:column;gap:2px;overflow:hidden}.custom-line{white-space:nowrap;overflow:hidden;text-overflow:clip}
 .resize-handle{position:absolute;right:0;bottom:0;width:13px;height:13px;background:#49b78b;border:1px solid #eaf0f6;border-radius:3px;cursor:nwse-resize;touch-action:none}.widget.locked .resize-handle{display:none}.lock-toggle{position:absolute;z-index:3;right:2px;top:2px;width:23px;height:22px;padding:0;border:1px solid #65798c;border-radius:4px;background:#243447;font-size:13px;line-height:20px}.widget.locked .lock-toggle{background:#49b78b;color:#081b14}
-.screen-footer{position:absolute;bottom:5px;left:8px;right:8px;border-top:1px solid #52616d;padding-top:4px;font-size:9px;color:#aebdca;display:flex;justify-content:space-between}
+
 .preview-wrap{position:sticky;top:12px;align-self:start}.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px}.toolbar .wide{grid-column:1/-1}.hint{margin-top:8px}.wifi-scan{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
 @media(max-width:780px){main{grid-template-columns:1fr}.preview-wrap{position:static;grid-row:1}.screen{margin:auto}}
 </style></head><body>
@@ -48,7 +48,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 </div>
 <div class="preview-wrap"><section><h2>Предпросмотр холста</h2><div class="screen" id="preview">
 <div class="screen-title" id="prevTitle">Показатели</div>
-<div class="screen-footer"><span id="prevNetwork">Wi-Fi: —</span><span id="prevPage">Стр. 1</span></div></div>
+</div>
 <p class="hint">Предпросмотр повторяет координаты TFT. Выбранная для редактирования страница не обязана совпадать с физическим экраном.</p></section></div></main>
 <script>
 const MAX_PAGES=8,MAX_WIDGETS=12,MAX_WIDGET_ELEMENTS=12;
@@ -158,7 +158,7 @@ function renderTabs(){
 function renderCanvas(){
  const c=$('preview');c.querySelectorAll('.widget').forEach(n=>n.remove());
  $('prevTitle').textContent=pages[editorPage].title||('Страница '+(editorPage+1));$('prevTitle').style.display=pages[editorPage].showTitle?'block':'none';$('prevTitle').style.fontSize='16px';const palette=['#FFFFFF','#00D5FF','#39E75F','#FFD400','#FF4D4D','#FF8C00'];const headingSizes=[9,11,13,17,20,23],contentSizes=[9,12,15,20,24,27];
- $('prevNetwork').textContent=networkLabel;$('prevPage').textContent='Стр. '+(editorPage+1);
+ 
  pages[editorPage].widgets.forEach((w,i)=>{
   if(!w.enabled)return;
   const node=document.createElement('div');node.className='widget'+(selectedWidget===i?' selected':'')+(w.locked?' locked':'');node.dataset.index=i;
@@ -233,7 +233,7 @@ async function refreshDeviceState(){
   const p=Math.max(0,Math.min((Number(c.tftPage)||1)-1,Math.max(0,pages.length-1)));
   if(p!==devicePage){devicePage=p;if(followDevice)editorPage=Math.min(devicePage,pages.length-1);renderAll()}
   if(c.clock){if(document.activeElement!==$('clockDate'))$('clockDate').value=c.clock.date||'';if(document.activeElement!==$('clockTime'))$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
-  networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;configuredSsid=c.ssid||'';wifiInfo=c.wifiInfo||wifiInfo;wifiMode=c.wifiMode||wifiMode;renderWiFiMode();updateCustomPreviews();$('netStatus').textContent=networkStatus;$('prevNetwork').textContent=networkLabel;updateDeviceStatus();
+  networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;configuredSsid=c.ssid||'';wifiInfo=c.wifiInfo||wifiInfo;wifiMode=c.wifiMode||wifiMode;renderWiFiMode();updateCustomPreviews();$('netStatus').textContent=networkStatus;updateDeviceStatus();
  }catch(e){}
 }
 
