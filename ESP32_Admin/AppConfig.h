@@ -42,6 +42,8 @@ struct WidgetConfig {
   bool showBorder; // Draw widget outline when true.
   uint8_t headingAlign, contentAlign;
   uint8_t rowSpacing; // Pixel gap between all rows in this widget.
+  int8_t headingLetterSpacing; // Character gap for the widget heading, in pixels.
+  int8_t contentLetterSpacing; // Character gap for widget content, in pixels.
   uint8_t headingColor, contentColor;
   uint8_t backgroundColor; // 0..5 = dark presets; 6 = black
   int x, y, w, h;
