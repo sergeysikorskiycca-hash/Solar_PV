@@ -77,15 +77,24 @@ static void handleInlineWifiStatus(uint32_t code) {
     renderTFT();
     return;
   }
-  if (code == IR_CODE_UP) wifiStatusSelectedRow = 0;
-  else if (code == IR_CODE_DOWN) wifiStatusSelectedRow = 1;
-  else if (code == IR_CODE_LEFT || code == IR_CODE_RIGHT) {
-    const bool enabled = code == IR_CODE_RIGHT;
-    if (wifiStatusSelectedRow == 0) wifiStatusPendingRouter = enabled;
-    else wifiStatusPendingAp = enabled;
+
+  // Both vertical arrows cycle through the two service rows.
+  if (code == IR_CODE_UP || code == IR_CODE_DOWN) {
+    wifiStatusSelectedRow = (wifiStatusSelectedRow + 1) % 2;
     refreshWifiStatusWidget();
     return;
-  } else if (code == IR_CODE_OK) {
+  }
+
+  // Either horizontal arrow toggles the selected service.
+  // LEFT and RIGHT intentionally have identical toggle behavior.
+  if (code == IR_CODE_LEFT || code == IR_CODE_RIGHT) {
+    if (wifiStatusSelectedRow == 0) wifiStatusPendingRouter = !wifiStatusPendingRouter;
+    else wifiStatusPendingAp = !wifiStatusPendingAp;
+    refreshWifiStatusWidget();
+    return;
+  }
+
+  if (code == IR_CODE_OK) {
     const bool oldRouterDefault = cfg.defaultRouterMode;
     const bool oldApDefault = cfg.defaultSetupAp;
     cfg.defaultRouterMode = wifiStatusPendingRouter;
@@ -94,15 +103,17 @@ static void handleInlineWifiStatus(uint32_t code) {
       routerModeEnabled = wifiStatusPendingRouter;
       setupApEnabled = wifiStatusPendingAp;
       applyWiFiMode();
+      wifiStatusInlineActive = false;
+      renderTFT();
     } else {
       cfg.defaultRouterMode = oldRouterDefault;
       cfg.defaultSetupAp = oldApDefault;
       Serial.println(F("ERROR: Wi-Fi mode settings could not be saved; current services were not changed."));
+      refreshWifiStatusWidget();
     }
-    wifiStatusInlineActive = false;
-    renderTFT();
     return;
   }
+
   refreshWifiStatusWidget();
 }
 
@@ -1402,13 +1413,16 @@ static void handleIRRemote() {
     return;
   }
   if (wifiStatusInlineActive) { handleInlineWifiStatus(code); return; }
+  // Merely having Wi-Fi status rows on the page must not intercept horizontal
+  // navigation. Enter edit mode only when the user presses UP or DOWN.
   if (hasWifiStatusWidgetOnCurrentPage() &&
-      (code == IR_CODE_UP || code == IR_CODE_DOWN || code == IR_CODE_LEFT || code == IR_CODE_RIGHT)) {
+      (code == IR_CODE_UP || code == IR_CODE_DOWN)) {
     wifiStatusPendingRouter = routerModeEnabled;
     wifiStatusPendingAp = setupApEnabled;
-    wifiStatusSelectedRow = 0;
+    // The first vertical key selects its corresponding row.
+    wifiStatusSelectedRow = (code == IR_CODE_UP) ? 0 : 1;
     wifiStatusInlineActive = true;
-    handleInlineWifiStatus(code);
+    refreshWifiStatusWidget();
     return;
   }
   if (code == IR_CODE_MENU) rtOpen();
