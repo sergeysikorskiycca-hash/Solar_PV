@@ -185,8 +185,8 @@ function renderCanvas(){
   node.addEventListener('pointermove',e=>{
    if(!pointerEdit||pointerEdit.index!==i)return;
    const rect=c.getBoundingClientRect(),dx=Math.round((e.clientX-pointerEdit.sx)*240/rect.width),dy=Math.round((e.clientY-pointerEdit.sy)*320/rect.height);
-   if(pointerEdit.resizing){w.w=Math.max(40,Math.min(240-pointerEdit.x,pointerEdit.w+dx));w.h=Math.max(w.elements.some(e=>Number(e.kind)===4)?90:36,Math.min(290-pointerEdit.y,pointerEdit.h+dy))}
-   else{w.x=Math.max(0,Math.min(240-w.w,pointerEdit.x+dx));w.y=Math.max(40,Math.min(290-w.h,pointerEdit.y+dy))}
+   if(pointerEdit.resizing){w.w=Math.max(40,Math.min(240-pointerEdit.x,pointerEdit.w+dx));w.h=Math.max(w.elements.some(e=>Number(e.kind)===4)?90:36,Math.min(320-pointerEdit.y,pointerEdit.h+dy))}
+   else{w.x=Math.max(0,Math.min(240-w.w,pointerEdit.x+dx));w.y=Math.max(0,Math.min(320-w.h,pointerEdit.y+dy))}
    node.style.left=w.x+'px';node.style.top=w.y+'px';node.style.width=w.w+'px';node.style.height=w.h+'px';
   });
   node.addEventListener('pointerup',()=>pointerEdit=null);node.addEventListener('pointercancel',()=>pointerEdit=null);
