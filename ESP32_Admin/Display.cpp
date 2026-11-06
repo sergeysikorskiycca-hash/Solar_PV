@@ -152,15 +152,48 @@ static String widgetElementText(const WidgetElementConfig& element) {
 }
 static const uint16_t WIDGET_BACKGROUNDS[7] = { 0x0841, 0x001B, 0x0326, 0x3009, 0x4804, 0x3186, ST77XX_BLACK };
 static uint16_t widgetBackground(uint8_t color) { return WIDGET_BACKGROUNDS[color <= 6 ? color : 0]; }
-static void drawAlignedText(const String& text, int x, int y, int w, uint8_t size, uint8_t align, uint8_t color) {
+static int spacedTextWidth(const String& text, int8_t spacing) {
+  int width = 0;
+  uint8_t glyphCount = 0;
+  for (unsigned int i = 0; i < text.length();) {
+    const uint8_t lead = (uint8_t)text[i];
+    uint8_t bytes = lead < 0x80 ? 1 : ((lead & 0xE0) == 0xC0 ? 2 : ((lead & 0xF0) == 0xE0 ? 3 : 4));
+    if (i + bytes > text.length()) bytes = text.length() - i;
+    const String glyph = text.substring(i, i + bytes);
+    width += u8g2Fonts.getUTF8Width(glyph.c_str());
+    ++glyphCount;
+    i += bytes;
+  }
+  if (glyphCount > 1) width += (glyphCount - 1) * spacing;
+  return width;
+}
+static void printSpacedText(const String& text, int x, int y, int8_t spacing) {
+  if (spacing == 0) {
+    u8g2Fonts.setCursor(x, y);
+    u8g2Fonts.print(text);
+    return;
+  }
+  int cursorX = x;
+  for (unsigned int i = 0; i < text.length();) {
+    const uint8_t lead = (uint8_t)text[i];
+    uint8_t bytes = lead < 0x80 ? 1 : ((lead & 0xE0) == 0xC0 ? 2 : ((lead & 0xF0) == 0xE0 ? 3 : 4));
+    if (i + bytes > text.length()) bytes = text.length() - i;
+    const String glyph = text.substring(i, i + bytes);
+    u8g2Fonts.setCursor(cursorX, y);
+    u8g2Fonts.print(glyph);
+    cursorX += u8g2Fonts.getUTF8Width(glyph.c_str()) + spacing;
+    i += bytes;
+  }
+}
+static void drawAlignedText(const String& text, int x, int y, int w, uint8_t size, uint8_t align, uint8_t color, int8_t letterSpacing) {
   setWidgetFont(size);
   u8g2Fonts.setForegroundColor(widgetColor(color));
-  int textWidth = u8g2Fonts.getUTF8Width(text.c_str());
+  const int textWidth = spacedTextWidth(text, letterSpacing);
   int textX = x + 6, available = w - 12;
   if (align == 1) textX += (available - textWidth) / 2;
   else if (align == 2) textX += available - textWidth;
   if (textX < x + 3) textX = x + 3;
-  u8g2Fonts.setCursor(textX, y); u8g2Fonts.print(text);
+  printSpacedText(text, textX, y, letterSpacing);
 }
 void drawCyrillicText(const String& text, int x, int baselineY, uint16_t color, bool large) {
   u8g2Fonts.setForegroundColor(color);
@@ -175,7 +208,7 @@ void drawWidget(const WidgetConfig& widget) {
   const uint8_t hs = widget.headingSize <= 5 ? widget.headingSize : 1;
   const uint8_t cs = widget.contentSize <= 5 ? widget.contentSize : 2;
   const int headingBaseline = y + FONT_HEIGHTS[hs] + 3;
-  if (widget.showHeading) drawAlignedText(widget.label, x, headingBaseline, w, hs, widget.headingAlign, widget.headingColor);
+  if (widget.showHeading) drawAlignedText(widget.label, x, headingBaseline, w, hs, widget.headingAlign, widget.headingColor, widget.headingLetterSpacing);
   const uint8_t count = widget.elementCount <= MAX_WIDGET_ELEMENTS ? widget.elementCount : MAX_WIDGET_ELEMENTS;
   uint8_t firstVisible = 0;
   firstVisible = 0;
@@ -186,7 +219,7 @@ void drawWidget(const WidgetConfig& widget) {
   for (uint8_t i = 0; i < count && lineY <= y + h - 4; ++i) {
     const WidgetElementConfig& element = widget.elements[i];
     const uint8_t size = element.fontSize <= 5 ? element.fontSize : cs;
-    drawAlignedText(widgetElementText(element), x, lineY, w, size, widget.contentAlign, element.color);
+    drawAlignedText(widgetElementText(element), x, lineY, w, size, widget.contentAlign, element.color, widget.contentLetterSpacing);
     lineY += FONT_HEIGHTS[size] + widget.rowSpacing;
   }
 }
@@ -195,6 +228,7 @@ struct IncrementalWidgetCache {
   bool initialized;
   int x, y, w, h, firstBaseline, lineHeight;
   uint8_t contentSize, align, color, background, count, rowSpacing;
+  int8_t contentLetterSpacing;
   bool wifiEditing;
   String lines[18];
   uint16_t colors[18];
@@ -218,7 +252,7 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
   bool layoutChanged = !cache.initialized || cache.x != widget.x || cache.y != widget.y ||
       cache.w != widget.w || cache.h != widget.h || cache.firstBaseline != firstBaseline ||
       cache.background != widget.backgroundColor || cache.count != count ||
-      cache.align != widget.contentAlign || cache.rowSpacing != widget.rowSpacing || cache.wifiEditing != wifiStatusInlineActive;
+      cache.align != widget.contentAlign || cache.rowSpacing != widget.rowSpacing || cache.contentLetterSpacing != widget.contentLetterSpacing || cache.wifiEditing != wifiStatusInlineActive;
   for (uint8_t i = 0; i < count; ++i) {
     const uint8_t size = widget.elements[i].fontSize <= 5 ? widget.elements[i].fontSize : contentSize;
     if (!cache.initialized || cache.fontSizes[i] != size) layoutChanged = true;
@@ -238,7 +272,7 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
         (layoutChanged || cache.lines[i] != line || cache.colors[i] != color)) {
       tft.fillRect(widget.x + 2, lineY - FONT_HEIGHTS[size] + 1,
                    widget.w - 4, FONT_HEIGHTS[size] + widget.rowSpacing, widgetBackground(widget.backgroundColor));
-      drawAlignedText(line, widget.x, lineY, widget.w, size, widget.contentAlign, element.color);
+      drawAlignedText(line, widget.x, lineY, widget.w, size, widget.contentAlign, element.color, widget.contentLetterSpacing);
     }
     cache.lines[i] = line;
     cache.colors[i] = color;
@@ -249,7 +283,7 @@ void updateWidgetIncremental(const WidgetConfig& widget, uint8_t pageIndex, uint
   cache.firstBaseline = firstBaseline; cache.lineHeight = FONT_HEIGHTS[contentSize] + 4;
   cache.contentSize = contentSize; cache.align = widget.contentAlign;
   cache.color = widget.contentColor; cache.background = widget.backgroundColor;
-  cache.count = count; cache.rowSpacing = widget.rowSpacing; cache.wifiEditing = wifiStatusInlineActive;
+  cache.count = count; cache.rowSpacing = widget.rowSpacing; cache.contentLetterSpacing = widget.contentLetterSpacing; cache.wifiEditing = wifiStatusInlineActive;
   cache.initialized = true;
 }
 void resetIncrementalWidgetCache() {
