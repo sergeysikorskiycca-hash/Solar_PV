@@ -454,8 +454,8 @@ bool saveConfig() {
       f.println(prefix + "ShowBorder=" + String(w.showBorder ? "1" : "0"));
       f.println(prefix + "HeadingAlign=" + String(w.headingAlign)); f.println(prefix + "ContentAlign=" + String(w.contentAlign));
       f.println(prefix + "RowSpacing=" + String(w.rowSpacing));
-      f.println(prefix + "HeadingLetterSpacing=" + String(w.headingLetterSpacing));
-      f.println(prefix + "ContentLetterSpacing=" + String(w.contentLetterSpacing));
+      f.println(prefix + "HeadingLetterSpacing=" + String((int)w.headingLetterSpacing));
+      f.println(prefix + "ContentLetterSpacing=" + String((int)w.contentLetterSpacing));
       f.println(prefix + "HeadingColor=" + String(w.headingColor)); f.println(prefix + "ContentColor=" + String(w.contentColor));
       f.println(prefix + "BackgroundColor=" + String(w.backgroundColor));
       f.println(prefix + "X=" + String(w.x)); f.println(prefix + "Y=" + String(w.y));
