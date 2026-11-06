@@ -170,7 +170,7 @@ bool loadPageKey(const String& key, const String& value) {
     if (elementField == "Label") element.label = sanitizeTitle(value);
     else if (elementField == "Kind") element.kind = clampInt(value.toInt(), ELEMENT_SENSOR, ELEMENT_TEXT);
     else if (elementField == "Source") element.sourceId = clampInt(value.toInt(), 0, 7);
-    else if (elementField == "Metric") element.metric = clampInt(value.toInt(), 0, 5);
+    else if (elementField == "Metric") element.metric = clampInt(value.toInt(), 0, 127);
     else if (elementField == "Size") element.fontSize = clampInt(value.toInt(), 0, 5);
     else if (elementField == "Color") element.color = clampInt(value.toInt(), 0, 5);
     else return false;
