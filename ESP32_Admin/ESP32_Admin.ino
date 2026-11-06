@@ -424,7 +424,7 @@ void handleSaveDisplay() {
         WidgetElementConfig& element = w.elements[e];
         element.kind = clampInt(sourceElement["kind"] | ELEMENT_SENSOR, ELEMENT_SENSOR, ELEMENT_TEXT);
         element.sourceId = clampInt(sourceElement["sourceId"] | 1, 0, 7);
-        element.metric = clampInt(sourceElement["metric"] | 0, 0, 5);
+        element.metric = clampInt(sourceElement["metric"] | 0, 0, 127);
         if (element.kind == ELEMENT_WIFI_CONTROL) { element.kind = ELEMENT_WIFI_STATUS; element.metric = 4; }
         element.fontSize = clampInt(sourceElement["fontSize"] | 2, 0, 5);
         element.color = clampInt(sourceElement["color"] | 3, 0, 5);
