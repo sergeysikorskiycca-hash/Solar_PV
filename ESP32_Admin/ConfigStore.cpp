@@ -349,7 +349,11 @@ void loadConfig() {
           legacyLayoutMigrated = true;
         }
         element.sourceId = clampInt(element.sourceId, 0, 7);
-        element.metric = clampInt(element.metric, 0, 5);
+        // Source 7 stores the selected-sensor bitmask in metric values 64..127.
+        // Preserve that encoding when loading the saved layout; other sources use 0..5.
+        element.metric = (element.kind == ELEMENT_SENSOR && element.sourceId == 7)
+                             ? clampInt(element.metric, 0, 127)
+                             : clampInt(element.metric, 0, 5);
         element.fontSize = clampInt(element.fontSize, 0, 5);
         element.color = clampInt(element.color, 0, 5);
       }
