@@ -127,7 +127,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
     return prefix + currentText + " А / " + voltageText + " В";
   }
 
-  const char* unit = (element.sourceId == 7 && element.metric >= 64) ? "Вт" : (element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : (element.metric == 3 ? "%" : "В")));
+  const char* unit = element.sourceId == 7 ? "Вт" : (element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : (element.metric == 3 ? "%" : "В")));
   String value = "--";
   if (element.metric == 3) return prefix + "-- %";
   if (element.sourceId == 0) {
