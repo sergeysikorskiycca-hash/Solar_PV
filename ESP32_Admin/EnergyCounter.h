@@ -22,6 +22,7 @@ private:
   uint64_t fullWh_[SENSOR_COUNT] = {};
   double fullRemainderWh_[SENSOR_COUNT] = {};
   uint32_t lastSampleMs_[SENSOR_COUNT] = {};
+  float lastPowerW_[SENSOR_COUNT] = {};
   bool sampleSeen_[SENSOR_COUNT] = {};
   uint16_t detectedMask_ = 0;
   uint16_t periodSelectionMask_ = 0;

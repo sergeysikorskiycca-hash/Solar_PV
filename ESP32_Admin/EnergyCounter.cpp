@@ -19,16 +19,21 @@ void EnergyCounter::update(uint8_t sensorId, float powerW, uint32_t nowMs) {
   if (!sampleSeen_[index]) {
     sampleSeen_[index] = true;
     lastSampleMs_[index] = nowMs;
+    lastPowerW_[index] = powerW;
     return;
   }
 
   const uint32_t elapsedMs = nowMs - lastSampleMs_[index];
   lastSampleMs_[index] = nowMs;
 
-  // A delayed or missing sensor packet must not create a large energy jump.
-  if (elapsedMs == 0 || elapsedMs > 3000UL || powerW < 1.0f) return;
+  // Integrate the previous sample over its elapsed interval, then retain the new sample.
+  const float intervalPowerW = lastPowerW_[index];
+  lastPowerW_[index] = powerW;
 
-  const double addedWh = (double)powerW * (double)elapsedMs / 3600000.0;
+  // A delayed or missing sensor packet must not create a large energy jump.
+  if (elapsedMs == 0 || elapsedMs > 3000UL || intervalPowerW < 1.0f) return;
+
+  const double addedWh = (double)intervalPowerW * (double)elapsedMs / 3600000.0;
   const double fullTotal = fullRemainderWh_[index] + addedWh;
   const uint64_t wholeFullWh = (uint64_t)fullTotal;
   if (wholeFullWh) {
