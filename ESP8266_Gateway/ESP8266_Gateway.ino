@@ -270,9 +270,7 @@ static bool exchangePacket() {
     return false;
   }
 
-  // Give the ESP32 slave receive callback a brief chance to validate the frame
-  // and prepare the matching acknowledgement before the immediate read.
-  // The I2C receive callback has completed when endTransmission() returns.
+  // ESP32's onReceive callback is invoked as the I2C write transaction completes.
   uint8_t count = Wire.requestFrom(ESP32_ADDRESS, (uint8_t)21);
   lastI2CReadCount = count;
   if (count != 21) {
@@ -388,7 +386,6 @@ void setup() {
 
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
-  delay(100);
   wifi_set_channel(ESP_NOW_CHANNEL);
   if (esp_now_init() == 0) {
     esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
