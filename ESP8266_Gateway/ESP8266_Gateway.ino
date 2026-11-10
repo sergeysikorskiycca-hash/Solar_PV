@@ -104,6 +104,19 @@ static bool calibrationDispatchPending = false;
 static ESPNowCalibrationCommand calibrationDispatch = {};
 static uint32_t lastCalibrationDispatchMs = 0;
 
+static const uint8_t EEPROM_24C32_ADDRESS = 0x57;
+static const uint8_t MEMORY_RESPONSE_MAGIC = 0xA8;
+static const uint8_t MEMORY_RESPONSE_VERSION = 3;
+static uint8_t memoryResponse[16] = {};
+static bool memoryResponseReady = false;
+static bool eepromWritePending = false;
+static uint8_t eepromWriteSequence = 0;
+static uint16_t eepromWriteAddress = 0;
+static uint8_t eepromWriteLength = 0;
+static uint8_t eepromWriteData[8] = {};
+static uint32_t eepromWriteStartedMs = 0;
+static uint32_t eepromWriteNextPollMs = 0;
+
 static uint8_t crc8(const uint8_t* data, size_t length) {
   uint8_t crc = 0;
   for (size_t i = 0; i < length; ++i) {
@@ -232,6 +245,94 @@ static int8_t chooseSensor() {
   return -1;
 }
 
+static void buildMemoryResponse(uint8_t sequence, uint16_t address,
+                                 uint8_t length, uint8_t status,
+                                 const uint8_t* data) {
+  memset(memoryResponse, 0, sizeof(memoryResponse));
+  memoryResponse[0] = MEMORY_RESPONSE_MAGIC;
+  memoryResponse[1] = MEMORY_RESPONSE_VERSION;
+  memoryResponse[2] = sequence;
+  memoryResponse[3] = (uint8_t)(address & 0xFF);
+  memoryResponse[4] = (uint8_t)(address >> 8);
+  memoryResponse[5] = length;
+  memoryResponse[6] = status;
+  if (data && length <= 8) memcpy(memoryResponse + 7, data, length);
+  memoryResponse[15] = crc8(memoryResponse, 15);
+  memoryResponseReady = true;
+}
+
+static void processMemoryCommand(const uint8_t command[21]) {
+  const uint8_t type = command[3];
+  if (type != 4 && type != 5) return;
+  const uint8_t sequence = command[4];
+  const uint16_t address = (uint16_t)(command[5] | ((uint16_t)command[6] << 8));
+  const uint8_t length = command[7];
+  uint8_t data[8] = {};
+  if (crc8(command + 3, 17) != command[20] || address >= 4096 ||
+      length == 0 || length > 8 || (uint32_t)address + length > 4096UL) {
+    buildMemoryResponse(sequence, address, length, 1, data);
+    return;
+  }
+
+  if (type == 4) {
+    Wire.beginTransmission(EEPROM_24C32_ADDRESS);
+    Wire.write((uint8_t)(address >> 8));
+    Wire.write((uint8_t)(address & 0xFF));
+    if (Wire.endTransmission(false) != 0) {
+      buildMemoryResponse(sequence, address, length, 2, data);
+      return;
+    }
+    const uint8_t received = Wire.requestFrom(EEPROM_24C32_ADDRESS, length);
+    if (received != length) {
+      while (Wire.available()) Wire.read();
+      buildMemoryResponse(sequence, address, length, 3, data);
+      return;
+    }
+    for (uint8_t i = 0; i < length; ++i) data[i] = (uint8_t)Wire.read();
+    buildMemoryResponse(sequence, address, length, 0, data);
+    return;
+  }
+
+  if (((address & 0x1F) + length) > 32 || eepromWritePending || memoryResponseReady) {
+    buildMemoryResponse(sequence, address, length, 4, data);
+    return;
+  }
+  Wire.beginTransmission(EEPROM_24C32_ADDRESS);
+  Wire.write((uint8_t)(address >> 8));
+  Wire.write((uint8_t)(address & 0xFF));
+  for (uint8_t i = 0; i < length; ++i) Wire.write(command[8 + i]);
+  const uint8_t writeResult = Wire.endTransmission();
+  if (writeResult != 0) {
+    buildMemoryResponse(sequence, address, length, 2, data);
+    return;
+  }
+  eepromWriteSequence = sequence;
+  eepromWriteAddress = address;
+  eepromWriteLength = length;
+  memcpy(eepromWriteData, command + 8, length);
+  eepromWriteStartedMs = millis();
+  eepromWriteNextPollMs = eepromWriteStartedMs + 5UL;
+  eepromWritePending = true;
+}
+
+static void processEepromWrite() {
+  if (!eepromWritePending || memoryResponseReady) return;
+  const uint32_t now = millis();
+  if ((int32_t)(now - eepromWriteNextPollMs) < 0) return;
+  eepromWriteNextPollMs = now + 1UL;
+  Wire.beginTransmission(EEPROM_24C32_ADDRESS);
+  const uint8_t ack = Wire.endTransmission();
+  if (ack == 0) {
+    buildMemoryResponse(eepromWriteSequence, eepromWriteAddress,
+                        eepromWriteLength, 0, eepromWriteData);
+    eepromWritePending = false;
+  } else if (now - eepromWriteStartedMs >= 30UL) {
+    buildMemoryResponse(eepromWriteSequence, eepromWriteAddress,
+                        eepromWriteLength, 5, eepromWriteData);
+    eepromWritePending = false;
+  }
+}
+
 static bool exchangePacket() {
   int8_t sensorIndex = chooseSensor();
   packet.magic = FRAME_MAGIC;
@@ -260,8 +361,10 @@ static bool exchangePacket() {
   }
 
   packet.crc = crc8((const uint8_t*)&packet, sizeof(packet) - 1);
+  const bool sendingMemoryResponse = memoryResponseReady;
   Wire.beginTransmission(ESP32_ADDRESS);
-  Wire.write((const uint8_t*)&packet, sizeof(packet));
+  if (sendingMemoryResponse) Wire.write(memoryResponse, sizeof(memoryResponse));
+  else Wire.write((const uint8_t*)&packet, sizeof(packet));
   uint8_t writeError = Wire.endTransmission();
   lastI2CWriteError = writeError;
   if (writeError != 0) {
@@ -280,23 +383,27 @@ static bool exchangePacket() {
     return false;
   }
 
-  uint8_t ackMagic = Wire.read();
-  uint8_t ackSequence = Wire.read();
-  uint8_t ackStatus = Wire.read();
+  uint8_t command[21] = {};
+  for (uint8_t i = 0; i < sizeof(command); ++i) command[i] = (uint8_t)Wire.read();
+  uint8_t ackMagic = command[0];
+  uint8_t ackSequence = command[1];
+  uint8_t ackStatus = command[2];
   lastAckMagicSeen = ackMagic;
   lastAckSequenceSeen = ackSequence;
-  uint8_t commandType = Wire.read();
-  uint8_t commandSequence = Wire.read();
-  uint16_t commandYear = (uint16_t)Wire.read(); commandYear |= (uint16_t)Wire.read() << 8;
-  uint8_t commandMonth = Wire.read(), commandDay = Wire.read(), commandHour = Wire.read(), commandMinute = Wire.read(), commandSecond = Wire.read();
-  uint8_t calibrationSensorId = Wire.read();
+  uint8_t commandType = command[3];
+  uint8_t commandSequence = command[4];
+  uint16_t commandYear = (uint16_t)(command[5] | ((uint16_t)command[6] << 8));
+  uint8_t commandMonth = command[7], commandDay = command[8], commandHour = command[9], commandMinute = command[10], commandSecond = command[11];
+  uint8_t calibrationSensorId = command[12];
   ESPNowCalibrationCommand incomingCalibration = {};
   incomingCalibration.command = 0x02;
   incomingCalibration.sensorId = calibrationSensorId;
-  uint8_t* calibrationBytes = (uint8_t*)&incomingCalibration;
-  for (uint8_t i = 2; i < sizeof(incomingCalibration); ++i) calibrationBytes[i] = Wire.read();
+  memcpy(&incomingCalibration.currentFactor, command + 13, sizeof(float));
+  memcpy(&incomingCalibration.voltageFactor, command + 17, sizeof(float));
   lastAckStatus = ackStatus;
-  lastAckOk = ackMagic == ACK_MAGIC && ackSequence == packet.sequence && ackStatus == 0;
+  lastAckOk = ackMagic == ACK_MAGIC && ackStatus == 0 &&
+              (sendingMemoryResponse || ackSequence == packet.sequence);
+  if (sendingMemoryResponse) memoryResponseReady = false;
   if (commandType == 1 && commandSequence != lastClockCommandSequence) {
     bool clockWritten = writeRtc(commandYear, commandMonth, commandDay, commandHour, commandMinute, commandSecond);
     if (clockWritten) { lastClockCommandSequence = commandSequence; rtcPresent = readRtc(); Serial.printf("RTC set from ESP32: %04u-%02u-%02u %02u:%02u:%02u\n", (unsigned)commandYear, (unsigned)commandMonth, (unsigned)commandDay, (unsigned)commandHour, (unsigned)commandMinute, (unsigned)commandSecond); }
@@ -315,6 +422,8 @@ static bool exchangePacket() {
       isfinite(calibrationDispatch.currentFactor) && isfinite(calibrationDispatch.voltageFactor);
     lastCalibrationDispatchMs = 0;
     Serial.printf("Calibration command received for sensor %u.\\n", (unsigned)calibrationDispatch.sensorId);
+  } else if (commandType == 4 || commandType == 5) {
+    processMemoryCommand(command);
   }
   return lastAckOk;
 }
@@ -406,6 +515,7 @@ void loop() {
   uint32_t now = millis();
   processOtaDispatch();
   processCalibrationDispatch();
+  processEepromWrite();
 
   if (now - lastRtcMs >= RTC_INTERVAL_MS) {
     lastRtcMs = now;

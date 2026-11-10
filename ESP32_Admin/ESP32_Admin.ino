@@ -22,6 +22,7 @@
 #include "ConfigStore.h"
 #include "Display.h"
 #include "EnergyCounter.h"
+#include "EnergyEepromTransport.h"
 
 // Explicit declaration keeps incremental widget refresh visible to Arduino's sketch preprocessor.
 void drawWidget(const WidgetConfig& widget);
@@ -642,6 +643,10 @@ static void gatewayOnReceive(int count) {
     }
     if (received < 255) ++received;
   }
+  if (received == 16 && stored == 16 && raw[0] == 0xA8) {
+    energyEepromTransport.acceptResponse(raw, received);
+    return;
+  }
   gatewayRxLength = received;
   gatewayRxPending = true;
 
@@ -675,8 +680,15 @@ static void gatewayOnRequest() {
     calibrationCommandPending = true;
     ++calibrationCommandSequence;
   }
-  uint8_t commandType = clockCommandPending ? clockCommandType : (calibrationCommandPending ? 3 : 0);
-  uint8_t commandSequence = clockCommandPending ? clockCommandSequence : calibrationCommandSequence;
+  uint8_t memoryType = 0, memorySequence = 0, memoryLength = 0;
+  uint16_t memoryAddress = 0;
+  uint8_t memoryData[8] = {};
+  const bool memoryCommandPending = !clockCommandPending && !calibrationCommandPending &&
+    energyEepromTransport.takeCommand(memoryType, memorySequence, memoryAddress, memoryLength, memoryData);
+  uint8_t commandType = clockCommandPending ? clockCommandType :
+    (calibrationCommandPending ? 3 : (memoryCommandPending ? memoryType : 0));
+  uint8_t commandSequence = clockCommandPending ? clockCommandSequence :
+    (calibrationCommandPending ? calibrationCommandSequence : (memoryCommandPending ? memorySequence : 0));
   uint8_t response[21] = { GATEWAY_ACK_MAGIC, gatewayAckSequence, gatewayAckStatus,
     commandType, commandSequence,
     (uint8_t)(clockCommandYear & 0xFF), (uint8_t)(clockCommandYear >> 8),
@@ -684,6 +696,13 @@ static void gatewayOnRequest() {
     calibrationCommandInFlight.sensorId };
   memcpy(response + 13, &calibrationCommandInFlight.currentFactor, sizeof(float));
   memcpy(response + 17, &calibrationCommandInFlight.voltageFactor, sizeof(float));
+  if (memoryCommandPending) {
+    response[5] = (uint8_t)(memoryAddress & 0xFF);
+    response[6] = (uint8_t)(memoryAddress >> 8);
+    response[7] = memoryLength;
+    memcpy(response + 8, memoryData, sizeof(memoryData));
+    response[20] = gatewayCrc8(response + 3, 17);
+  }
   Wire.write(response, sizeof(response));
   if (clockCommandPending) clockCommandPending = false;
   else if (calibrationCommandPending) calibrationCommandPending = false;
