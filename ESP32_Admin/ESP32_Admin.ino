@@ -21,6 +21,7 @@
 #include "AppConfig.h"
 #include "ConfigStore.h"
 #include "Display.h"
+#include "EnergyCounter.h"
 
 // Explicit declaration keeps incremental widget refresh visible to Arduino's sketch preprocessor.
 void drawWidget(const WidgetConfig& widget);
@@ -734,6 +735,7 @@ static void processGatewayPacket() {
         stringSensorVoltage[index] = packet.voltage;
         stringSensorCurrent[index] = packet.current;
         stringSensorPower[index] = packet.power;
+        energyCounter.update(packet.sensorId, packet.power, millis());
         activeCurrentCalibration[index] = packet.currentCalibrationX600 / 600.0f;
         activeVoltageCalibration[index] = packet.voltageCalibrationX600 / 600.0f;
         activeCalibrationValid[index] = packet.currentCalibrationX600 >= 1 && packet.voltageCalibrationX600 >= 1;
