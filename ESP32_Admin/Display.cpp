@@ -117,7 +117,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
     return prefix + (cfg.ssid.length() ? cfg.ssid : "не выбрана");
   if (element.kind == ELEMENT_CALIBRATION) {
     const uint8_t sensor = element.sourceId > 0 ? element.sourceId - 1 : 0;
-    const bool fresh = sensor < 6 && stringSensorFresh(sensor);
+    const bool fresh = sensor < 10 && stringSensorFresh(sensor);
     const String current = fresh ? String(stringSensorCurrent[sensor], 2) : "--";
     const String voltage = fresh ? String(stringSensorVoltage[sensor], 1) : "--";
     const uint8_t ordinal = calibrationElementOrdinal(&element);
@@ -136,9 +136,9 @@ static String widgetElementText(const WidgetElementConfig& element) {
       else if (element.metric == 2) value = String(gatewayPower, 1);
       else value = String(gatewayVoltage, 1);
     }
-  } else if (element.sourceId == 7 && element.metric == 2) {
+  } else if (element.sourceId == 11 && element.metric == 2) {
     float total = 0.0f; bool any = false;
-    for (uint8_t i = 0; i < 6; ++i) if (stringSensorFresh(i)) { total += stringSensorPower[i]; any = true; }
+    for (uint8_t i = 0; i < 10; ++i) if (stringSensorFresh(i) { total += stringSensorPower[i]; any = true; }
     if (any) value = String(total, 1);
   } else if (element.sourceId == 7 && element.metric >= 64) {
     const uint8_t sensorMask = element.metric - 64;

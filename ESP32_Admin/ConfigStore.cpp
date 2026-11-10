@@ -334,7 +334,7 @@ void loadConfig() {
         w.elementCount = 1; w.elements[0].kind = ELEMENT_SENSOR;
         w.elements[0].label = legacyType == LEGACY_POWER ? "Мощность PV" :
                                (legacyType == LEGACY_VOLTAGE ? "Напряжение" : (legacyType == LEGACY_CURRENT ? "Ток" : "Аккумулятор"));
-        w.elements[0].sourceId = legacyType == LEGACY_POWER ? 7 : 0;
+        w.elements[0].sourceId = legacyType == LEGACY_POWER ? 11 : 0;
         w.elements[0].metric = legacyType == LEGACY_CURRENT ? 1 : (legacyType == LEGACY_POWER ? 2 : (legacyType == LEGACY_BATTERY ? 3 : 0));
         w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
       }
@@ -348,8 +348,8 @@ void loadConfig() {
           element.label = "Состояние точки";
           legacyLayoutMigrated = true;
         }
-        element.sourceId = clampInt(element.sourceId, 0, 11);
-        // Source 7 stores the selected-sensor bitmask in metric values 64..127.
+        element.sourceId = (element.kind == ELEMENT_SENSOR && element.sourceId == 7 && (element.metric == 2 || element.metric >= 64)) ? 11 : clampInt(element.sourceId, 0, 11);
+        // Source 11 stores total PV power; legacy source 7 layouts are migrated above.
         // Preserve that encoding when loading the saved layout; other sources use 0..5.
         element.metric = (element.kind == ELEMENT_SENSOR && element.sourceId == 11)
                              ? clampInt(element.metric, 0, 127)

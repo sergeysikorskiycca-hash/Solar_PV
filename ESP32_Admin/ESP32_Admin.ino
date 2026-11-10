@@ -117,6 +117,7 @@ static void handleInlineWifiStatus(uint32_t code) {
   refreshWifiStatusWidget();
 }
 
+static const uint8_t MAX_STRING_SENSORS = MAX_SENSOR_NODES;
 static volatile uint8_t clockCommandSequence = 0;
 static volatile uint8_t clockCommandType = 0;
 static volatile uint16_t clockCommandYear = 2026;
@@ -136,7 +137,7 @@ static volatile uint8_t calibrationCommandSequence = 0;
 static bool otaConfirmActive = false;
 
 static void queueCalibrationCommand(uint8_t index) {
-  // This controller firmware currently exposes two INA226 channels (IDs 1 and 2).
+  // Each sensor node has its own calibration command and independent ID.
   if (index >= MAX_STRING_SENSORS) return;
   uint8_t next = (uint8_t)((calibrationQueueHead + 1) % (MAX_STRING_SENSORS + 1));
   if (next == calibrationQueueTail) calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % (MAX_STRING_SENSORS + 1));
@@ -165,7 +166,6 @@ uint16_t gatewaySensorPacketNumber = 0;
 bool gatewaySensorValid = false;
 
 // Latest values for each ESP-NOW sensor ID (sensorId 1 maps to String 1).
-static const uint8_t MAX_STRING_SENSORS = 10;
 bool stringSensorValid[MAX_STRING_SENSORS] = {};
 uint32_t stringSensorLastSeenMs[MAX_STRING_SENSORS] = {};
 float stringSensorVoltage[MAX_STRING_SENSORS] = {};
@@ -670,7 +670,7 @@ static void gatewayOnRequest() {
   // ACK, RTC/OTA command and optional calibration payload.
   if (!clockCommandPending && !calibrationCommandPending && calibrationQueueTail != calibrationQueueHead) {
     calibrationCommandInFlight = calibrationQueue[calibrationQueueTail];
-    calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % 7);
+    calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % (MAX_STRING_SENSORS + 1));
     calibrationCommandPending = true;
     ++calibrationCommandSequence;
   }
