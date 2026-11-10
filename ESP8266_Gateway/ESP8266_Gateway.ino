@@ -131,6 +131,20 @@ static bool writeRtc(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, ui
   Wire.write(toBcd(second)); Wire.write(toBcd(minute)); Wire.write(toBcd(hour));
   Wire.write((uint8_t)1); // day of week (not otherwise used by the UI)
   Wire.write(toBcd(day)); Wire.write(toBcd(month)); Wire.write(toBcd((uint8_t)(year - 2000)));
+  if (Wire.endTransmission() != 0) return false;
+
+  // A deliberate time-setting operation is the only place that clears OSF.
+  Wire.beginTransmission(RTC_ADDRESS);
+  Wire.write((uint8_t)0x0F);
+  if (Wire.endTransmission(false) != 0) return false;
+  if (Wire.requestFrom(RTC_ADDRESS, (uint8_t)1) != 1) {
+    while (Wire.available()) Wire.read();
+    return false;
+  }
+  const uint8_t status = (uint8_t)Wire.read();
+  Wire.beginTransmission(RTC_ADDRESS);
+  Wire.write((uint8_t)0x0F);
+  Wire.write((uint8_t)(status & (uint8_t)~0x80));
   return Wire.endTransmission() == 0;
 }
 
@@ -139,6 +153,17 @@ static uint8_t fromBcd(uint8_t value) {
 }
 
 static bool readRtc() {
+  // DS3231 OSF (Oscillator Stop Flag) means calendar time cannot be trusted.
+  Wire.beginTransmission(RTC_ADDRESS);
+  Wire.write((uint8_t)0x0F);
+  if (Wire.endTransmission(false) != 0) return false;
+  if (Wire.requestFrom(RTC_ADDRESS, (uint8_t)1) != 1) {
+    while (Wire.available()) Wire.read();
+    return false;
+  }
+  const uint8_t rtcStatus = (uint8_t)Wire.read();
+  if (rtcStatus & 0x80) return false;
+
   Wire.beginTransmission(RTC_ADDRESS);
   Wire.write((uint8_t)0x00);
   if (Wire.endTransmission(false) != 0) return false;
@@ -247,7 +272,7 @@ static bool exchangePacket() {
 
   // Give the ESP32 slave receive callback a brief chance to validate the frame
   // and prepare the matching acknowledgement before the immediate read.
-  delay(2);
+  // The I2C receive callback has completed when endTransmission() returns.
   uint8_t count = Wire.requestFrom(ESP32_ADDRESS, (uint8_t)21);
   lastI2CReadCount = count;
   if (count != 21) {
@@ -355,7 +380,6 @@ static void processCalibrationDispatch() {
 
 void setup() {
   Serial.begin(115200);
-  delay(100);
   Serial.println();
   Serial.println(F("Solar_PV ESP8266 Gateway — ESP-NOW + I2C"));
 
@@ -375,7 +399,6 @@ void setup() {
     Serial.println(F("ERROR: ESP-NOW init failed."));
   }
 
-  delay(50);
   rtcPresent = readRtc();
   lastRtcMs = millis();
   if (rtcPresent) Serial.println(F("DS3231 detected; RTC time will be sent to ESP32."));
