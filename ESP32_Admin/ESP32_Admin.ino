@@ -127,7 +127,7 @@ struct CalibrationCommand {
   float currentFactor;
   float voltageFactor;
 };
-static CalibrationCommand calibrationQueue[7] = {};
+static CalibrationCommand calibrationQueue[MAX_STRING_SENSORS + 1] = {};
 static volatile uint8_t calibrationQueueHead = 0;
 static volatile uint8_t calibrationQueueTail = 0;
 static CalibrationCommand calibrationCommandInFlight = {};
@@ -137,16 +137,16 @@ static bool otaConfirmActive = false;
 
 static void queueCalibrationCommand(uint8_t index) {
   // This controller firmware currently exposes two INA226 channels (IDs 1 and 2).
-  if (index >= 2) return;
-  uint8_t next = (uint8_t)((calibrationQueueHead + 1) % 7);
-  if (next == calibrationQueueTail) calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % 7);
+  if (index >= MAX_STRING_SENSORS) return;
+  uint8_t next = (uint8_t)((calibrationQueueHead + 1) % (MAX_STRING_SENSORS + 1));
+  if (next == calibrationQueueTail) calibrationQueueTail = (uint8_t)((calibrationQueueTail + 1) % (MAX_STRING_SENSORS + 1));
   calibrationQueue[calibrationQueueHead].sensorId = index + 1;
   calibrationQueue[calibrationQueueHead].currentFactor = cfg.currentCalibration[index];
   calibrationQueue[calibrationQueueHead].voltageFactor = cfg.voltageCalibration[index];
   calibrationQueueHead = next;
 }
-static void queueChangedCalibrations(const float oldCurrent[6], const float oldVoltage[6]) {
-  for (uint8_t i = 0; i < 2; ++i) {
+static void queueChangedCalibrations(const float oldCurrent[MAX_STRING_SENSORS], const float oldVoltage[MAX_STRING_SENSORS]) {
+  for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) {
     if (fabsf(cfg.currentCalibration[i] - oldCurrent[i]) > 0.0005f ||
         fabsf(cfg.voltageCalibration[i] - oldVoltage[i]) > 0.0005f)
       queueCalibrationCommand(i);
@@ -295,9 +295,9 @@ String makeConfigJson() {
   for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) { if (i) j += ","; bool fresh = activeCalibrationValid[i] && stringSensorValid[i] && millis() - stringSensorLastSeenMs[i] <= STRING_SENSOR_TIMEOUT_MS; j += fresh ? "true" : "false"; }
   j += "],";
   j += "\"currentCalibration\":[";
-  for (uint8_t i = 0; i < 6; ++i) { if (i) j += ","; j += String(cfg.currentCalibration[i], 3); }
+  for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) { if (i) j += ","; j += String(cfg.currentCalibration[i], 3); }
   j += "],\"voltageCalibration\":[";
-  for (uint8_t i = 0; i < 6; ++i) { if (i) j += ","; j += String(cfg.voltageCalibration[i], 3); }
+  for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) { if (i) j += ","; j += String(cfg.voltageCalibration[i], 3); }
   j += "],";
   j += "\"tftPage\":" + String(cfg.tftPage) + ",";
   j += "\"pageCount\":" + String(cfg.pageCount) + ",\"pages\":[";
@@ -391,12 +391,12 @@ void handleSaveDisplay() {
     return;
   }
   if (doc.containsKey("title")) cfg.title = sanitizeTitle(String(doc["title"] | "SOLAR PV"));
-  float oldCurrentCalibration[6], oldVoltageCalibration[6];
+  float oldCurrentCalibration[MAX_STRING_SENSORS], oldVoltageCalibration[MAX_STRING_SENSORS];
   memcpy(oldCurrentCalibration, cfg.currentCalibration, sizeof(oldCurrentCalibration));
   memcpy(oldVoltageCalibration, cfg.voltageCalibration, sizeof(oldVoltageCalibration));
   JsonArray currentCal = doc["currentCalibration"].as<JsonArray>();
   JsonArray voltageCal = doc["voltageCalibration"].as<JsonArray>();
-  for (uint8_t i = 0; i < 6; ++i) {
+  for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) {
     if (currentCal.size() > i) cfg.currentCalibration[i] = constrain(currentCal[i].as<float>(), 0.001f, 99.999f);
     if (voltageCal.size() > i) cfg.voltageCalibration[i] = constrain(voltageCal[i].as<float>(), 0.001f, 99.999f);
   }
@@ -423,7 +423,7 @@ void handleSaveDisplay() {
         JsonObject sourceElement = sourceElements[e].as<JsonObject>();
         WidgetElementConfig& element = w.elements[e];
         element.kind = clampInt(sourceElement["kind"] | ELEMENT_SENSOR, ELEMENT_SENSOR, ELEMENT_TEXT);
-        element.sourceId = clampInt(sourceElement["sourceId"] | 1, 0, 7);
+        element.sourceId = clampInt(sourceElement["sourceId"] | 1, 0, 11);
         element.metric = clampInt(sourceElement["metric"] | 0, 0, 127);
         if (element.kind == ELEMENT_WIFI_CONTROL) { element.kind = ELEMENT_WIFI_STATUS; element.metric = 4; }
         element.fontSize = clampInt(sourceElement["fontSize"] | 2, 0, 5);
@@ -739,7 +739,7 @@ static void processGatewayPacket() {
         activeCalibrationValid[index] = packet.currentCalibrationX600 >= 1 && packet.voltageCalibrationX600 >= 1;
         // The sensor is authoritative: keep browser and IR calibration math aligned
         // with the coefficients actually applied by the live sensor.
-        if (activeCalibrationValid[index] && index < 6) {
+        if (activeCalibrationValid[index] && index < MAX_STRING_SENSORS) {
           cfg.currentCalibration[index] = activeCurrentCalibration[index];
           cfg.voltageCalibration[index] = activeVoltageCalibration[index];
         }

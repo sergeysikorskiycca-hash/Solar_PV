@@ -4,6 +4,7 @@
 
 // Shared configuration model for the ESP32 admin firmware.
 static constexpr uint8_t MAX_SAVED_NETWORKS = 8;
+static constexpr uint8_t MAX_SENSOR_NODES = 10;
 static constexpr uint8_t MAX_PAGES = 8;
 static constexpr uint8_t MAX_WIDGETS_PER_PAGE = 12;
 static constexpr uint8_t MAX_WIDGET_ELEMENTS = 12;
@@ -25,7 +26,7 @@ enum WidgetElementKind : uint8_t {
 struct WidgetElementConfig {
   String label;
   uint8_t kind;     // WidgetElementKind.
-  uint8_t sourceId; // 0=gateway, 1..6=string sensor, 7=total PV power.
+  uint8_t sourceId; // 0=gateway, 1..10=sensor nodes, 11=total PV power.
   uint8_t metric;   // Kind-specific option; 64..127 encodes selected sensor mask for source 7.
   uint8_t fontSize; // 0..5.
   uint8_t color;    // 0..5.
@@ -65,8 +66,8 @@ struct AppConfig {
   String title;
   uint8_t pageCount;
   uint8_t tftPage;   // 1-based physical display page
-  float currentCalibration[6];
-  float voltageCalibration[6];
+  float currentCalibration[MAX_SENSOR_NODES];
+  float voltageCalibration[MAX_SENSOR_NODES];
   PageConfig pages[MAX_PAGES];
   UiTexts uiTexts;
 

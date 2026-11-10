@@ -127,7 +127,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
     return prefix + currentText + " А / " + voltageText + " В";
   }
 
-  const char* unit = element.sourceId == 7 ? "Вт" : (element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : (element.metric == 3 ? "%" : "В")));
+  const char* unit = element.sourceId == 11 ? "Вт" : (element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : (element.metric == 3 ? "%" : "В")));
   String value = "--";
   if (element.metric == 3) return prefix + "-- %";
   if (element.sourceId == 0) {
@@ -152,7 +152,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
     if (any) value = String(total, 1);
   } else {
     const uint8_t sensor = element.sourceId - 1;
-    if (element.sourceId <= 6 && stringSensorFresh(sensor)) {
+    if (element.sourceId <= 10 && stringSensorFresh(sensor)) {
       if (element.metric == 1) value = String(stringSensorCurrent[sensor], 2);
       else if (element.metric == 2) value = String(stringSensorPower[sensor], 1);
       else value = String(stringSensorVoltage[sensor], 1);

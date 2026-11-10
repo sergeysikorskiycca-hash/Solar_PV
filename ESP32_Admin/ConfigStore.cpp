@@ -49,7 +49,7 @@ void setDefaults() {
   cfg.title = "SOLAR PV";
   setDefaultUiTexts(cfg.uiTexts);
   cfg.tftPage = 1;
-  for (uint8_t i = 0; i < 6; ++i) { cfg.currentCalibration[i] = 1.0f; cfg.voltageCalibration[i] = 1.0f; }
+  for (uint8_t i = 0; i < MAX_SENSOR_NODES; ++i) { cfg.currentCalibration[i] = 1.0f; cfg.voltageCalibration[i] = 1.0f; }
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
     for (uint8_t i = 0; i < MAX_WIDGETS_PER_PAGE; i++) {
       WidgetConfig& w = cfg.pages[p].widgets[i];
@@ -169,7 +169,7 @@ bool loadPageKey(const String& key, const String& value) {
     WidgetElementConfig& element = w.elements[elementIndex];
     if (elementField == "Label") element.label = sanitizeTitle(value);
     else if (elementField == "Kind") element.kind = clampInt(value.toInt(), ELEMENT_SENSOR, ELEMENT_TEXT);
-    else if (elementField == "Source") element.sourceId = clampInt(value.toInt(), 0, 7);
+    else if (elementField == "Source") element.sourceId = clampInt(value.toInt(), 0, 11);
     else if (elementField == "Metric") element.metric = clampInt(value.toInt(), 0, 127);
     else if (elementField == "Size") element.fontSize = clampInt(value.toInt(), 0, 5);
     else if (elementField == "Color") element.color = clampInt(value.toInt(), 0, 5);
@@ -189,7 +189,7 @@ bool loadPageKey(const String& key, const String& value) {
   }
   else if (suffix == "HeadingSize") w.headingSize = clampInt(value.toInt(), 0, 5);
   else if (suffix == "ContentSize") w.contentSize = clampInt(value.toInt(), 0, 5);
-  else if (suffix == "StringCount") legacyStringCounts[p][wi] = clampInt(value.toInt(), 1, 6);
+  else if (suffix == "StringCount") legacyStringCounts[p][wi] = clampInt(value.toInt(), 1, 10);
   else if (suffix == "Locked") w.locked = value == "1";
   else if (suffix == "ShowHeading") w.showHeading = value == "1";
   else if (suffix == "ShowBorder") w.showBorder = value == "1";
@@ -251,8 +251,8 @@ void loadConfig() {
     else if (key == "uiChangeHint") cfg.uiTexts.changeHint = sanitizeUiText(value,"OK: изменить (5 сек.)");
     else if (key == "uiApplyLabel") cfg.uiTexts.applyLabel = sanitizeUiText(value,"Применение через");
     else if (key == "tftPage") cfg.tftPage = clampInt(value.toInt(), 1, MAX_PAGES);
-    else if (key.startsWith("currentCalibration") && key.length() == 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < 6) cfg.currentCalibration[index] = constrain(value.toFloat(), 0.001f, 99.999f); }
-    else if (key.startsWith("voltageCalibration") && key.length() == 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < 6) cfg.voltageCalibration[index] = constrain(value.toFloat(), 0.001f, 99.999f); }
+    else if (key.startsWith("currentCalibration") && key.length() == 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < MAX_SENSOR_NODES) cfg.currentCalibration[index] = constrain(value.toFloat(), 0.001f, 99.999f); }
+    else if (key.startsWith("voltageCalibration") && key.length() == 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < MAX_SENSOR_NODES) cfg.voltageCalibration[index] = constrain(value.toFloat(), 0.001f, 99.999f); }
     else if (key == "pageCount" || key.startsWith("page") || (key.length() > 2 && key[0] == 'p' && isDigit(key[1]))) { if (loadPageKey(key, value)) genericPagesLoaded = true; }
     else if (key.startsWith("wifi") && key.endsWith("_ssid")) { int i = key.substring(4, key.length() - 5).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].ssid = value; }
     else if (key.startsWith("wifi") && key.endsWith("_password")) { int i = key.substring(4, key.length() - 9).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].password = value; }
@@ -348,10 +348,10 @@ void loadConfig() {
           element.label = "Состояние точки";
           legacyLayoutMigrated = true;
         }
-        element.sourceId = clampInt(element.sourceId, 0, 7);
+        element.sourceId = clampInt(element.sourceId, 0, 11);
         // Source 7 stores the selected-sensor bitmask in metric values 64..127.
         // Preserve that encoding when loading the saved layout; other sources use 0..5.
-        element.metric = (element.kind == ELEMENT_SENSOR && element.sourceId == 7)
+        element.metric = (element.kind == ELEMENT_SENSOR && element.sourceId == 11)
                              ? clampInt(element.metric, 0, 127)
                              : clampInt(element.metric, 0, 5);
         element.fontSize = clampInt(element.fontSize, 0, 5);
@@ -428,7 +428,7 @@ bool saveConfig() {
   f.println("uiChangeHint=" + sanitizeUiText(cfg.uiTexts.changeHint,"OK: изменить (5 сек.)"));
   f.println("uiApplyLabel=" + sanitizeUiText(cfg.uiTexts.applyLabel,"Применение через"));
   f.println("tftPage=" + String(cfg.tftPage));
-  for (uint8_t i = 0; i < 6; ++i) {
+  for (uint8_t i = 0; i < MAX_SENSOR_NODES; ++i) {
     f.println("currentCalibration" + String(i) + "=" + String(cfg.currentCalibration[i], 3));
     f.println("voltageCalibration" + String(i) + "=" + String(cfg.voltageCalibration[i], 3));
   }
