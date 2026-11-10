@@ -32,6 +32,8 @@ bool EnergyEepromTransport::queueWrite(uint16_t address, const uint8_t* data, ui
   memcpy(data_, data, length);
   if (length < sizeof(data_)) memset(data_ + length, 0, sizeof(data_) - length);
   resultStatus_ = 0xFF;
+  retryCount_ = 0;
+  sequenceAssigned_ = false;
   state_ = QUEUED;
   return true;
 }
