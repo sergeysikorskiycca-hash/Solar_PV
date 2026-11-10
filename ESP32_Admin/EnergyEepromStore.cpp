@@ -197,7 +197,7 @@ void EnergyEepromStore::handleResponse(uint32_t nowMs, EnergyCounter& counter) {
     bestValid_ = true;
     lastSaveSucceeded_ = true;
     stage_ = READY;
-    nextActionMs_ = nowMs + SAVE_INTERVAL_MS;
+    nextActionMs_ = saveRequested_ ? nowMs : nowMs + SAVE_INTERVAL_MS;
   }
 }
 

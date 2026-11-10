@@ -788,10 +788,15 @@ static void processGatewayPacket() {
         } else {
           Serial.print(F("Gateway RTC: unavailable"));
         }
-        if (gatewaySensorValid) {
+        if (gatewaySensorValid && gatewaySensorId >= 1 && gatewaySensorId <= MAX_STRING_SENSORS) {
+          const uint8_t logIndex = gatewaySensorId - 1;
           Serial.printf(" | sensor %u: %.2f V, %.3f A, %.1f W, K=%.3f KU=%.3f, packet %u\n",
                         (unsigned)gatewaySensorId, gatewayVoltage, gatewayCurrent, gatewayPower,
-                        activeCurrentCalibration[gatewaySensorId - 1], activeVoltageCalibration[gatewaySensorId - 1],
+                        activeCurrentCalibration[logIndex], activeVoltageCalibration[logIndex],
+                        (unsigned)gatewaySensorPacketNumber);
+        } else if (gatewaySensorValid) {
+          Serial.printf(" | sensor %u: %.2f V, %.3f A, %.1f W, packet %u\n",
+                        (unsigned)gatewaySensorId, gatewayVoltage, gatewayCurrent, gatewayPower,
                         (unsigned)gatewaySensorPacketNumber);
         } else {
           Serial.println(F(" | sensor data unavailable"));
