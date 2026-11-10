@@ -15,6 +15,8 @@ bool EnergyEepromTransport::queueRead(uint16_t address, uint8_t length) {
   length_ = length;
   memset(data_, 0, sizeof(data_));
   resultStatus_ = 0xFF;
+  retryCount_ = 0;
+  sequenceAssigned_ = false;
   state_ = QUEUED;
   return true;
 }
@@ -38,7 +40,8 @@ bool EnergyEepromTransport::takeCommand(uint8_t& type, uint8_t& sequence,
                                         uint16_t& address, uint8_t& length,
                                         uint8_t data[8]) {
   if (state_ != QUEUED) return false;
-  ++sequence_;
+  if (!sequenceAssigned_) { ++sequence_; sequenceAssigned_ = true; }
+  sentAtMs_ = millis();
   type = commandType_;
   sequence = sequence_;
   address = address_;
@@ -46,6 +49,17 @@ bool EnergyEepromTransport::takeCommand(uint8_t& type, uint8_t& sequence,
   memcpy(data, data_, sizeof(data_));
   state_ = WAITING;
   return true;
+}
+
+void EnergyEepromTransport::poll(uint32_t nowMs) {
+  if (state_ != WAITING || nowMs - sentAtMs_ < 1500UL) return;
+  if (retryCount_ < 3) {
+    ++retryCount_;
+    state_ = QUEUED;
+  } else {
+    resultStatus_ = 0xFE;
+    state_ = FAILED;
+  }
 }
 
 void EnergyEepromTransport::acceptResponse(const uint8_t* frame, uint8_t length) {

@@ -1492,6 +1492,7 @@ void setup() {
 }
 
 void loop() {
+  energyEepromTransport.poll(millis());
   handleIRRemote();
   processGatewayPacket();
   if (rtMode == RT_EMPTY_MESSAGE && (int32_t)(millis() - rtEmptyMessageUntil) >= 0) {
