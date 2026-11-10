@@ -1,9 +1,10 @@
 /*
-  Non-blocking energy integration for up to ten discovered PV string sensors.
-  Each string total is independent from the selected period total.
+  Non-blocking energy integration. Each sensor ID has an independent lifetime
+  counter; the aggregate is calculated from the per-string totals.
 */
 #include "EnergyCounter.h"
 #include <math.h>
+#include <limits.h>
 
 EnergyCounter energyCounter;
 
@@ -12,9 +13,16 @@ void EnergyCounter::begin(uint32_t nowMs) {
 }
 
 void EnergyCounter::update(uint8_t sensorId, float powerW, uint32_t nowMs) {
-  if (sensorId < 1 || sensorId > SENSOR_COUNT || !isfinite(powerW)) return;
-  const uint8_t index = sensorId - 1;
-  detectedMask_ |= (uint16_t)(1U << index);
+  if (sensorId == 0 || !isfinite(powerW)) return;
+  const uint16_t index = (uint16_t)sensorId - 1U;
+
+  if (!detected_[index]) {
+    detected_[index] = true;
+    ++detectedCount_;
+  }
+
+  // Negative readings are not generation. Retain zero as a valid new sample.
+  if (powerW < 0.0f) powerW = 0.0f;
 
   if (!sampleSeen_[index]) {
     sampleSeen_[index] = true;
@@ -24,61 +32,64 @@ void EnergyCounter::update(uint8_t sensorId, float powerW, uint32_t nowMs) {
   }
 
   const uint32_t elapsedMs = nowMs - lastSampleMs_[index];
-  lastSampleMs_[index] = nowMs;
-
-  // Integrate the previous sample over its elapsed interval, then retain the new sample.
   const float intervalPowerW = lastPowerW_[index];
+  lastSampleMs_[index] = nowMs;
   lastPowerW_[index] = powerW;
 
-  // A delayed or missing sensor packet must not create a large energy jump.
-  if (elapsedMs == 0 || elapsedMs > 3000UL || intervalPowerW < 1.0f) return;
+  // Do not extrapolate across a long communications outage.
+  if (elapsedMs == 0 || elapsedMs > 3000UL || intervalPowerW <= 0.0f ||
+      fullWh_[index] == UINT32_MAX) return;
 
   const double addedWh = (double)intervalPowerW * (double)elapsedMs / 3600000.0;
-  const double fullTotal = fullRemainderWh_[index] + addedWh;
-  const uint64_t wholeFullWh = (uint64_t)fullTotal;
-  if (wholeFullWh) {
-    fullWh_[index] += wholeFullWh;
-    fullRemainderWh_[index] = fullTotal - (double)wholeFullWh;
+  const double accumulatedWh = fullRemainderWh_[index] + addedWh;
+  const uint64_t wholeWh = (uint64_t)accumulatedWh;
+
+  if (wholeWh) {
+    const uint64_t room = (uint64_t)UINT32_MAX - fullWh_[index];
+    const uint64_t accepted = wholeWh > room ? room : wholeWh;
+    fullWh_[index] += (uint32_t)accepted;
+    if (accepted == wholeWh) fullRemainderWh_[index] = accumulatedWh - (double)wholeWh;
+    else fullRemainderWh_[index] = 0.0;
   } else {
-    fullRemainderWh_[index] = fullTotal;
-  }
-
-  if (periodSelectionMask_ & (uint16_t)(1U << index)) {
-    const double periodTotal = periodRemainderWh_ + addedWh;
-    const uint64_t wholePeriodWh = (uint64_t)periodTotal;
-    if (wholePeriodWh) {
-      periodWh_ += wholePeriodWh;
-      periodRemainderWh_ = periodTotal - (double)wholePeriodWh;
-    } else {
-      periodRemainderWh_ = periodTotal;
-    }
+    fullRemainderWh_[index] = accumulatedWh;
   }
 }
 
-void EnergyCounter::setPeriodSelectionMask(uint16_t mask) {
-  const uint16_t allowed = (uint16_t)((1U << SENSOR_COUNT) - 1U);
-  periodSelectionMask_ = mask & allowed;
+bool EnergyCounter::detected(uint8_t sensorId) const {
+  return sensorId != 0 && detected_[(uint16_t)sensorId - 1U];
 }
 
-uint16_t EnergyCounter::detectedMask() const { return detectedMask_; }
-uint16_t EnergyCounter::periodSelectionMask() const { return periodSelectionMask_; }
+uint16_t EnergyCounter::detectedCount() const { return detectedCount_; }
 
-uint64_t EnergyCounter::stringWh(uint8_t sensorId) const {
-  if (sensorId < 1 || sensorId > SENSOR_COUNT) return 0;
-  return fullWh_[sensorId - 1];
+uint32_t EnergyCounter::stringWh(uint8_t sensorId) const {
+  return sensorId == 0 ? 0 : fullWh_[(uint16_t)sensorId - 1U];
 }
 
-uint64_t EnergyCounter::periodWh() const { return periodWh_; }
+uint64_t EnergyCounter::totalWh() const {
+  uint64_t total = 0;
+  for (uint16_t i = 0; i < SENSOR_COUNT; ++i) total += fullWh_[i];
+  return total;
+}
 
-void EnergyCounter::resetPeriod() {
-  periodWh_ = 0;
-  periodRemainderWh_ = 0.0;
+bool EnergyCounter::addStoredWh(uint8_t sensorId, uint32_t storedWh) {
+  if (sensorId == 0) return false;
+  const uint16_t index = (uint16_t)sensorId - 1U;
+  const uint64_t combined = (uint64_t)fullWh_[index] + storedWh;
+  fullWh_[index] = combined > UINT32_MAX ? UINT32_MAX : (uint32_t)combined;
+  if (storedWh != 0 && !detected_[index]) {
+    detected_[index] = true;
+    ++detectedCount_;
+  }
+  return true;
 }
 
 bool EnergyCounter::resetString(uint8_t sensorId) {
-  if (sensorId < 1 || sensorId > SENSOR_COUNT) return false;
-  const uint8_t index = sensorId - 1;
+  if (sensorId == 0) return false;
+  const uint16_t index = (uint16_t)sensorId - 1U;
   fullWh_[index] = 0;
   fullRemainderWh_[index] = 0.0;
+  sampleSeen_[index] = false;
+  lastSampleMs_[index] = 0;
+  lastPowerW_[index] = 0.0f;
   return true;
 }

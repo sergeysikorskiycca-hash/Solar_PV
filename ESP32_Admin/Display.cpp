@@ -1,5 +1,6 @@
 #include "Display.h"
 #include "AppConfig.h"
+#include "EnergyCounter.h"
 #include <WiFi.h>
 
 // Live telemetry received from the ESP8266 gateway over I2C.
@@ -128,6 +129,8 @@ static String widgetElementText(const WidgetElementConfig& element) {
   }
 
   const char* unit = element.sourceId == 11 ? "Вт" : (element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : (element.metric == 3 ? "%" : "В")));
+  if (element.metric == 4 && element.sourceId == 11)
+    return prefix + String((double)energyCounter.totalWh() / 1000.0, 3) + " кВт·ч";
   String value = "--";
   if (element.metric == 3) return prefix + "-- %";
   if (element.sourceId == 0) {
@@ -138,7 +141,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
     }
   } else if (element.sourceId == 11 && element.metric == 2) {
     float total = 0.0f; bool any = false;
-    for (uint8_t i = 0; i < 10; ++i) if (stringSensorFresh(i) { total += stringSensorPower[i]; any = true; }
+    for (uint8_t i = 0; i < 10; ++i) if (stringSensorFresh(i)) { total += stringSensorPower[i]; any = true; }
     if (any) value = String(total, 1);
   } else if (element.sourceId == 11 && element.metric >= 64) {
     const uint8_t sensorMask = element.metric - 64;
@@ -152,6 +155,10 @@ static String widgetElementText(const WidgetElementConfig& element) {
     if (any) value = String(total, 1);
   } else {
     const uint8_t sensor = element.sourceId - 1;
+    if (element.sourceId <= 10 && element.metric == 4) {
+      value = String((double)energyCounter.stringWh(element.sourceId) / 1000.0, 3);
+      return prefix + value + " кВт·ч";
+    }
     if (element.sourceId <= 10 && stringSensorFresh(sensor)) {
       if (element.metric == 1) value = String(stringSensorCurrent[sensor], 2);
       else if (element.metric == 2) value = String(stringSensorPower[sensor], 1);

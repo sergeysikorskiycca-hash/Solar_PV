@@ -23,6 +23,7 @@
 #include "Display.h"
 #include "EnergyCounter.h"
 #include "EnergyEepromTransport.h"
+#include "EnergyEepromStore.h"
 
 // Explicit declaration keeps incremental widget refresh visible to Arduino's sketch preprocessor.
 void drawWidget(const WidgetConfig& widget);
@@ -278,6 +279,10 @@ String makeConfigJson() {
   j += "\"gatewayTelemetry\":{\"valid\":" + String(gatewayOnline && gatewaySensorValid ? "true" : "false") +
        ",\"voltage\":" + String(gatewayVoltage, 3) + ",\"current\":" + String(gatewayCurrent, 4) +
        ",\"power\":" + String(gatewayPower, 2) + "},";
+  char totalEnergyText[24];
+  snprintf(totalEnergyText, sizeof(totalEnergyText), "%llu", (unsigned long long)energyCounter.totalWh());
+  j += "\"totalEnergyWh\":" + String(totalEnergyText) + ",";
+  j += "\"energyCounterReady\":" + String(energyEepromStore.ready() ? "true" : "false") + ",";
   j += "\"stringTelemetry\":[";
   for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) {
     if (i) j += ",";
@@ -286,7 +291,8 @@ String makeConfigJson() {
     j += "{\"id\":" + String(i + 1) + ",\"valid\":" + String(fresh ? "true" : "false") +
          ",\"voltage\":" + String(stringSensorVoltage[i], 3) +
          ",\"current\":" + String(stringSensorCurrent[i], 4) +
-         ",\"power\":" + String(stringSensorPower[i], 2) + "}";
+         ",\"power\":" + String(stringSensorPower[i], 2) +
+         ",\"energyWh\":" + String(energyCounter.stringWh(i + 1)) + "}";
   }
   j += "],";
   j += "\"activeCurrentCalibration\":[";
@@ -747,22 +753,29 @@ static void processGatewayPacket() {
       gatewayCurrent = packet.current;
       gatewayPower = packet.power;
       gatewaySensorPacketNumber = packet.sensorPacketNumber;
-      if (gatewaySensorValid && packet.sensorId >= 1 && packet.sensorId <= MAX_STRING_SENSORS) {
-        const uint8_t index = packet.sensorId - 1;
-        stringSensorValid[index] = true;
-        stringSensorLastSeenMs[index] = millis();
-        stringSensorVoltage[index] = packet.voltage;
-        stringSensorCurrent[index] = packet.current;
-        stringSensorPower[index] = packet.power;
-        energyCounter.update(packet.sensorId, packet.power, millis());
-        activeCurrentCalibration[index] = packet.currentCalibrationX600 / 600.0f;
-        activeVoltageCalibration[index] = packet.voltageCalibrationX600 / 600.0f;
-        activeCalibrationValid[index] = packet.currentCalibrationX600 >= 1 && packet.voltageCalibrationX600 >= 1;
-        // The sensor is authoritative: keep browser and IR calibration math aligned
-        // with the coefficients actually applied by the live sensor.
-        if (activeCalibrationValid[index] && index < MAX_STRING_SENSORS) {
-          cfg.currentCalibration[index] = activeCurrentCalibration[index];
-          cfg.voltageCalibration[index] = activeVoltageCalibration[index];
+      if (gatewaySensorValid && packet.sensorId != 0) {
+        const uint32_t sampleTimeMs = millis();
+        // The energy core accepts every non-zero uint8_t sensor ID (1..255).
+        energyCounter.update(packet.sensorId, packet.power, sampleTimeMs);
+
+        // Live display and calibration settings currently retain the existing
+        // ten-channel UI layout; energy accumulation is independent of that UI.
+        if (packet.sensorId <= MAX_STRING_SENSORS) {
+          const uint8_t index = packet.sensorId - 1;
+          stringSensorValid[index] = true;
+          stringSensorLastSeenMs[index] = sampleTimeMs;
+          stringSensorVoltage[index] = packet.voltage;
+          stringSensorCurrent[index] = packet.current;
+          stringSensorPower[index] = packet.power;
+          activeCurrentCalibration[index] = packet.currentCalibrationX600 / 600.0f;
+          activeVoltageCalibration[index] = packet.voltageCalibrationX600 / 600.0f;
+          activeCalibrationValid[index] = packet.currentCalibrationX600 >= 1 && packet.voltageCalibrationX600 >= 1;
+          // The sensor is authoritative: keep browser and IR calibration math aligned
+          // with the coefficients actually applied by the live sensor.
+          if (activeCalibrationValid[index]) {
+            cfg.currentCalibration[index] = activeCurrentCalibration[index];
+            cfg.voltageCalibration[index] = activeVoltageCalibration[index];
+          }
         }
       }
       gatewayOnline = true;
@@ -1484,6 +1497,9 @@ void setup() {
   if (Wire.begin(GATEWAY_I2C_ADDRESS, 21, 22, 100000)) Serial.println(F("I2C gateway slave ready at 0x42 (SDA=21, SCL=22)."));
   else Serial.println(F("ERROR: I2C gateway slave initialization failed."));
 
+  energyCounter.begin(millis());
+  energyEepromStore.begin(millis());
+
   connectWiFiAtBoot();
   setupWebServer();
   renderTFT();
@@ -1492,7 +1508,9 @@ void setup() {
 }
 
 void loop() {
-  energyEepromTransport.poll(millis());
+  const uint32_t loopNowMs = millis();
+  energyEepromTransport.poll(loopNowMs);
+  energyEepromStore.poll(loopNowMs, energyCounter);
   handleIRRemote();
   processGatewayPacket();
   if (rtMode == RT_EMPTY_MESSAGE && (int32_t)(millis() - rtEmptyMessageUntil) >= 0) {
