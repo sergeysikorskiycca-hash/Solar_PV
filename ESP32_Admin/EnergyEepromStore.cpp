@@ -40,6 +40,7 @@ void EnergyEepromStore::begin(uint32_t nowMs) {
   ready_ = false;
   bestValid_ = false;
   saveRequested_ = false;
+  retryDelayActive_ = false;
   lastSaveSucceeded_ = false;
   activeBank_ = -1;
   scanBank_ = 0;
@@ -53,7 +54,7 @@ bool EnergyEepromStore::lastSaveSucceeded() const { return lastSaveSucceeded_; }
 
 void EnergyEepromStore::requestSave() {
   saveRequested_ = true;
-  if (ready_ && stage_ == READY) nextActionMs_ = 0;
+  retryDelayActive_ = false;
 }
 
 void EnergyEepromStore::restartScan(uint32_t nowMs) {
@@ -65,6 +66,7 @@ void EnergyEepromStore::restartScan(uint32_t nowMs) {
   activeBank_ = -1;
   scanBank_ = 0;
   dataOffset_ = 0;
+  retryDelayActive_ = false;
   nextActionMs_ = nowMs + SCAN_RETRY_MS;
 }
 
@@ -115,6 +117,7 @@ void EnergyEepromStore::startSave(uint32_t nowMs, const EnergyCounter& counter) 
   dataOffset_ = 0;
   pending_ = PENDING_NONE;
   saveRequested_ = false;
+  retryDelayActive_ = false;
   lastSaveSucceeded_ = false;
   nextActionMs_ = nowMs;
 }
@@ -133,6 +136,7 @@ void EnergyEepromStore::handleResponse(uint32_t nowMs, EnergyCounter& counter) {
     } else {
       stage_ = READY;
       saveRequested_ = true;
+      retryDelayActive_ = true;
       nextActionMs_ = nowMs + SAVE_RETRY_MS;
     }
     return;
@@ -197,12 +201,26 @@ void EnergyEepromStore::handleResponse(uint32_t nowMs, EnergyCounter& counter) {
     bestValid_ = true;
     lastSaveSucceeded_ = true;
     stage_ = READY;
+    retryDelayActive_ = false;
     nextActionMs_ = saveRequested_ ? nowMs : nowMs + SAVE_INTERVAL_MS;
   }
 }
 
 void EnergyEepromStore::schedule(uint32_t nowMs, EnergyCounter& counter) {
-  if (waiting_ || (int32_t)(nowMs - nextActionMs_) < 0) return;
+  if (waiting_) return;
+
+  if (stage_ == READY) {
+    const bool retryDue = !retryDelayActive_ || (int32_t)(nowMs - nextActionMs_) >= 0;
+    if (saveRequested_ && retryDue) {
+      startSave(nowMs, counter);
+      return;
+    }
+    if ((int32_t)(nowMs - nextActionMs_) < 0) return;
+    startSave(nowMs, counter);
+    return;
+  }
+
+  if ((int32_t)(nowMs - nextActionMs_) < 0) return;
 
   if (stage_ == SCAN_HEADER) {
     if (energyEepromTransport.queueRead(bankBase(scanBank_), 4)) {
@@ -219,11 +237,6 @@ void EnergyEepromStore::schedule(uint32_t nowMs, EnergyCounter& counter) {
       pending_ = PENDING_READ_DATA;
       waiting_ = true;
     }
-    return;
-  }
-
-  if (stage_ == READY) {
-    if (saveRequested_ || (int32_t)(nowMs - nextActionMs_) >= 0) startSave(nowMs, counter);
     return;
   }
 

@@ -32,6 +32,7 @@ private:
   bool ready_ = false;
   bool bestValid_ = false;
   bool saveRequested_ = false;
+  bool retryDelayActive_ = false;
   bool lastSaveSucceeded_ = false;
   int8_t activeBank_ = -1;
   uint8_t scanBank_ = 0;
