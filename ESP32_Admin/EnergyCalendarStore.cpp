@@ -61,7 +61,7 @@ bool EnergyCalendarStore::decodeValues(const uint8_t* data, uint16_t length,
   if ((uint32_t)count * 4U > length) return false;
   for (uint16_t i = 0; i < count; ++i) {
     const uint8_t id = data[used++];
-    if (!id) return false;
+    if (!id || id > 2) return false;
     const uint32_t value = (uint32_t)data[used] |
       ((uint32_t)data[used + 1] << 8) | ((uint32_t)data[used + 2] << 16);
     used += 3;
@@ -113,7 +113,7 @@ uint32_t EnergyCalendarStore::currentDate() const { return currentDate_; }
 bool EnergyCalendarStore::storageLimited() const { return storageLimited_; }
 
 void EnergyCalendarStore::registerId(uint8_t id) {
-  if (!id) return;
+  if (!id || id > 2) return;
   for (uint16_t i = 0; i < detectedCount_; ++i)
     if (detectedIds_[i] == id) return;
   if (detectedCount_ < 2) detectedIds_[detectedCount_++] = id;
