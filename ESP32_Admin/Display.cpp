@@ -138,7 +138,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
     return prefix + (cfg.ssid.length() ? cfg.ssid : "не выбрана");
   if (element.kind == ELEMENT_CALIBRATION) {
     const uint8_t sensor = element.sourceId > 0 ? element.sourceId - 1 : 0;
-    const bool fresh = sensor < 10 && stringSensorFresh(sensor);
+    const bool fresh = sensor < 255 && stringSensorFresh(sensor);
     const String current = fresh ? String(stringSensorCurrent[sensor], 2) : "--";
     const String voltage = fresh ? String(stringSensorVoltage[sensor], 1) : "--";
     const uint8_t ordinal = calibrationElementOrdinal(&element);
