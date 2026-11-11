@@ -829,7 +829,7 @@ static void processGatewayPacket() {
         stringSensorCurrent[telemetryIndex] = packet.current;
         stringSensorPower[telemetryIndex] = packet.power;
 
-        // Calibration controls retain their existing first-ten layout for now.
+        // Calibration factors are indexed by the actual sensor ID across the full uint8 range.
         if (packet.sensorId <= MAX_STRING_SENSORS) {
           const uint8_t index = packet.sensorId - 1;
           activeCurrentCalibration[index] = packet.currentCalibrationX600 / 600.0f;
