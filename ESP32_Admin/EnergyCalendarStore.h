@@ -42,10 +42,10 @@ private:
     CP_INVALIDATE, CP_BODY, CP_COMMIT,
     ARCH_INVALIDATE, ARCH_BODY, ARCH_COMMIT
   };
-  enum Pending : uint8_t { NONE, READ, WRITE };
+  enum Pending : uint8_t { PENDING_NONE, PENDING_READ, PENDING_WRITE };
 
   Stage stage_ = SCAN_CP0;
-  Pending pending_ = NONE;
+  Pending pending_ = PENDING_NONE;
   bool waiting_ = false;
   bool ready_ = false;
   bool checkpointValid_ = false;
@@ -83,12 +83,10 @@ private:
   uint8_t pendingIds_[255] = {};
   uint8_t pendingCount_ = 0;
   uint8_t checkpointBuffer_[CHECKPOINT_SIZE] = {};
-  uint8_t bestCheckpoint_[CHECKPOINT_SIZE] = {};
   uint8_t archiveBuffer_[ARCHIVE_SIZE] = {};
   uint8_t recordBuffer_[ARCHIVE_SIZE] = {};
   ArchiveIndex archiveIndex_[MAX_ARCHIVED_DAYS] = {};
   uint8_t archiveCount_ = 0;
-  uint8_t ioBuffer_[8] = {};
 
   static bool validDate(uint16_t year, uint8_t month, uint8_t day);
   static uint32_t makeDate(uint16_t year, uint8_t month, uint8_t day);
