@@ -1453,7 +1453,7 @@ static void handleInlineCalibration(uint32_t code) {
             queueCalibrationCommand(selectedCalibrationSensorIndex());
             calibrationEditing = false;
             Serial.printf("IR calibration saved: string %u, %s, actual %.3f, target %.3f, factor %.3f\n",
-                          calibrationRow / 2 + 1, (calibrationRow % 2 == 0) ? "current" : "voltage",
+                          selectedCalibrationSensorIndex() + 1U, (calibrationRow % 2 == 0) ? "current" : "voltage",
                           actual, target, factor);
           } else {
             factor = oldFactor;
