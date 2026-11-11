@@ -25,7 +25,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 </style></head><body>
 <header><h1>Solar_PV — редактор экранов</h1><p>Универсальные страницы и повторно используемые блоки · TFT ST7789 240 × 320</p></header>
 <main><div>
-<section><h2>Учёт энергии и история</h2><div class="status" id="energyHistoryStatus">Загрузка календарной истории…</div><div id="energyHistorySummary"></div><label for="energyHistoryPeriod">Период отображения</label><select id="energyHistoryPeriod"><option value="all">Вся сохранённая история</option><option value="month">Текущий месяц</option><option value="year">Текущий год</option></select><div id="energyHistoryRows"></div><p class="hint">Месячные и годовые итоги рассчитываются из сохранённых суточных записей. Срок истории зависит от количества обнаруженных стрингов и доступных 24C32.</p></section>
+<section><h2>Учёт энергии и история</h2><div class="status" id="energyHistoryStatus">Загрузка календарной истории…</div><div id="energyHistorySummary"></div><label for="energyHistoryPeriod">Период отображения</label><select id="energyHistoryPeriod"><option value="all">Вся сохранённая история</option><option value="month">Текущий месяц</option><option value="year">Текущий год</option></select><div id="energyHistoryRows"></div><div id="energyHistoryByString"></div><p class="hint">Месячные и годовые итоги рассчитываются из сохранённых суточных записей. Срок истории зависит от количества обнаруженных стрингов и доступных 24C32.</p></section>
 <section><h2>Страницы</h2><div class="page-tabs" id="pageTabs"></div>
 <label for="pageTitle">Название выбранной страницы</label><input id="pageTitle" type="text" maxlength="24" value="Показатели"><label style="display:flex;align-items:center;gap:8px"><input id="showPageTitle" type="checkbox" checked> Показывать название страницы</label>
 <div class="row"><button class="primary" id="newPage">＋ Новая страница</button><button id="followDevice">К странице дисплея</button><button class="danger" id="deletePage">Удалить страницу</button></div>
@@ -72,8 +72,8 @@ function clone(x){return JSON.parse(JSON.stringify(x))}
 function energyDateText(key){const s=String(key||'');return s.length===8?s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8):'—'}
 function energyKwh(wh){return (Number(wh||0)/1000).toFixed(3)+' кВт·ч'}
 function renderEnergyHistory(){
- const status=$('energyHistoryStatus'),summary=$('energyHistorySummary'),root=$('energyHistoryRows');
- if(!energyHistory.ready){status.textContent='Календарный архив ещё загружается или EEPROM недоступна.';summary.innerHTML='';root.innerHTML='';return}
+ const status=$('energyHistoryStatus'),summary=$('energyHistorySummary'),root=$('energyHistoryRows'),byString=$('energyHistoryByString');
+ if(!energyHistory.ready){status.textContent='Календарный архив ещё загружается или EEPROM недоступна.';summary.innerHTML='';root.innerHTML='';byString.innerHTML='';return}
  const currentDate=Number(energyHistory.currentDate)||0;
  const currentRows=Array.isArray(energyHistory.current)?energyHistory.current:[];
  const currentTotal=currentRows.reduce((a,x)=>a+Number(x.wh||0),0);
@@ -98,7 +98,7 @@ function renderEnergyHistory(){
  cards.forEach(([name,value])=>{const el=document.createElement('span');el.textContent=name+': '+value;summary.appendChild(el)});
  status.textContent='RTC: '+(currentDate?energyDateText(currentDate):'дата пока недоступна')+
   ' · записей в архиве: '+days.length+(energyHistory.storageLimited?' · достигнуто ограничение ёмкости календарного хранилища':'');
- if(!rows.length){root.textContent='Для выбранного периода пока нет сохранённых суточных записей.';return}
+ if(!rows.length){root.textContent='Для выбранного периода пока нет сохранённых суточных записей.';byString.innerHTML='';return}
  const table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');
  head.innerHTML='<tr><th>Дата</th><th>Выработка</th><th>По стрингам</th></tr>';
  rows.slice().reverse().forEach(d=>{
@@ -108,6 +108,14 @@ function renderEnergyHistory(){
   tr.append(date,total,strings);body.appendChild(tr);
  });
  table.append(head,body);root.innerHTML='';root.appendChild(table);
+ const totals=new Map();
+ rows.forEach(d=>(d.strings||[]).forEach(x=>totals.set(Number(x.id),(totals.get(Number(x.id))||0)+Number(x.wh||0))));
+ if(!totals.size){byString.innerHTML='';return}
+ const title=document.createElement('h3');title.textContent='Итого по стрингам за выбранный период';
+ const byTable=document.createElement('table'),byHead=document.createElement('thead'),byBody=document.createElement('tbody');
+ byHead.innerHTML='<tr><th>Стринг</th><th>Выработка</th></tr>';
+ Array.from(totals.entries()).sort((a,b)=>a[0]-b[0]).forEach(([id,wh])=>{const tr=document.createElement('tr'),name=document.createElement('td'),value=document.createElement('td');name.textContent='#'+id;value.textContent=energyKwh(wh);tr.append(name,value);byBody.appendChild(tr)});
+ byTable.append(byHead,byBody);byString.innerHTML='';byString.append(title,byTable);
 }
 async function refreshEnergyHistory(){
  try{const r=await fetch('/api/energy-history?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;energyHistory=await r.json();renderEnergyHistory()}
