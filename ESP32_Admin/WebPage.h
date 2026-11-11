@@ -298,7 +298,9 @@ async function refreshDeviceState(){
  try{const r=await fetch('/api/config?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const c=await r.json();
   const previousStringIds=stringTelemetry.map(x=>Number(x.id)).join(',');
   stringTelemetry=Array.isArray(c.stringTelemetry)?c.stringTelemetry:[];gatewayTelemetry=c.gatewayTelemetry||gatewayTelemetry;currentCalibration=normalizeCalibration(c.currentCalibration);
-  if(previousStringIds!==stringTelemetry.map(x=>Number(x.id)).join(',')&&pages.length)renderAll();voltageCalibration=normalizeCalibration(c.voltageCalibration);applyActiveCalibration(c);
+  const stringIdsChanged=previousStringIds!==stringTelemetry.map(x=>Number(x.id)).join(',');
+  voltageCalibration=normalizeCalibration(c.voltageCalibration);applyActiveCalibration(c);
+  if(stringIdsChanged&&pages.length)renderAll();
   const p=Math.max(0,Math.min((Number(c.tftPage)||1)-1,Math.max(0,pages.length-1)));
   if(p!==devicePage){devicePage=p;if(followDevice)editorPage=Math.min(devicePage,pages.length-1);renderAll()}
   if(c.clock){if(document.activeElement!==$('clockDate'))$('clockDate').value=c.clock.date||'';if(document.activeElement!==$('clockTime'))$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
