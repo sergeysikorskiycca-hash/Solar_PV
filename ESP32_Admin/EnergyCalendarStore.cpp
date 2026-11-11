@@ -167,11 +167,19 @@ void EnergyCalendarStore::applyRestoredCheckpoint() {
   if (!checkpointValid_) return;
 
   if (checkpointDate_ == currentDate_) {
+    int16_t archivedIndex = -1;
+    for (uint8_t i = 0; i < archiveCount_; ++i)
+      if (archiveIndex_[i].date == currentDate_) { archivedIndex = i; break; }
     for (uint16_t i = 0; i < checkpointCount_; ++i) {
       const uint8_t id = checkpointIds_[i];
       registerId(id);
       const uint16_t index = (uint16_t)id - 1U;
-      const uint64_t total = (uint64_t)dailyWh_[index] + checkpointWh_[i];
+      uint32_t restoredWh = checkpointWh_[i];
+      if (archivedIndex >= 0) {
+        const uint32_t archivedWh = archivedDayWh((uint8_t)archivedIndex, id);
+        if (archivedWh > restoredWh) restoredWh = archivedWh;
+      }
+      const uint64_t total = (uint64_t)dailyWh_[index] + restoredWh;
       dailyWh_[index] = total > 0x00FFFFFEUL ? 0x00FFFFFEUL : (uint32_t)total;
     }
   } else {
