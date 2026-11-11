@@ -815,7 +815,7 @@ static void processGatewayPacket() {
       gatewayCurrent = packet.current;
       gatewayPower = packet.power;
       gatewaySensorPacketNumber = packet.sensorPacketNumber;
-      if (gatewaySensorValid && packet.sensorId != 0) {
+      if (gatewaySensorValid && packet.sensorId >= 1 && packet.sensorId <= MAX_STRING_SENSORS) {
         const uint32_t sampleTimeMs = millis();
         // The energy core accepts only the two configured sensor IDs (1 and 2).
         energyCounter.update(packet.sensorId, packet.power, sampleTimeMs);
@@ -829,7 +829,7 @@ static void processGatewayPacket() {
         stringSensorCurrent[telemetryIndex] = packet.current;
         stringSensorPower[telemetryIndex] = packet.power;
 
-        // Calibration factors are indexed by the actual sensor ID across the full uint8 range.
+        // Calibration factors are indexed by one of the two fixed sensor IDs.
         if (packet.sensorId <= MAX_STRING_SENSORS) {
           const uint8_t index = packet.sensorId - 1;
           activeCurrentCalibration[index] = packet.currentCalibrationX600 / 600.0f;
