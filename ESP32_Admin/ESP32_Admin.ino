@@ -492,7 +492,7 @@ void handleSaveDisplay() {
         WidgetElementConfig& element = w.elements[e];
         element.kind = clampInt(sourceElement["kind"] | ELEMENT_SENSOR, ELEMENT_SENSOR, ELEMENT_TOTAL);
         element.sourceId = element.kind == ELEMENT_TOTAL ? 0 :
-                           (element.kind == ELEMENT_CALIBRATION ? clampInt(sourceElement["sourceId"] | 1, 1, 10) :
+                           (element.kind == ELEMENT_CALIBRATION ? clampInt(sourceElement["sourceId"] | 1, 1, 255) :
                             clampInt(sourceElement["sourceId"] | 1, 0, 255));
         element.metric = clampInt(sourceElement["metric"] | 0, 0, element.kind == ELEMENT_TOTAL ? 127 : 5);
         if (element.kind == ELEMENT_WIFI_CONTROL) { element.kind = ELEMENT_WIFI_STATUS; element.metric = 4; }
@@ -1450,7 +1450,7 @@ static void handleInlineCalibration(uint32_t code) {
           const float oldFactor = factor;
           factor = constrain(roundf(oldFactor * target / actual * 1000.0f) / 1000.0f, 0.001f, 99.999f);
           if (saveConfig()) {
-            queueCalibrationCommand(calibrationRow / 2);
+            queueCalibrationCommand(selectedCalibrationSensorIndex());
             calibrationEditing = false;
             Serial.printf("IR calibration saved: string %u, %s, actual %.3f, target %.3f, factor %.3f\n",
                           calibrationRow / 2 + 1, (calibrationRow % 2 == 0) ? "current" : "voltage",
