@@ -26,8 +26,8 @@ enum WidgetElementKind : uint8_t {
 struct WidgetElementConfig {
   String label;
   uint8_t kind;     // WidgetElementKind.
-  uint8_t sourceId; // 0=gateway, 1..10=sensor nodes, 11=total PV power.
-  uint8_t metric;   // Kind-specific option; 64..127 encodes selected sensor mask for source 7.
+  uint8_t sourceId; // 0=gateway, 1..255=independent string sensor IDs.
+  uint8_t metric;   // Kind-specific option; ELEMENT_TOTAL uses 2=power, 4=energy, 64..127=selected IDs 1..6.
   uint8_t fontSize; // 0..5.
   uint8_t color;    // 0..5.
 };
