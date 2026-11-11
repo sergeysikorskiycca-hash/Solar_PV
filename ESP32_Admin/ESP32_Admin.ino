@@ -809,7 +809,7 @@ static void processGatewayPacket() {
       gatewayTimeValid = (packet.flags & 0x01) != 0;
       gatewayYear = packet.year; gatewayMonth = packet.month; gatewayDay = packet.day;
       gatewayHour = packet.hour; gatewayMinute = packet.minute; gatewaySecond = packet.second;
-      gatewaySensorValid = (packet.flags & 0x02) != 0;
+      gatewaySensorValid = (packet.flags & 0x02) != 0 && packet.sensorId >= 1 && packet.sensorId <= MAX_STRING_SENSORS;
       gatewaySensorId = packet.sensorId;
       gatewayVoltage = packet.voltage;
       gatewayCurrent = packet.current;
