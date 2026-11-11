@@ -490,9 +490,11 @@ void handleSaveDisplay() {
       for (uint8_t e = 0; e < w.elementCount; ++e) {
         JsonObject sourceElement = sourceElements[e].as<JsonObject>();
         WidgetElementConfig& element = w.elements[e];
-        element.kind = clampInt(sourceElement["kind"] | ELEMENT_SENSOR, ELEMENT_SENSOR, ELEMENT_TEXT);
-        element.sourceId = clampInt(sourceElement["sourceId"] | 1, 0, 11);
-        element.metric = clampInt(sourceElement["metric"] | 0, 0, 127);
+        element.kind = clampInt(sourceElement["kind"] | ELEMENT_SENSOR, ELEMENT_SENSOR, ELEMENT_TOTAL);
+        element.sourceId = element.kind == ELEMENT_TOTAL ? 0 :
+                           (element.kind == ELEMENT_CALIBRATION ? clampInt(sourceElement["sourceId"] | 1, 1, 10) :
+                            clampInt(sourceElement["sourceId"] | 1, 0, 255));
+        element.metric = clampInt(sourceElement["metric"] | 0, 0, element.kind == ELEMENT_TOTAL ? 127 : 5);
         if (element.kind == ELEMENT_WIFI_CONTROL) { element.kind = ELEMENT_WIFI_STATUS; element.metric = 4; }
         element.fontSize = clampInt(sourceElement["fontSize"] | 2, 0, 5);
         element.color = clampInt(sourceElement["color"] | 3, 0, 5);
