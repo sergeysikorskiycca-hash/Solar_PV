@@ -4,7 +4,7 @@
 
 // Shared configuration model for the ESP32 admin firmware.
 static constexpr uint8_t MAX_SAVED_NETWORKS = 8;
-static constexpr uint8_t MAX_SENSOR_NODES = 255;
+static constexpr uint8_t MAX_SENSOR_NODES = 2;
 static constexpr uint8_t MAX_PAGES = 8;
 static constexpr uint8_t MAX_WIDGETS_PER_PAGE = 12;
 static constexpr uint8_t MAX_WIDGET_ELEMENTS = 12;
@@ -26,8 +26,8 @@ enum WidgetElementKind : uint8_t {
 struct WidgetElementConfig {
   String label;
   uint8_t kind;     // WidgetElementKind.
-  uint8_t sourceId; // 0=gateway, 1..255=independent string sensor IDs.
-  uint8_t metric;   // Kind-specific option; ELEMENT_TOTAL uses 2=power, 4=energy, 64..127=selected IDs 1..6.
+  uint8_t sourceId; // 0=gateway, 1..2=the two fixed string sensor IDs.
+  uint8_t metric;   // Kind-specific option; ELEMENT_TOTAL uses 2=power, 4=energy, 64..67=selected IDs 1..2.
   uint8_t fontSize; // 0..5.
   uint8_t color;    // 0..5.
 };
