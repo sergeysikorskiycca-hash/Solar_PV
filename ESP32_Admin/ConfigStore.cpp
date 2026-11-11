@@ -441,9 +441,12 @@ bool saveConfig() {
   f.println("uiChangeHint=" + sanitizeUiText(cfg.uiTexts.changeHint,"OK: изменить (5 сек.)"));
   f.println("uiApplyLabel=" + sanitizeUiText(cfg.uiTexts.applyLabel,"Применение через"));
   f.println("tftPage=" + String(cfg.tftPage));
-  for (uint8_t i = 0; i < MAX_SENSOR_NODES; ++i) {
-    f.println("currentCalibration" + String(i) + "=" + String(cfg.currentCalibration[i], 3));
-    f.println("voltageCalibration" + String(i) + "=" + String(cfg.voltageCalibration[i], 3));
+  // Persist only explicit calibration overrides; default/absent sensors use RAM defaults.
+  for (uint16_t i = 0; i < MAX_SENSOR_NODES; ++i) {
+    if (cfg.currentCalibration[i] != 1.0f)
+      f.println("currentCalibration" + String(i) + "=" + String(cfg.currentCalibration[i], 3));
+    if (cfg.voltageCalibration[i] != 1.0f)
+      f.println("voltageCalibration" + String(i) + "=" + String(cfg.voltageCalibration[i], 3));
   }
   f.println("pageCount=" + String(cfg.pageCount));
   for (uint8_t p = 0; p < MAX_PAGES; p++) {
