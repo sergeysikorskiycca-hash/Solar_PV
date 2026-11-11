@@ -78,12 +78,19 @@ function renderEnergyHistory(){
  const currentRows=Array.isArray(energyHistory.current)?energyHistory.current:[];
  const currentTotal=currentRows.reduce((a,x)=>a+Number(x.wh||0),0);
  const days=Array.isArray(energyHistory.days)?energyHistory.days.slice():[];
- const period=$('energyHistoryPeriod')?.value||'all';
- const anchor=String(currentDate||'');
- const currentMonth=anchor.slice(0,6),currentYear=anchor.slice(0,4);
- const filtered=days.filter(d=>{const k=String(d.dateKey||'');return period==='month'?k.slice(0,6)===currentMonth:period==='year'?k.slice(0,4)===currentYear:true});
+ const periodSelect=$('energyHistoryPeriod'),previousPeriod=periodSelect.value||'all';
+ const monthKeys=new Set(),yearKeys=new Set();
+ days.forEach(d=>{const k=String(d.dateKey||'');if(k.length===8){monthKeys.add(k.slice(0,6));yearKeys.add(k.slice(0,4))}});
+ if(currentDate){monthKeys.add(String(currentDate).slice(0,6));yearKeys.add(String(currentDate).slice(0,4))}
+ periodSelect.innerHTML='';periodSelect.add(new Option('Вся сохранённая история','all'));
+ Array.from(yearKeys).sort().reverse().forEach(y=>periodSelect.add(new Option('Год '+y,'year:'+y)));
+ Array.from(monthKeys).sort().reverse().forEach(m=>periodSelect.add(new Option('Месяц '+m.slice(4,6)+'.'+m.slice(0,4),'month:'+m)));
+ if(Array.from(periodSelect.options).some(o=>o.value===previousPeriod))periodSelect.value=previousPeriod;
+ const period=periodSelect.value||'all',parts=period.split(':'),periodType=parts[0],periodKey=parts[1]||'';
+ const filtered=days.filter(d=>{const k=String(d.dateKey||'');return periodType==='month'?k.slice(0,6)===periodKey:periodType==='year'?k.slice(0,4)===periodKey:true});
  const rows=filtered.filter(d=>Number(d.dateKey)!==currentDate);
- if(currentDate&&currentTotal&&(period==='all'||(period==='month'&&String(currentDate).slice(0,6)===currentMonth)||(period==='year'&&String(currentDate).slice(0,4)===currentYear)))
+ const currentKey=String(currentDate||'');
+ if(currentDate&&currentTotal&&(periodType==='all'||(periodType==='month'&&currentKey.slice(0,6)===periodKey)||(periodType==='year'&&currentKey.slice(0,4)===periodKey)))
   rows.push({date:energyDateText(currentDate),dateKey:currentDate,totalWh:currentTotal,strings:currentRows});
  const periodTotal=rows.reduce((a,d)=>a+Number(d.totalWh||0),0);
  summary.innerHTML='';
