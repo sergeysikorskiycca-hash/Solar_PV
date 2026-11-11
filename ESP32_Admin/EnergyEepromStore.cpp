@@ -1,7 +1,8 @@
 /*
   Asynchronous, power-loss-safe A/B journals for the 24C32 at 0x57.
-  Layout: bank A 0x000..0x3FF, bank B 0x400..0x7FF; 0x800..0xFFF reserved.
-  Each bank has a 4-byte header and 255 little-endian uint32 Wh values.
+  Version 1 fixed arrays are migrated on first save to version 2 sparse records.
+  Version 2 stores [sensor ID][24-bit Wh], or [sensor ID][FF FF FF][32-bit Wh]
+  for values above 0xFFFFFE. ID 0 terminates the packed record list.
 */
 #include "EnergyEepromStore.h"
 #include "EnergyEepromTransport.h"
@@ -44,6 +45,7 @@ void EnergyEepromStore::begin(uint32_t nowMs) {
   lastSaveSucceeded_ = false;
   activeBank_ = -1;
   scanBank_ = 0;
+  bestVersion_ = 0;
   dataOffset_ = 0;
   nextActionMs_ = nowMs;
 }
@@ -82,13 +84,37 @@ void EnergyEepromStore::advanceScanBank(uint32_t nowMs, EnergyCounter& counter) 
 
 void EnergyEepromStore::finishScan(uint32_t nowMs, EnergyCounter& counter) {
   if (bestValid_) {
-    for (uint16_t i = 0; i < EnergyCounter::SENSOR_COUNT; ++i) {
-      const uint16_t offset = (uint16_t)(i * 4U);
-      const uint32_t value = (uint32_t)bestData_[offset] |
-        ((uint32_t)bestData_[offset + 1] << 8) |
-        ((uint32_t)bestData_[offset + 2] << 16) |
-        ((uint32_t)bestData_[offset + 3] << 24);
-      counter.addStoredWh((uint8_t)(i + 1U), value);
+    if (bestVersion_ == 1) {
+      for (uint16_t i = 0; i < EnergyCounter::SENSOR_COUNT; ++i) {
+        const uint16_t offset = (uint16_t)(i * 4U);
+        const uint32_t value = (uint32_t)bestData_[offset] |
+          ((uint32_t)bestData_[offset + 1] << 8) |
+          ((uint32_t)bestData_[offset + 2] << 16) |
+          ((uint32_t)bestData_[offset + 3] << 24);
+        if (value) counter.restoreStoredWh((uint8_t)(i + 1U), value);
+      }
+      // Preserve the old valid bank; write the migrated sparse format to the other bank.
+      saveRequested_ = true;
+    } else if (bestVersion_ == 2) {
+      uint16_t offset = 0;
+      while (offset < DATA_SIZE) {
+        const uint8_t id = bestData_[offset++];
+        if (id == 0) break;
+        if (offset + 3U > DATA_SIZE) break;
+        uint32_t value = (uint32_t)bestData_[offset] |
+                         ((uint32_t)bestData_[offset + 1] << 8) |
+                         ((uint32_t)bestData_[offset + 2] << 16);
+        offset += 3;
+        if (value == 0x00FFFFFFUL) {
+          if (offset + 4U > DATA_SIZE) break;
+          value = (uint32_t)bestData_[offset] |
+                  ((uint32_t)bestData_[offset + 1] << 8) |
+                  ((uint32_t)bestData_[offset + 2] << 16) |
+                  ((uint32_t)bestData_[offset + 3] << 24);
+          offset += 4;
+        }
+        counter.restoreStoredWh(id, value);
+      }
     }
   }
   ready_ = true;
@@ -97,19 +123,44 @@ void EnergyEepromStore::finishScan(uint32_t nowMs, EnergyCounter& counter) {
 }
 
 void EnergyEepromStore::startSave(uint32_t nowMs, const EnergyCounter& counter) {
+  memset(bankData_, 0, sizeof(bankData_));
+  uint16_t offset = 0;
+
   for (uint16_t i = 0; i < EnergyCounter::SENSOR_COUNT; ++i) {
-    const uint32_t value = counter.stringWh((uint8_t)(i + 1U));
-    const uint16_t offset = (uint16_t)(i * 4U);
-    bankData_[offset] = (uint8_t)value;
-    bankData_[offset + 1] = (uint8_t)(value >> 8);
-    bankData_[offset + 2] = (uint8_t)(value >> 16);
-    bankData_[offset + 3] = (uint8_t)(value >> 24);
+    const uint8_t id = (uint8_t)(i + 1U);
+    if (!counter.detected(id)) continue;
+
+    const uint32_t value = counter.stringWh(id);
+    const uint16_t required = value <= 0x00FFFFFEUL ? 4U : 8U;
+    if ((uint32_t)offset + required > DATA_SIZE) {
+      // Never invalidate the last good bank if a complete snapshot cannot fit.
+      saveRequested_ = true;
+      retryDelayActive_ = true;
+      nextActionMs_ = nowMs + SAVE_RETRY_MS;
+      lastSaveSucceeded_ = false;
+      return;
+    }
+
+    bankData_[offset++] = id;
+    if (value <= 0x00FFFFFEUL) {
+      bankData_[offset++] = (uint8_t)value;
+      bankData_[offset++] = (uint8_t)(value >> 8);
+      bankData_[offset++] = (uint8_t)(value >> 16);
+    } else {
+      bankData_[offset++] = 0xFF;
+      bankData_[offset++] = 0xFF;
+      bankData_[offset++] = 0xFF;
+      bankData_[offset++] = (uint8_t)value;
+      bankData_[offset++] = (uint8_t)(value >> 8);
+      bankData_[offset++] = (uint8_t)(value >> 16);
+      bankData_[offset++] = (uint8_t)(value >> 24);
+    }
   }
 
   targetBank_ = activeBank_ == 0 ? 1 : 0;
   saveSequence_ = bestValid_ ? (uint8_t)(bestSequence_ + 1U) : 1U;
   saveHeader_[0] = 0xE7;
-  saveHeader_[1] = 1;
+  saveHeader_[1] = 2;
   saveHeader_[2] = saveSequence_;
   saveHeader_[3] = journalCrc(saveHeader_, bankData_, DATA_SIZE);
 
@@ -152,7 +203,8 @@ void EnergyEepromStore::handleResponse(uint32_t nowMs, EnergyCounter& counter) {
   pending_ = PENDING_NONE;
 
   if (completed == PENDING_READ_HEADER) {
-    if (resultLength != 4 || result[0] != 0xE7 || result[1] != 1) {
+    if (resultLength != 4 || result[0] != 0xE7 ||
+        (result[1] != 1 && result[1] != 2)) {
       advanceScanBank(nowMs, counter);
       return;
     }
@@ -175,6 +227,7 @@ void EnergyEepromStore::handleResponse(uint32_t nowMs, EnergyCounter& counter) {
           (!bestValid_ || sequenceIsNewer(header_[2], bestSequence_))) {
         memcpy(bestData_, bankData_, DATA_SIZE);
         bestSequence_ = header_[2];
+        bestVersion_ = header_[1];
         bestValid_ = true;
         activeBank_ = (int8_t)scanBank_;
       }
@@ -198,6 +251,7 @@ void EnergyEepromStore::handleResponse(uint32_t nowMs, EnergyCounter& counter) {
   if (completed == PENDING_WRITE_HEADER) {
     activeBank_ = (int8_t)targetBank_;
     bestSequence_ = saveSequence_;
+    bestVersion_ = 2;
     bestValid_ = true;
     lastSaveSucceeded_ = true;
     stage_ = READY;
