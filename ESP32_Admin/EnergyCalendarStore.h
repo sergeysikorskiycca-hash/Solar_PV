@@ -84,7 +84,6 @@ private:
   uint8_t pendingCount_ = 0;
   uint8_t checkpointBuffer_[CHECKPOINT_SIZE] = {};
   uint8_t archiveBuffer_[ARCHIVE_SIZE] = {};
-  uint8_t recordBuffer_[ARCHIVE_SIZE] = {};
   ArchiveIndex archiveIndex_[MAX_ARCHIVED_DAYS] = {};
   uint8_t archiveCount_ = 0;
 
