@@ -17,7 +17,7 @@ The ESP8266 is the I2C master. It reads the DS3231 once per second and sends a C
 
 - ESP-NOW channel: 1.
 - The receive packet must match the existing sensor structure: `char name[20]; uint8_t sensorId; float voltage,current,power,shuntVoltage; uint32_t packetNumber;`
-- Sensor IDs 1–10 are accepted. A sample is considered stale after 3 seconds and is no longer forwarded as valid.
+- Only sensor IDs 1 and 2 are accepted; the gateway is configured for exactly two PV strings / sensors. A sample is considered stale after 3 seconds and is no longer forwarded as valid.
 - Sensor values are forwarded as floats. The ESP32 prints received time and sensor values to Serial at 115200 baud.
 - This gateway sketch does not configure INA226 itself; it receives measurements from the ESP-NOW sensor node(s).
 
