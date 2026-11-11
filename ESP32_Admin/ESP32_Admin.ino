@@ -121,7 +121,6 @@ static void handleInlineWifiStatus(uint32_t code) {
   refreshWifiStatusWidget();
 }
 
-static const uint8_t MAX_STRING_SENSORS = MAX_SENSOR_NODES;
 static volatile uint8_t clockCommandSequence = 0;
 static volatile uint8_t clockCommandType = 0;
 static volatile uint16_t clockCommandYear = 2026;
