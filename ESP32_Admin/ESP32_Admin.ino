@@ -24,6 +24,7 @@
 #include "EnergyCounter.h"
 #include "EnergyEepromTransport.h"
 #include "EnergyEepromStore.h"
+#include "EnergyCalendarStore.h"
 
 // Explicit declaration keeps incremental widget refresh visible to Arduino's sketch preprocessor.
 void drawWidget(const WidgetConfig& widget);
@@ -342,6 +343,55 @@ void handleRoot() {
 
 void handleApiConfig() {
   server.send(200, "application/json; charset=utf-8", makeConfigJson());
+}
+
+String makeEnergyHistoryJson() {
+  String j = "{\"ready\":" + String(energyCalendarStore.ready() ? "true" : "false") +
+             ",\"storageLimited\":" + String(energyCalendarStore.storageLimited() ? "true" : "false") +
+             ",\"currentDate\":" + String(energyCalendarStore.currentDate()) + ",\"current\":[";
+  bool first = true;
+  uint64_t currentTotal = 0;
+  for (uint16_t id = 1; id <= 255; ++id) {
+    const uint32_t wh = energyCalendarStore.currentDayWh((uint8_t)id);
+    if (!wh) continue;
+    if (!first) j += ",";
+    first = false;
+    j += "{\"id\":" + String(id) + ",\"wh\":" + String(wh) + "}";
+    currentTotal += wh;
+  }
+  char totalText[24];
+  snprintf(totalText, sizeof(totalText), "%llu", (unsigned long long)currentTotal);
+  j += "],\"currentTotalWh\":" + String(totalText) + ",\"days\":[";
+  const uint8_t count = energyCalendarStore.archivedDayCount();
+  for (uint8_t dayIndex = 0; dayIndex < count; ++dayIndex) {
+    if (dayIndex) j += ",";
+    const uint32_t date = energyCalendarStore.archivedDate(dayIndex);
+    char dateText[11];
+    snprintf(dateText, sizeof(dateText), "%04lu-%02lu-%02lu",
+             (unsigned long)(date / 10000UL), (unsigned long)((date / 100UL) % 100UL),
+             (unsigned long)(date % 100UL));
+    j += "{\"date\":\"" + String(dateText) + "\",\"dateKey\":" + String(date) + ",\"totalWh\":\"";
+    uint64_t dayTotal = 0;
+    for (uint16_t id = 1; id <= 255; ++id) dayTotal += energyCalendarStore.archivedDayWh(dayIndex, (uint8_t)id);
+    char dayTotalText[24];
+    snprintf(dayTotalText, sizeof(dayTotalText), "%llu", (unsigned long long)dayTotal);
+    j += String(dayTotalText) + "\",\"strings\":[";
+    bool firstString = true;
+    for (uint16_t id = 1; id <= 255; ++id) {
+      const uint32_t wh = energyCalendarStore.archivedDayWh(dayIndex, (uint8_t)id);
+      if (!wh) continue;
+      if (!firstString) j += ",";
+      firstString = false;
+      j += "{\"id\":" + String(id) + ",\"wh\":" + String(wh) + "}";
+    }
+    j += "]}";
+  }
+  j += "]}";
+  return j;
+}
+
+void handleApiEnergyHistory() {
+  server.send(200, "application/json; charset=utf-8", makeEnergyHistoryJson());
 }
 
 static bool startWiFiScan(WifiScanOwner owner) {
@@ -757,6 +807,8 @@ static void processGatewayPacket() {
         const uint32_t sampleTimeMs = millis();
         // The energy core accepts every non-zero uint8_t sensor ID (1..255).
         energyCounter.update(packet.sensorId, packet.power, sampleTimeMs);
+        energyCalendarStore.update(packet.sensorId, packet.power, sampleTimeMs,
+                                   gatewayTimeValid, gatewayYear, gatewayMonth, gatewayDay);
 
         // Live display and calibration settings currently retain the existing
         // ten-channel UI layout; energy accumulation is independent of that UI.
@@ -1504,6 +1556,7 @@ void setup() {
 
   energyCounter.begin(millis());
   energyEepromStore.begin(millis());
+  energyCalendarStore.begin(millis());
 
   connectWiFiAtBoot();
   setupWebServer();
@@ -1516,6 +1569,7 @@ void loop() {
   const uint32_t loopNowMs = millis();
   energyEepromTransport.poll(loopNowMs);
   energyEepromStore.poll(loopNowMs, energyCounter);
+  energyCalendarStore.poll(loopNowMs);
   handleIRRemote();
   processGatewayPacket();
   if (rtMode == RT_EMPTY_MESSAGE && (int32_t)(millis() - rtEmptyMessageUntil) >= 0) {
