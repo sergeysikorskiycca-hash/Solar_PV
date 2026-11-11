@@ -12,7 +12,7 @@ extern uint32_t stringSensorLastSeenMs[255];
 extern float stringSensorVoltage[255], stringSensorCurrent[255], stringSensorPower[255];
 
 static bool stringSensorFresh(uint8_t index) {
-  return index < 10 && stringSensorValid[index] &&
+  return index < 255 && stringSensorValid[index] &&
          millis() - stringSensorLastSeenMs[index] <= 3500UL;
 }
 
@@ -128,7 +128,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
     return prefix + currentText + " А / " + voltageText + " В";
   }
 
-  const char* unit = element.sourceId == 11 ? "Вт" : (element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : (element.metric == 3 ? "%" : "В")));
+  const char* unit = element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : (element.metric == 3 ? "%" : "В"));
   if (element.metric == 4 && element.sourceId == 11)
     return prefix + String((double)energyCounter.totalWh() / 1000.0, 3) + " кВт·ч";
   String value = "--";
@@ -141,7 +141,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
     }
   } else if (element.sourceId == 11 && element.metric == 2) {
     float total = 0.0f; bool any = false;
-    for (uint8_t i = 0; i < 10; ++i) if (stringSensorFresh(i)) { total += stringSensorPower[i]; any = true; }
+    for (uint16_t i = 0; i < 255; ++i) if (stringSensorFresh((uint8_t)i)) { total += stringSensorPower[i]; any = true; }
     if (any) value = String(total, 1);
   } else if (element.sourceId == 11 && element.metric >= 64) {
     const uint8_t sensorMask = element.metric - 64;
@@ -155,11 +155,11 @@ static String widgetElementText(const WidgetElementConfig& element) {
     if (any) value = String(total, 1);
   } else {
     const uint8_t sensor = element.sourceId - 1;
-    if (element.sourceId <= 10 && element.metric == 4) {
+    if (element.sourceId != 11 && element.metric == 4) {
       value = String((double)energyCounter.stringWh(element.sourceId) / 1000.0, 3);
       return prefix + value + " кВт·ч";
     }
-    if (element.sourceId <= 10 && stringSensorFresh(sensor)) {
+    if (stringSensorFresh(sensor)) {
       if (element.metric == 1) value = String(stringSensorCurrent[sensor], 2);
       else if (element.metric == 2) value = String(stringSensorPower[sensor], 1);
       else value = String(stringSensorVoltage[sensor], 1);
