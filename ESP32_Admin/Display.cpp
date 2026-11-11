@@ -164,7 +164,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
     }
     if (stringSensorFresh(sensor)) {
       if (element.metric == 1) value = String(stringSensorCurrent[sensor], 2);
-      else if (element.metric == 2) value = String(stringSensorPower[sensor], 1);
+      else if (element.metric == 2 || element.metric == 5) value = String(stringSensorPower[sensor], 1);
       else value = String(stringSensorVoltage[sensor], 1);
     }
   }
