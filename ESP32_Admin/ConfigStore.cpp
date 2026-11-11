@@ -363,6 +363,8 @@ void loadConfig() {
         if (element.kind == ELEMENT_TOTAL) {
           element.sourceId = 0;
           element.metric = clampInt(element.metric, 0, 127);
+          // Legacy masks could select sensors 3..6; retain only fixed IDs 1 and 2.
+          if (element.metric >= 64) element.metric = 64 + ((element.metric - 64) & 0x03);
         } else {
           element.sourceId = clampInt(element.sourceId, 0, 2);
           element.metric = clampInt(element.metric, 0, 5);
