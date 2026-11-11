@@ -25,7 +25,7 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 </style></head><body>
 <header><h1>Solar_PV — редактор экранов</h1><p>Универсальные страницы и повторно используемые блоки · TFT ST7789 240 × 320</p></header>
 <main><div>
-<section><h2>Учёт энергии и история</h2><div class="status" id="energyHistoryStatus">Загрузка календарной истории…</div><div id="energyHistorySummary"></div><label for="energyHistoryPeriod">Период отображения</label><select id="energyHistoryPeriod"><option value="all">Вся сохранённая история</option><option value="month">Текущий месяц</option><option value="year">Текущий год</option></select><div id="energyHistoryRows"></div><div id="energyHistoryByString"></div><p class="hint">Месячные и годовые итоги рассчитываются из сохранённых суточных записей. Срок истории зависит от количества обнаруженных стрингов и доступных 24C32.</p></section>
+<section><h2>Учёт энергии и история</h2><div class="status" id="energyHistoryStatus">Загрузка календарной истории…</div><div id="energyHistorySummary"></div><label for="energyHistoryPeriod">Период отображения</label><select id="energyHistoryPeriod"><option value="all">Вся сохранённая история</option><option value="month">Текущий месяц</option><option value="year">Текущий год</option></select><div id="energyHistoryRows"></div><div id="energyHistoryByString"></div><h3>Обнаруженные стринги</h3><div id="liveStringsTable"></div><p class="hint">Месячные и годовые итоги рассчитываются из сохранённых суточных записей. Срок истории зависит от количества обнаруженных стрингов и доступных 24C32.</p></section>
 <section><h2>Страницы</h2><div class="page-tabs" id="pageTabs"></div>
 <label for="pageTitle">Название выбранной страницы</label><input id="pageTitle" type="text" maxlength="24" value="Показатели"><label style="display:flex;align-items:center;gap:8px"><input id="showPageTitle" type="checkbox" checked> Показывать название страницы</label>
 <div class="row"><button class="primary" id="newPage">＋ Новая страница</button><button id="followDevice">К странице дисплея</button><button class="danger" id="deletePage">Удалить страницу</button></div>
@@ -71,6 +71,14 @@ const $=id=>document.getElementById(id);
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function energyDateText(key){const s=String(key||'');return s.length===8?s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8):'—'}
 function energyKwh(wh){return (Number(wh||0)/1000).toFixed(3)+' кВт·ч'}
+function renderLiveStrings(){
+ const root=$('liveStringsTable'),items=Array.isArray(stringTelemetry)?stringTelemetry.slice().sort((a,b)=>Number(a.id)-Number(b.id)):[];
+ if(!items.length){root.textContent='Пока не обнаружено ни одного стринга.';return}
+ const table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');
+ head.innerHTML='<tr><th>ID</th><th>Состояние</th><th>Напряжение</th><th>Ток</th><th>Мощность</th><th>Всего</th></tr>';
+ items.forEach(x=>{const tr=document.createElement('tr');const values=['#'+x.id,x.valid?'На связи':'Нет свежих данных',x.valid?Number(x.voltage).toFixed(1)+' В':'—',x.valid?Number(x.current).toFixed(2)+' А':'—',x.valid?Number(x.power).toFixed(1)+' Вт':'—',energyKwh(x.energyWh)];values.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});body.appendChild(tr)});
+ table.append(head,body);root.innerHTML='';root.appendChild(table);
+}
 function renderEnergyHistory(){
  const status=$('energyHistoryStatus'),summary=$('energyHistorySummary'),root=$('energyHistoryRows'),byString=$('energyHistoryByString');
  if(!energyHistory.ready){status.textContent='Календарный архив ещё загружается или EEPROM недоступна.';summary.innerHTML='';root.innerHTML='';byString.innerHTML='';return}
@@ -277,7 +285,7 @@ function loadConfig(c){
  devicePage=Math.max(0,Math.min((Number(c.tftPage)||1)-1,pages.length-1));
  if(followDevice)editorPage=devicePage;
  if(editorPage>=pages.length)editorPage=pages.length-1;
- $('ssid').value=c.ssid||'';$('password').value='';renderSavedNetworks(savedNetworks);renderAll();updateDeviceStatus();
+ $('ssid').value=c.ssid||'';$('password').value='';renderSavedNetworks(savedNetworks);renderAll();renderLiveStrings();updateDeviceStatus();
 }
 function updateDeviceStatus(){ $('deviceStatus').textContent='Физический дисплей: страница '+(devicePage+1)+' из '+pages.length+'. Редактор: страница '+(editorPage+1)+'.'; }
 function collectData(){
@@ -289,7 +297,7 @@ async function refreshDeviceState(){
   const p=Math.max(0,Math.min((Number(c.tftPage)||1)-1,Math.max(0,pages.length-1)));
   if(p!==devicePage){devicePage=p;if(followDevice)editorPage=Math.min(devicePage,pages.length-1);renderAll()}
   if(c.clock){if(document.activeElement!==$('clockDate'))$('clockDate').value=c.clock.date||'';if(document.activeElement!==$('clockTime'))$('clockTime').value=c.clock.time||'';$('clockStatus').textContent=c.clock.valid?'RTC: '+c.clock.date+' '+c.clock.time:'RTC не отвечает или время недоступно';}
-  networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;configuredSsid=c.ssid||'';wifiInfo=c.wifiInfo||wifiInfo;wifiMode=c.wifiMode||wifiMode;renderWiFiMode();updateCustomPreviews();$('netStatus').textContent=networkStatus;updateDeviceStatus();
+  networkStatus=c.networkStatus||networkStatus;networkLabel=c.networkLabel||networkLabel;configuredSsid=c.ssid||'';wifiInfo=c.wifiInfo||wifiInfo;wifiMode=c.wifiMode||wifiMode;renderWiFiMode();updateCustomPreviews();renderLiveStrings();$('netStatus').textContent=networkStatus;updateDeviceStatus();
  }catch(e){}
 }
 
