@@ -427,17 +427,18 @@ void EnergyCalendarStore::startArchive(uint32_t nowMs) {
 
   if (archiveAppendOffset_ + archiveLength_ > ARCHIVE_SIZE) archiveAppendOffset_ = 0;
   archiveWriteOffset_ = archiveAppendOffset_;
-  memset(recordBuffer_, 0, sizeof(recordBuffer_));
-  recordBuffer_[0] = 0xD6;
-  recordBuffer_[1] = 1;
-  recordBuffer_[2] = (uint8_t)(archiveSequence_ + 1U);
-  recordBuffer_[3] = (uint8_t)pendingDate_;
-  recordBuffer_[4] = (uint8_t)(pendingDate_ >> 8);
-  recordBuffer_[5] = (uint8_t)(pendingDate_ >> 16);
-  recordBuffer_[6] = (uint8_t)(pendingDate_ >> 24);
-  recordBuffer_[7] = pendingCount_;
-  encodeValues(recordBuffer_ + 8, pendingIds_, pendingWh_, pendingCount_);
-  recordBuffer_[archiveLength_ - 1U] = crc8(recordBuffer_, archiveLength_ - 1U);
+  uint8_t* record = archiveBuffer_ + archiveWriteOffset_;
+  memset(record, 0, archiveLength_);
+  record[0] = 0xD6;
+  record[1] = 1;
+  record[2] = (uint8_t)(archiveSequence_ + 1U);
+  record[3] = (uint8_t)pendingDate_;
+  record[4] = (uint8_t)(pendingDate_ >> 8);
+  record[5] = (uint8_t)(pendingDate_ >> 16);
+  record[6] = (uint8_t)(pendingDate_ >> 24);
+  record[7] = pendingCount_;
+  encodeValues(record + 8, pendingIds_, pendingWh_, pendingCount_);
+  record[archiveLength_ - 1U] = crc8(record, archiveLength_ - 1U);
 
   ioOffset_ = 1;
   stage_ = ARCH_INVALIDATE;
@@ -558,8 +559,7 @@ void EnergyCalendarStore::handleResponse(uint32_t nowMs) {
       if (ioOffset_ >= archiveLength_) stage_ = ARCH_COMMIT;
     } else if (stage_ == ARCH_COMMIT) {
       archiveBuffer_[archiveWriteOffset_] = 0xD6;
-      memcpy(archiveBuffer_ + archiveWriteOffset_ + 1, recordBuffer_ + 1, archiveLength_ - 1U);
-      archiveSequence_ = recordBuffer_[2];
+      archiveSequence_ = archiveBuffer_[archiveWriteOffset_ + 2];
       archiveAppendOffset_ = (uint16_t)(archiveWriteOffset_ + archiveLength_);
       if (archiveAppendOffset_ >= ARCHIVE_SIZE) archiveAppendOffset_ = 0;
       scanArchive();
@@ -611,7 +611,7 @@ void EnergyCalendarStore::schedule(uint32_t nowMs) {
       ? (uint16_t)(BASE + (uint16_t)targetBank_ * CHECKPOINT_SIZE)
       : (uint16_t)(ARCHIVE_BASE + archiveWriteOffset_);
     const uint16_t total = checkpoint ? checkpointLength_ : archiveLength_;
-    const uint8_t* source = checkpoint ? checkpointBuffer_ : recordBuffer_;
+    const uint8_t* source = checkpoint ? checkpointBuffer_ : archiveBuffer_ + archiveWriteOffset_;
     const uint16_t address = (uint16_t)(base + ioOffset_);
     const uint8_t pageRoom = (uint8_t)(32U - (address & 0x1FU));
     uint8_t length = (uint8_t)((total - ioOffset_) > 8U ? 8U : (total - ioOffset_));
