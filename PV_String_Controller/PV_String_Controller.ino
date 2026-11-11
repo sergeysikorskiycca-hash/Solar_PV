@@ -292,7 +292,7 @@ void receiveCallback(
     if (len != sizeof(ESPNowCommand)) return;
     ESPNowCommand command;
     memcpy(&command, incomingData, sizeof(command));
-    if (command.command != ESPNOW_CMD_OTA || command.sensorId != 1) return;
+    if (command.command != ESPNOW_CMD_OTA || command.sensorId < 1 || command.sensorId > SENSOR_COUNT) return;
     Serial.println();
     Serial.println("OTA COMMAND RECEIVED");
     otaRequested = true;
