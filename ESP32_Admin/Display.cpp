@@ -128,22 +128,18 @@ static String widgetElementText(const WidgetElementConfig& element) {
     return prefix + currentText + " А / " + voltageText + " В";
   }
 
-  const char* unit = element.metric == 1 ? "А" : (element.metric == 2 ? "Вт" : (element.metric == 3 ? "%" : "В"));
-  if (element.metric == 4 && element.sourceId == 11)
+  const char* unit = element.metric == 1 ? "А" : (element.metric == 2 || element.metric == 5 || element.metric >= 64 ? "Вт" : (element.metric == 3 ? "%" : "В"));
+  if (element.metric == 4 && element.sourceId == 0)
     return prefix + String((double)energyCounter.totalWh() / 1000.0, 3) + " кВт·ч";
   String value = "--";
   if (element.metric == 3) return prefix + "-- %";
-  if (element.sourceId == 0) {
-    if (gatewayOnline && gatewaySensorValid) {
-      if (element.metric == 1) value = String(gatewayCurrent, 2);
-      else if (element.metric == 2) value = String(gatewayPower, 1);
-      else value = String(gatewayVoltage, 1);
-    }
-  } else if (element.sourceId == 11 && element.metric == 2) {
+  if (element.sourceId == 0 && element.metric == 5) {
     float total = 0.0f; bool any = false;
     for (uint16_t i = 0; i < 255; ++i) if (stringSensorFresh((uint8_t)i)) { total += stringSensorPower[i]; any = true; }
-    if (any) value = String(total, 1);
-  } else if (element.sourceId == 11 && element.metric >= 64) {
+    if (any) return prefix + String(total, 1) + " Вт";
+    return prefix + "— Вт";
+  }
+  if (element.sourceId == 0 && element.metric >= 64) {
     const uint8_t sensorMask = element.metric - 64;
     float total = 0.0f; bool any = false;
     for (uint8_t i = 0; i < 6; ++i) {
@@ -152,7 +148,14 @@ static String widgetElementText(const WidgetElementConfig& element) {
         any = true;
       }
     }
-    if (any) value = String(total, 1);
+    return prefix + (any ? String(total, 1) + " Вт" : String("— Вт"));
+  }
+  if (element.sourceId == 0) {
+    if (gatewayOnline && gatewaySensorValid) {
+      if (element.metric == 1) value = String(gatewayCurrent, 2);
+      else if (element.metric == 2) value = String(gatewayPower, 1);
+      else value = String(gatewayVoltage, 1);
+    }
   } else {
     const uint8_t sensor = element.sourceId - 1;
     if (element.sourceId != 11 && element.metric == 4) {
