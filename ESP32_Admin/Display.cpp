@@ -7,9 +7,9 @@
 extern bool gatewayOnline;
 extern bool gatewaySensorValid;
 extern float gatewayVoltage, gatewayCurrent, gatewayPower;
-extern bool stringSensorValid[10];
-extern uint32_t stringSensorLastSeenMs[10];
-extern float stringSensorVoltage[10], stringSensorCurrent[10], stringSensorPower[10];
+extern bool stringSensorValid[255];
+extern uint32_t stringSensorLastSeenMs[255];
+extern float stringSensorVoltage[255], stringSensorCurrent[255], stringSensorPower[255];
 
 static bool stringSensorFresh(uint8_t index) {
   return index < 10 && stringSensorValid[index] &&
