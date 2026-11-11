@@ -20,11 +20,12 @@ button{border:0;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:b
 .widget{position:absolute;background:#101820;border:1px solid #52616d;border-radius:5px;padding:5px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}.widget.selected{outline:2px solid #49b78b;outline-offset:1px}.widget.locked{cursor:default}.widget .name{padding-right:27px;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;outline:none}.widget .name:focus{user-select:text;cursor:text;background:#17212b;border-radius:2px}.widget .value{font-size:15px;color:#ffd400;font-weight:bold;white-space:normal;overflow-wrap:anywhere}.widget .wifi-lines{font-size:12px;line-height:1.2;color:#fff;white-space:normal;overflow-wrap:anywhere}.widget .free-text{font-size:15px;line-height:1.15;color:#fff;white-space:pre-wrap;overflow-wrap:anywhere;user-select:none}.element-editor{background:#101923;border:1px solid #465c73;border-radius:8px;padding:9px;margin:8px 0}.element-editor .row{gap:6px}.element-editor label{flex:1;min-width:105px;margin:4px 0}.element-editor input,.element-editor select{width:100%;min-width:0;padding:7px;border:1px solid #465c73;border-radius:6px;background:#1b2735;color:#fff}.custom-lines{display:flex;flex-direction:column;gap:2px;overflow:hidden}.custom-line{white-space:nowrap;overflow:hidden;text-overflow:clip}
 .resize-handle{position:absolute;right:0;bottom:0;width:13px;height:13px;background:#49b78b;border:1px solid #eaf0f6;border-radius:3px;cursor:nwse-resize;touch-action:none}.widget.locked .resize-handle{display:none}.lock-toggle{position:absolute;z-index:3;right:2px;top:2px;width:23px;height:22px;padding:0;border:1px solid #65798c;border-radius:4px;background:#243447;font-size:13px;line-height:20px}.widget.locked .lock-toggle{background:#49b78b;color:#081b14}
 
-.preview-wrap{position:sticky;top:12px;align-self:start}.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px}.toolbar .wide{grid-column:1/-1}.hint{margin-top:8px}.wifi-scan{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.preview-wrap{position:sticky;top:12px;align-self:start}.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px}.toolbar .wide{grid-column:1/-1}.hint{margin-top:8px}.wifi-scan{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}#energyHistoryRows{overflow-x:auto}#energyHistoryRows table{width:100%;border-collapse:collapse;font-size:12px}#energyHistoryRows th,#energyHistoryRows td{padding:7px;border-bottom:1px solid #34465b;text-align:left;vertical-align:top}#energyHistoryRows th{color:#9fb0c2}#energyHistorySummary{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}#energyHistorySummary span{background:#243447;border-radius:7px;padding:8px;font-size:12px}
 @media(max-width:780px){main{grid-template-columns:1fr}.preview-wrap{position:static;grid-row:1}.screen{margin:auto}}
 </style></head><body>
 <header><h1>Solar_PV — редактор экранов</h1><p>Универсальные страницы и повторно используемые блоки · TFT ST7789 240 × 320</p></header>
 <main><div>
+<section><h2>Учёт энергии и история</h2><div class="status" id="energyHistoryStatus">Загрузка календарной истории…</div><div id="energyHistorySummary"></div><label for="energyHistoryPeriod">Период отображения</label><select id="energyHistoryPeriod"><option value="all">Вся сохранённая история</option><option value="month">Текущий месяц</option><option value="year">Текущий год</option></select><div id="energyHistoryRows"></div><p class="hint">Месячные и годовые итоги рассчитываются из сохранённых суточных записей. Срок истории зависит от количества обнаруженных стрингов и доступных 24C32.</p></section>
 <section><h2>Страницы</h2><div class="page-tabs" id="pageTabs"></div>
 <label for="pageTitle">Название выбранной страницы</label><input id="pageTitle" type="text" maxlength="24" value="Показатели"><label style="display:flex;align-items:center;gap:8px"><input id="showPageTitle" type="checkbox" checked> Показывать название страницы</label>
 <div class="row"><button class="primary" id="newPage">＋ Новая страница</button><button id="followDevice">К странице дисплея</button><button class="danger" id="deletePage">Удалить страницу</button></div>
@@ -65,8 +66,43 @@ let wifiInfo={connected:false,rssi:0,routerIp:'—',apActive:false,apIp:'—'};
 let wifiMode={router:false,ap:true,apActive:true};
 let stringTelemetry=[],totalEnergyWh=0,gatewayTelemetry={valid:false,voltage:0,current:0,power:0};
 let currentCalibration=[1,1,1,1,1,1],voltageCalibration=[1,1,1,1,1,1];
+let energyHistory={ready:false,storageLimited:false,currentDate:0,current:[],days:[]};
 const $=id=>document.getElementById(id);
 function clone(x){return JSON.parse(JSON.stringify(x))}
+function energyDateText(key){const s=String(key||'');return s.length===8?s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8):'—'}
+function energyKwh(wh){return (Number(wh||0)/1000).toFixed(3)+' кВт·ч'}
+function renderEnergyHistory(){
+ const status=$('energyHistoryStatus'),summary=$('energyHistorySummary'),root=$('energyHistoryRows');
+ if(!energyHistory.ready){status.textContent='Календарный архив ещё загружается или EEPROM недоступна.';summary.innerHTML='';root.innerHTML='';return}
+ const currentDate=Number(energyHistory.currentDate)||0;
+ const currentRows=Array.isArray(energyHistory.current)?energyHistory.current:[];
+ const currentTotal=currentRows.reduce((a,x)=>a+Number(x.wh||0),0);
+ const days=Array.isArray(energyHistory.days)?energyHistory.days.slice():[];
+ const period=$('energyHistoryPeriod')?.value||'all';
+ const anchor=String(currentDate||'');
+ const currentMonth=anchor.slice(0,6),currentYear=anchor.slice(0,4);
+ const filtered=days.filter(d=>{const k=String(d.dateKey||'');return period==='month'?k.slice(0,6)===currentMonth:period==='year'?k.slice(0,4)===currentYear:true});
+ const archivedTotal=filtered.reduce((a,d)=>a+Number(d.totalWh||0),0);
+ summary.innerHTML='';
+ const cards=[['Сегодня',energyKwh(currentTotal)],['Архивный период',energyKwh(archivedTotal)],['Дней в архиве',String(filtered.length)]];
+ cards.forEach(([name,value])=>{const el=document.createElement('span');el.textContent=name+': '+value;summary.appendChild(el)});
+ status.textContent='RTC: '+(currentDate?energyDateText(currentDate):'дата пока недоступна')+
+  ' · записей: '+days.length+(energyHistory.storageLimited?' · достигнуто ограничение ёмкости календарного хранилища':'');
+ if(!filtered.length){root.textContent='Для выбранного периода пока нет сохранённых завершённых суток.';return}
+ const table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');
+ head.innerHTML='<tr><th>Дата</th><th>Выработка</th><th>По стрингам</th></tr>';
+ filtered.slice().reverse().forEach(d=>{
+  const tr=document.createElement('tr'),date=document.createElement('td'),total=document.createElement('td'),strings=document.createElement('td');
+  date.textContent=d.date||energyDateText(d.dateKey);total.textContent=energyKwh(d.totalWh);
+  strings.textContent=(d.strings||[]).map(x=>'#'+x.id+' '+energyKwh(x.wh)).join(' · ')||'—';
+  tr.append(date,total,strings);body.appendChild(tr);
+ });
+ table.append(head,body);root.innerHTML='';root.appendChild(table);
+}
+async function refreshEnergyHistory(){
+ try{const r=await fetch('/api/energy-history?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;energyHistory=await r.json();renderEnergyHistory()}
+ catch(e){$('energyHistoryStatus').textContent='Нет связи с календарным архивом.'}
+}
 function normalizeCalibration(values){return Array.from({length:10},(_,i)=>{const v=Number(Array.isArray(values)?values[i]:1);return Number.isFinite(v)&&v>=0.001&&v<=99.999?v:1})}
 function renderCalibrationRows(elements){
  const root=$('calibrationRows');root.innerHTML='';
@@ -310,5 +346,8 @@ $('saveWifi').addEventListener('click',async()=>{
 fetch('/api/config?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(loadConfig).catch(()=>$('netStatus').textContent='Нет связи с ESP32');
 $('setClock').addEventListener('click',async()=>{const date=$('clockDate').value,time=$('clockTime').value;if(!date||!time){alert('Укажи дату и время.');return}try{const r=await fetch('/api/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,time})});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Не удалось передать команду');$('clockStatus').textContent=j.message||'Команда передана шлюзу';}catch(e){$('clockStatus').textContent='Ошибка: '+e.message}});
 setInterval(refreshDeviceState,2000);
+setInterval(refreshEnergyHistory,10000);
+$('energyHistoryPeriod').addEventListener('change',renderEnergyHistory);
+refreshEnergyHistory();
 </script></body></html>
 )rawliteral";
