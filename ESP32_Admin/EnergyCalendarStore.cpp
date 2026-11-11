@@ -405,7 +405,7 @@ void EnergyCalendarStore::handleResponse(uint32_t nowMs) {
   const Pending completed = pending_;
   energyEepromTransport.consume();
   waiting_ = false;
-  pending_ = NONE;
+  pending_ = PENDING_NONE;
 
   if (completed == PENDING_READ) {
     if (stage_ == SCAN_CP0 || stage_ == SCAN_CP1) {
@@ -509,7 +509,7 @@ void EnergyCalendarStore::schedule(uint32_t nowMs) {
   if (stage_ == SCAN_ARCHIVE) {
     const uint8_t length = (uint8_t)((ARCHIVE_SIZE - ioOffset_) > 8U ? 8U : (ARCHIVE_SIZE - ioOffset_));
     if (length && queueRead((uint16_t)(ARCHIVE_BASE + ioOffset_), length)) {
-      pending_ = READ; pendingLength_ = length; waiting_ = true;
+      pending_ = PENDING_READ; pendingLength_ = length; waiting_ = true;
     }
     return;
   }
@@ -543,7 +543,7 @@ void EnergyCalendarStore::schedule(uint32_t nowMs) {
     uint8_t length = (uint8_t)((total - ioOffset_) > 8U ? 8U : (total - ioOffset_));
     if (length > pageRoom) length = pageRoom;
     if (length && queueWrite(address, source + ioOffset_, length)) {
-      pending_ = WRITE; pendingLength_ = length; waiting_ = true;
+      pending_ = PENDING_WRITE; pendingLength_ = length; waiting_ = true;
     }
     return;
   }
@@ -553,7 +553,7 @@ void EnergyCalendarStore::schedule(uint32_t nowMs) {
     const uint16_t base = stage_ == CP_COMMIT
       ? (uint16_t)(BASE + (uint16_t)targetBank_ * CHECKPOINT_SIZE)
       : (uint16_t)(ARCHIVE_BASE + archiveWriteOffset_);
-    if (queueWrite(base, &magic, 1)) { pending_ = WRITE; waiting_ = true; }
+    if (queueWrite(base, &magic, 1)) { pending_ = PENDING_WRITE; waiting_ = true; }
   }
 }
 
