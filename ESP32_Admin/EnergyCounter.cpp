@@ -13,7 +13,7 @@ void EnergyCounter::begin(uint32_t nowMs) {
 }
 
 void EnergyCounter::update(uint8_t sensorId, float powerW, uint32_t nowMs) {
-  if (sensorId == 0 || !isfinite(powerW)) return;
+  if (sensorId == 0 || sensorId > SENSOR_COUNT || !isfinite(powerW)) return;
   const uint16_t index = (uint16_t)sensorId - 1U;
 
   if (!detected_[index]) {
@@ -54,13 +54,13 @@ void EnergyCounter::update(uint8_t sensorId, float powerW, uint32_t nowMs) {
 }
 
 bool EnergyCounter::detected(uint8_t sensorId) const {
-  return sensorId != 0 && detected_[(uint16_t)sensorId - 1U];
+  return sensorId != 0 && sensorId <= SENSOR_COUNT && detected_[(uint16_t)sensorId - 1U];
 }
 
 uint16_t EnergyCounter::detectedCount() const { return detectedCount_; }
 
 uint32_t EnergyCounter::stringWh(uint8_t sensorId) const {
-  return sensorId == 0 ? 0 : fullWh_[(uint16_t)sensorId - 1U];
+  return sensorId == 0 || sensorId > SENSOR_COUNT ? 0 : fullWh_[(uint16_t)sensorId - 1U];
 }
 
 uint64_t EnergyCounter::totalWh() const {
@@ -70,7 +70,7 @@ uint64_t EnergyCounter::totalWh() const {
 }
 
 bool EnergyCounter::addStoredWh(uint8_t sensorId, uint32_t storedWh) {
-  if (sensorId == 0) return false;
+  if (sensorId == 0 || sensorId > SENSOR_COUNT) return false;
   const uint16_t index = (uint16_t)sensorId - 1U;
   const uint64_t combined = (uint64_t)fullWh_[index] + storedWh;
   fullWh_[index] = combined > UINT32_MAX ? UINT32_MAX : (uint32_t)combined;
@@ -82,7 +82,7 @@ bool EnergyCounter::addStoredWh(uint8_t sensorId, uint32_t storedWh) {
 }
 
 bool EnergyCounter::restoreStoredWh(uint8_t sensorId, uint32_t storedWh) {
-  if (sensorId == 0) return false;
+  if (sensorId == 0 || sensorId > SENSOR_COUNT) return false;
   const uint16_t index = (uint16_t)sensorId - 1U;
   const uint64_t combined = (uint64_t)fullWh_[index] + storedWh;
   fullWh_[index] = combined > UINT32_MAX ? UINT32_MAX : (uint32_t)combined;
@@ -94,7 +94,7 @@ bool EnergyCounter::restoreStoredWh(uint8_t sensorId, uint32_t storedWh) {
 }
 
 bool EnergyCounter::resetString(uint8_t sensorId) {
-  if (sensorId == 0) return false;
+  if (sensorId == 0 || sensorId > SENSOR_COUNT) return false;
   const uint16_t index = (uint16_t)sensorId - 1U;
   fullWh_[index] = 0;
   fullRemainderWh_[index] = 0.0;
