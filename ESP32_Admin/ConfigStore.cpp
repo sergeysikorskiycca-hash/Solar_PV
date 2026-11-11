@@ -251,8 +251,8 @@ void loadConfig() {
     else if (key == "uiChangeHint") cfg.uiTexts.changeHint = sanitizeUiText(value,"OK: изменить (5 сек.)");
     else if (key == "uiApplyLabel") cfg.uiTexts.applyLabel = sanitizeUiText(value,"Применение через");
     else if (key == "tftPage") cfg.tftPage = clampInt(value.toInt(), 1, MAX_PAGES);
-    else if (key.startsWith("currentCalibration") && key.length() == 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < MAX_SENSOR_NODES) cfg.currentCalibration[index] = constrain(value.toFloat(), 0.001f, 99.999f); }
-    else if (key.startsWith("voltageCalibration") && key.length() == 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < MAX_SENSOR_NODES) cfg.voltageCalibration[index] = constrain(value.toFloat(), 0.001f, 99.999f); }
+    else if (key.startsWith("currentCalibration") && key.length() >= 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < MAX_SENSOR_NODES) cfg.currentCalibration[index] = constrain(value.toFloat(), 0.001f, 99.999f); }
+    else if (key.startsWith("voltageCalibration") && key.length() >= 19) { int index = key.substring(18).toInt(); if (index >= 0 && index < MAX_SENSOR_NODES) cfg.voltageCalibration[index] = constrain(value.toFloat(), 0.001f, 99.999f); }
     else if (key == "pageCount" || key.startsWith("page") || (key.length() > 2 && key[0] == 'p' && isDigit(key[1]))) { if (loadPageKey(key, value)) genericPagesLoaded = true; }
     else if (key.startsWith("wifi") && key.endsWith("_ssid")) { int i = key.substring(4, key.length() - 5).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].ssid = value; }
     else if (key.startsWith("wifi") && key.endsWith("_password")) { int i = key.substring(4, key.length() - 9).toInt(); if (i >= 0 && i < MAX_SAVED_NETWORKS) savedNetworks[i].password = value; }
