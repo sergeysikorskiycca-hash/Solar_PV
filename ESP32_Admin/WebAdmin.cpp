@@ -6,6 +6,7 @@ extern bool webStarted;
 
 void handleRoot();
 void handleApiConfig();
+void handleApiEnergyHistory();
 void handleSaveDisplay();
 void handleSetPage();
 void handleScanWiFi();
@@ -19,6 +20,7 @@ void handleNotFound();
 void setupWebServer() {
   server.on("/", HTTP_GET, handleRoot);
   server.on("/api/config", HTTP_GET, handleApiConfig);
+  server.on("/api/energy-history", HTTP_GET, handleApiEnergyHistory);
   server.on("/api/scan", HTTP_GET, handleScanWiFi);
   server.on("/api/scan-status", HTTP_GET, handleWiFiScanStatus);
   server.on("/api/save", HTTP_POST, handleSaveDisplay);
