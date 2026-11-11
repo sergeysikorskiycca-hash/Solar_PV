@@ -21,7 +21,6 @@ void EnergyCounter::update(uint8_t sensorId, float powerW, uint32_t nowMs) {
     ++detectedCount_;
   }
 
-  // Negative readings are not generation. Retain zero as a valid new sample.
   if (powerW < 0.0f) powerW = 0.0f;
 
   if (!sampleSeen_[index]) {
@@ -36,7 +35,6 @@ void EnergyCounter::update(uint8_t sensorId, float powerW, uint32_t nowMs) {
   lastSampleMs_[index] = nowMs;
   lastPowerW_[index] = powerW;
 
-  // Do not extrapolate across a long communications outage.
   if (elapsedMs == 0 || elapsedMs > 3000UL || intervalPowerW <= 0.0f ||
       fullWh_[index] == UINT32_MAX) return;
 
@@ -77,6 +75,18 @@ bool EnergyCounter::addStoredWh(uint8_t sensorId, uint32_t storedWh) {
   const uint64_t combined = (uint64_t)fullWh_[index] + storedWh;
   fullWh_[index] = combined > UINT32_MAX ? UINT32_MAX : (uint32_t)combined;
   if (storedWh != 0 && !detected_[index]) {
+    detected_[index] = true;
+    ++detectedCount_;
+  }
+  return true;
+}
+
+bool EnergyCounter::restoreStoredWh(uint8_t sensorId, uint32_t storedWh) {
+  if (sensorId == 0) return false;
+  const uint16_t index = (uint16_t)sensorId - 1U;
+  const uint64_t combined = (uint64_t)fullWh_[index] + storedWh;
+  fullWh_[index] = combined > UINT32_MAX ? UINT32_MAX : (uint32_t)combined;
+  if (!detected_[index]) {
     detected_[index] = true;
     ++detectedCount_;
   }
