@@ -168,7 +168,7 @@ bool loadPageKey(const String& key, const String& value) {
     String elementField = suffix.substring(elementEnd);
     WidgetElementConfig& element = w.elements[elementIndex];
     if (elementField == "Label") element.label = sanitizeTitle(value);
-    else if (elementField == "Kind") element.kind = clampInt(value.toInt(), ELEMENT_SENSOR, ELEMENT_TEXT);
+    else if (elementField == "Kind") element.kind = clampInt(value.toInt(), ELEMENT_SENSOR, ELEMENT_TOTAL);
     else if (elementField == "Source") element.sourceId = clampInt(value.toInt(), 0, 11);
     else if (elementField == "Metric") element.metric = clampInt(value.toInt(), 0, 127);
     else if (elementField == "Size") element.fontSize = clampInt(value.toInt(), 0, 5);
@@ -341,19 +341,32 @@ void loadConfig() {
       w.elementCount = clampInt(w.elementCount, 0, MAX_WIDGET_ELEMENTS);
       for (uint8_t e = 0; e < w.elementCount; ++e) {
         WidgetElementConfig& element = w.elements[e];
-        element.kind = clampInt(element.kind, ELEMENT_SENSOR, ELEMENT_TEXT);
+        element.kind = clampInt(element.kind, ELEMENT_SENSOR, ELEMENT_TOTAL);
         if (element.kind == ELEMENT_WIFI_CONTROL) {
           element.kind = ELEMENT_WIFI_STATUS;
           element.metric = 4;
           element.label = "Состояние точки";
           legacyLayoutMigrated = true;
         }
-        element.sourceId = (element.kind == ELEMENT_SENSOR && element.sourceId == 7 && (element.metric == 2 || element.metric >= 64)) ? 11 : clampInt(element.sourceId, 0, 11);
-        // Source 11 stores total PV power; legacy source 7 layouts are migrated above.
-        // Preserve that encoding when loading the saved layout; other sources use 0..5.
-        element.metric = (element.kind == ELEMENT_SENSOR && element.sourceId == 11)
-                             ? clampInt(element.metric, 0, 127)
-                             : clampInt(element.metric, 0, 5);
+        if (element.kind == ELEMENT_SENSOR) {
+          const bool legacyTotal =
+              (element.sourceId == 11 && (element.metric == 2 || element.metric == 4 || element.metric >= 64)) ||
+              (element.sourceId == 7 && (element.metric == 2 || element.metric >= 64)) ||
+              (element.sourceId == 0 && (element.metric == 4 || element.metric == 5));
+          if (legacyTotal) {
+            if (element.metric == 5 || element.metric == 2) element.metric = 2;
+            element.kind = ELEMENT_TOTAL;
+            element.sourceId = 0;
+            legacyLayoutMigrated = true;
+          }
+        }
+        if (element.kind == ELEMENT_TOTAL) {
+          element.sourceId = 0;
+          element.metric = clampInt(element.metric, 0, 127);
+        } else {
+          element.sourceId = clampInt(element.sourceId, 0, 255);
+          element.metric = clampInt(element.metric, 0, 5);
+        }
         element.fontSize = clampInt(element.fontSize, 0, 5);
         element.color = clampInt(element.color, 0, 5);
       }
