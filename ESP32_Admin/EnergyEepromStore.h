@@ -1,6 +1,6 @@
 /*
-  Crash-safe A/B persistence for 255 per-string Wh counters in the DS3231
-  module's 24C32 EEPROM. Each journal occupies exactly 1024 bytes.
+  Crash-safe A/B persistence for detected string IDs in the DS3231 module's
+  24C32 EEPROM. Each journal occupies 1024 bytes; absent IDs use no record space.
 */
 #pragma once
 #include <Arduino.h>
@@ -37,6 +37,7 @@ private:
   int8_t activeBank_ = -1;
   uint8_t scanBank_ = 0;
   uint8_t bestSequence_ = 0;
+  uint8_t bestVersion_ = 0;
   uint8_t saveSequence_ = 0;
   uint8_t targetBank_ = 0;
   uint8_t header_[4] = {};
