@@ -84,6 +84,26 @@ static uint8_t calibrationElementOrdinal(const WidgetElementConfig* target) {
 static String widgetElementText(const WidgetElementConfig& element) {
   const String prefix = element.label.length() ? element.label + ": " : "";
   if (element.kind == ELEMENT_TEXT) return element.label;
+  if (element.kind == ELEMENT_TOTAL) {
+    if (element.metric == 4)
+      return prefix + String((double)energyCounter.totalWh() / 1000.0, 3) + " кВт·ч";
+    float total = 0.0f;
+    bool any = false;
+    if (element.metric == 2) {
+      for (uint16_t i = 0; i < 255; ++i) {
+        if (stringSensorFresh((uint8_t)i)) { total += stringSensorPower[i]; any = true; }
+      }
+    } else if (element.metric >= 64) {
+      const uint8_t sensorMask = element.metric - 64;
+      for (uint8_t i = 0; i < 6; ++i) {
+        if ((sensorMask & (1U << i)) && stringSensorFresh(i)) {
+          total += stringSensorPower[i];
+          any = true;
+        }
+      }
+    }
+    return prefix + (any ? String(total, 1) + " Вт" : String("— Вт"));
+  }
   if (element.kind == ELEMENT_CLOCK) {
     extern bool gatewayTimeValid;
     extern uint16_t gatewayYear;
