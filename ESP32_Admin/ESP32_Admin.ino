@@ -348,7 +348,7 @@ void handleApiConfig() {
 String makeEnergyHistoryJson() {
   const uint16_t detectedStrings = energyCounter.detectedCount();
   const uint16_t recordBytes = (uint16_t)(9U + (uint16_t)detectedStrings * 4U);
-  const uint16_t estimatedArchiveDays = recordBytes <= 1024U ? (uint16_t)(1024U / recordBytes) : 0;
+  const uint16_t estimatedArchiveDays = detectedStrings && recordBytes <= 1024U ? (uint16_t)(1024U / recordBytes) : 0;
   String j = "{\"ready\":" + String(energyCalendarStore.ready() ? "true" : "false") +
              ",\"storageLimited\":" + String(energyCalendarStore.storageLimited() ? "true" : "false") +
              ",\"detectedStrings\":" + String(detectedStrings) +
