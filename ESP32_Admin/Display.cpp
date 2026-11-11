@@ -158,7 +158,7 @@ static String widgetElementText(const WidgetElementConfig& element) {
     }
   } else {
     const uint8_t sensor = element.sourceId - 1;
-    if (element.sourceId != 11 && element.metric == 4) {
+    if (element.metric == 4) {
       value = String((double)energyCounter.stringWh(element.sourceId) / 1000.0, 3);
       return prefix + value + " кВт·ч";
     }
