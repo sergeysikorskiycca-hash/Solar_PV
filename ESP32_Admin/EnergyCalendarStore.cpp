@@ -198,7 +198,7 @@ void EnergyCalendarStore::update(uint8_t sensorId, float powerW, uint32_t nowMs,
   const uint32_t date = makeDate(year, month, day);
   if (!currentDate_) currentDate_ = date;
   else if (date != currentDate_) {
-    if (currentDate_ < date) snapshotPendingDay(currentDate_);
+    snapshotPendingDay(currentDate_);
     currentDate_ = date;
     memset(dailyWh_, 0, sizeof(dailyWh_));
     memset(dailyRemainderWh_, 0, sizeof(dailyRemainderWh_));
@@ -256,12 +256,24 @@ void EnergyCalendarStore::scanArchive() {
     if (!decodeValues(p + 8, (uint16_t)(length - 9U), count, ids, values, check) ||
         check != (uint16_t)(length - 9U)) continue;
 
-    if (archiveCount_ < MAX_ARCHIVED_DAYS) {
+    const uint32_t recordDate = (uint32_t)p[3] | ((uint32_t)p[4] << 8) |
+                                ((uint32_t)p[5] << 16) | ((uint32_t)p[6] << 24);
+    int16_t duplicate = -1;
+    for (uint8_t n = 0; n < archiveCount_; ++n)
+      if (archiveIndex_[n].date == recordDate) { duplicate = (int16_t)n; break; }
+    if (duplicate >= 0) {
+      if (newer(p[2], archiveIndex_[duplicate].sequence)) {
+        ArchiveIndex& item = archiveIndex_[duplicate];
+        item.offset = offset;
+        item.length = length;
+        item.sequence = p[2];
+        item.valid = true;
+      }
+    } else if (archiveCount_ < MAX_ARCHIVED_DAYS) {
       ArchiveIndex& item = archiveIndex_[archiveCount_++];
       item.offset = offset;
       item.length = length;
-      item.date = (uint32_t)p[3] | ((uint32_t)p[4] << 8) |
-                  ((uint32_t)p[5] << 16) | ((uint32_t)p[6] << 24);
+      item.date = recordDate;
       item.sequence = p[2];
       item.valid = true;
     }
@@ -373,6 +385,10 @@ void EnergyCalendarStore::handleResponse(uint32_t nowMs) {
       stage_ = SCAN_CP0;
       scanBank_ = 0;
       ioOffset_ = 0;
+      checkpointValid_ = false;
+      checkpointSequence_ = 0;
+      checkpointCount_ = 0;
+      archiveCount_ = 0;
       nextActionMs_ = nowMs + RETRY_MS;
     } else {
       stage_ = READY;
