@@ -97,7 +97,9 @@ function renderEnergyHistory(){
  const cards=[['Сегодня',energyKwh(currentTotal)],['Итого за период',energyKwh(periodTotal)],['Дней в периоде',String(rows.length)]];
  cards.forEach(([name,value])=>{const el=document.createElement('span');el.textContent=name+': '+value;summary.appendChild(el)});
  status.textContent='RTC: '+(currentDate?energyDateText(currentDate):'дата пока недоступна')+
-  ' · записей в архиве: '+days.length+(energyHistory.storageLimited?' · достигнуто ограничение ёмкости календарного хранилища':'');
+  ' · архивных суток: '+days.length+' · обнаружено стрингов: '+Number(energyHistory.detectedStrings||0)+
+  ' · ориентир хранения: '+Number(energyHistory.estimatedArchiveDays||0)+' дней'+
+  ' · checkpoint: до 125 стрингов'+(energyHistory.storageLimited||Number(energyHistory.detectedStrings||0)>125?' · достигнуто ограничение ёмкости календарного хранилища':'');
  if(!rows.length){root.textContent='Для выбранного периода пока нет сохранённых суточных записей.';byString.innerHTML='';return}
  const table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');
  head.innerHTML='<tr><th>Дата</th><th>Выработка</th><th>По стрингам</th></tr>';
