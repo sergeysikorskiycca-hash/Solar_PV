@@ -19,7 +19,7 @@ struct SavedNetwork {
 enum WidgetElementKind : uint8_t {
   ELEMENT_SENSOR = 0, ELEMENT_CLOCK = 1, ELEMENT_WIFI_STATUS = 2,
   ELEMENT_WIFI_CONTROL = 3, ELEMENT_CALIBRATION = 4,
-  ELEMENT_WIFI_NETWORK = 5, ELEMENT_TEXT = 6
+  ELEMENT_WIFI_NETWORK = 5, ELEMENT_TEXT = 6, ELEMENT_TOTAL = 7
 };
 
 // One configurable item inside the universal widget.
