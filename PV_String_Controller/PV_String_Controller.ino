@@ -132,7 +132,7 @@ static bool setCalibration(uint8_t sensorId, float currentFactor, float voltageF
     if (!saveCalibration()) {
         currentCalibration[index] = oldCurrentFactor;
         voltageCalibration[index] = oldVoltageFactor;
-        Serial.println("Calibration not applied: EEPROM commit failed; previous factors restored");
+        Serial.println("Calibration not applied: EEPROM commit/verify failed; previous factors restored");
         return false;
     }
     Serial.printf("Calibration sensor %u: I=%.3f U=%.3f\n", (unsigned)sensorId, currentFactor, voltageFactor);
