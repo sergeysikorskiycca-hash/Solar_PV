@@ -817,7 +817,7 @@ static void processGatewayPacket() {
       gatewaySensorPacketNumber = packet.sensorPacketNumber;
       if (gatewaySensorValid && packet.sensorId != 0) {
         const uint32_t sampleTimeMs = millis();
-        // The energy core accepts every non-zero uint8_t sensor ID (1..255).
+        // The energy core accepts only the two configured sensor IDs (1 and 2).
         energyCounter.update(packet.sensorId, packet.power, sampleTimeMs);
         energyCalendarStore.update(packet.sensorId, packet.power, sampleTimeMs,
                                    gatewayTimeValid, gatewayYear, gatewayMonth, gatewayDay);
