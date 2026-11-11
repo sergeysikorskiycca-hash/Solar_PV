@@ -82,16 +82,19 @@ function renderEnergyHistory(){
  const anchor=String(currentDate||'');
  const currentMonth=anchor.slice(0,6),currentYear=anchor.slice(0,4);
  const filtered=days.filter(d=>{const k=String(d.dateKey||'');return period==='month'?k.slice(0,6)===currentMonth:period==='year'?k.slice(0,4)===currentYear:true});
- const archivedTotal=filtered.reduce((a,d)=>a+Number(d.totalWh||0),0);
+ const rows=filtered.filter(d=>Number(d.dateKey)!==currentDate);
+ if(currentDate&&currentTotal&&(period==='all'||(period==='month'&&String(currentDate).slice(0,6)===currentMonth)||(period==='year'&&String(currentDate).slice(0,4)===currentYear)))
+  rows.push({date:energyDateText(currentDate),dateKey:currentDate,totalWh:currentTotal,strings:currentRows});
+ const periodTotal=rows.reduce((a,d)=>a+Number(d.totalWh||0),0);
  summary.innerHTML='';
- const cards=[['Сегодня',energyKwh(currentTotal)],['Архивный период',energyKwh(archivedTotal)],['Дней в архиве',String(filtered.length)]];
+ const cards=[['Сегодня',energyKwh(currentTotal)],['Итого за период',energyKwh(periodTotal)],['Дней в периоде',String(rows.length)]];
  cards.forEach(([name,value])=>{const el=document.createElement('span');el.textContent=name+': '+value;summary.appendChild(el)});
  status.textContent='RTC: '+(currentDate?energyDateText(currentDate):'дата пока недоступна')+
-  ' · записей: '+days.length+(energyHistory.storageLimited?' · достигнуто ограничение ёмкости календарного хранилища':'');
- if(!filtered.length){root.textContent='Для выбранного периода пока нет сохранённых завершённых суток.';return}
+  ' · записей в архиве: '+days.length+(energyHistory.storageLimited?' · достигнуто ограничение ёмкости календарного хранилища':'');
+ if(!rows.length){root.textContent='Для выбранного периода пока нет сохранённых суточных записей.';return}
  const table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');
  head.innerHTML='<tr><th>Дата</th><th>Выработка</th><th>По стрингам</th></tr>';
- filtered.slice().reverse().forEach(d=>{
+ rows.slice().reverse().forEach(d=>{
   const tr=document.createElement('tr'),date=document.createElement('td'),total=document.createElement('td'),strings=document.createElement('td');
   date.textContent=d.date||energyDateText(d.dateKey);total.textContent=energyKwh(d.totalWh);
   strings.textContent=(d.strings||[]).map(x=>'#'+x.id+' '+energyKwh(x.wh)).join(' · ')||'—';
