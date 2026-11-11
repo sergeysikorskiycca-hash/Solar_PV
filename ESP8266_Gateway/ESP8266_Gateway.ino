@@ -29,7 +29,7 @@ static const uint8_t FRAME_VERSION = 2;
 static const uint8_t ACK_MAGIC = 0x5A;
 static const uint32_t FRAME_INTERVAL_MS = 100; // 10 Hz
 static const uint32_t RTC_INTERVAL_MS = 1000;  // DS3231 changes once per second
-static const uint8_t MAX_SENSORS = 10;
+static const uint8_t MAX_SENSORS = 2;
 
 struct SensorPacket {
   char name[20];
