@@ -58,7 +58,7 @@ bool EnergyCalendarStore::decodeValues(const uint8_t* data, uint16_t length,
                                         uint8_t count, uint8_t* ids, uint32_t* values,
                                         uint16_t& used) {
   used = 0;
-  if ((uint32_t)count * 4U > length) return false;
+  if (count > 2 || (uint32_t)count * 4U > length) return false;
   for (uint16_t i = 0; i < count; ++i) {
     const uint8_t id = data[used++];
     if (!id || id > 2) return false;
