@@ -1,6 +1,6 @@
 /*
   Non-blocking lifetime energy accumulator for PV string sensor IDs 1..255.
-  Whole watt-hours are persistent; fractional watt-hours are retained in RAM.
+  Only IDs that have actually reported telemetry are marked as detected.
 */
 #pragma once
 #include <Arduino.h>
@@ -16,6 +16,7 @@ public:
   uint32_t stringWh(uint8_t sensorId) const;
   uint64_t totalWh() const;
   bool addStoredWh(uint8_t sensorId, uint32_t storedWh);
+  bool restoreStoredWh(uint8_t sensorId, uint32_t storedWh);
   bool resetString(uint8_t sensorId);
 
 private:
