@@ -1,5 +1,5 @@
 /*
-  Non-blocking lifetime energy accumulator for PV string sensor IDs 1..255.
+  Non-blocking lifetime energy accumulator for PV string sensor IDs 1..2.
   Only IDs that have actually reported telemetry are marked as detected.
 */
 #pragma once
@@ -7,7 +7,7 @@
 
 class EnergyCounter {
 public:
-  static constexpr uint16_t SENSOR_COUNT = 255;
+  static constexpr uint16_t SENSOR_COUNT = 2;
 
   void begin(uint32_t nowMs = 0);
   void update(uint8_t sensorId, float powerW, uint32_t nowMs);
