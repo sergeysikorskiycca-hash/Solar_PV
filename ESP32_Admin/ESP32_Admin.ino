@@ -170,11 +170,12 @@ uint16_t gatewaySensorPacketNumber = 0;
 bool gatewaySensorValid = false;
 
 // Latest values for each ESP-NOW sensor ID (sensorId 1 maps to String 1).
-bool stringSensorValid[MAX_STRING_SENSORS] = {};
-uint32_t stringSensorLastSeenMs[MAX_STRING_SENSORS] = {};
-float stringSensorVoltage[MAX_STRING_SENSORS] = {};
-float stringSensorCurrent[MAX_STRING_SENSORS] = {};
-float stringSensorPower[MAX_STRING_SENSORS] = {};
+static const uint16_t MAX_TRACKED_STRING_IDS = 255;
+bool stringSensorValid[MAX_TRACKED_STRING_IDS] = {};
+uint32_t stringSensorLastSeenMs[MAX_TRACKED_STRING_IDS] = {};
+float stringSensorVoltage[MAX_TRACKED_STRING_IDS] = {};
+float stringSensorCurrent[MAX_TRACKED_STRING_IDS] = {};
+float stringSensorPower[MAX_TRACKED_STRING_IDS] = {};
 float activeCurrentCalibration[MAX_STRING_SENSORS] = {};
 float activeVoltageCalibration[MAX_STRING_SENSORS] = {};
 bool activeCalibrationValid[MAX_STRING_SENSORS] = {};
@@ -285,15 +286,19 @@ String makeConfigJson() {
   j += "\"totalEnergyWh\":" + String(totalEnergyText) + ",";
   j += "\"energyCounterReady\":" + String(energyEepromStore.ready() ? "true" : "false") + ",";
   j += "\"stringTelemetry\":[";
-  for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) {
-    if (i) j += ",";
-    bool fresh = stringSensorValid[i] &&
-                 millis() - stringSensorLastSeenMs[i] <= STRING_SENSOR_TIMEOUT_MS;
-    j += "{\"id\":" + String(i + 1) + ",\"valid\":" + String(fresh ? "true" : "false") +
-         ",\"voltage\":" + String(stringSensorVoltage[i], 3) +
-         ",\"current\":" + String(stringSensorCurrent[i], 4) +
-         ",\"power\":" + String(stringSensorPower[i], 2) +
-         ",\"energyWh\":" + String(energyCounter.stringWh(i + 1)) + "}";
+  bool firstTelemetry = true;
+  for (uint16_t id = 1; id <= MAX_TRACKED_STRING_IDS; ++id) {
+    if (!energyCounter.detected((uint8_t)id)) continue;
+    const uint16_t index = id - 1U;
+    const bool fresh = stringSensorValid[index] &&
+                       millis() - stringSensorLastSeenMs[index] <= STRING_SENSOR_TIMEOUT_MS;
+    if (!firstTelemetry) j += ",";
+    firstTelemetry = false;
+    j += "{\"id\":" + String(id) + ",\"valid\":" + String(fresh ? "true" : "false") +
+         ",\"voltage\":" + String(stringSensorVoltage[index], 3) +
+         ",\"current\":" + String(stringSensorCurrent[index], 4) +
+         ",\"power\":" + String(stringSensorPower[index], 2) +
+         ",\"energyWh\":" + String(energyCounter.stringWh((uint8_t)id)) + "}";
   }
   j += "],";
   j += "\"activeCurrentCalibration\":[";
@@ -815,15 +820,16 @@ static void processGatewayPacket() {
         energyCalendarStore.update(packet.sensorId, packet.power, sampleTimeMs,
                                    gatewayTimeValid, gatewayYear, gatewayMonth, gatewayDay);
 
-        // Live display and calibration settings currently retain the existing
-        // ten-channel UI layout; energy accumulation is independent of that UI.
+        const uint16_t telemetryIndex = (uint16_t)packet.sensorId - 1U;
+        stringSensorValid[telemetryIndex] = true;
+        stringSensorLastSeenMs[telemetryIndex] = sampleTimeMs;
+        stringSensorVoltage[telemetryIndex] = packet.voltage;
+        stringSensorCurrent[telemetryIndex] = packet.current;
+        stringSensorPower[telemetryIndex] = packet.power;
+
+        // Calibration controls retain their existing first-ten layout for now.
         if (packet.sensorId <= MAX_STRING_SENSORS) {
           const uint8_t index = packet.sensorId - 1;
-          stringSensorValid[index] = true;
-          stringSensorLastSeenMs[index] = sampleTimeMs;
-          stringSensorVoltage[index] = packet.voltage;
-          stringSensorCurrent[index] = packet.current;
-          stringSensorPower[index] = packet.power;
           activeCurrentCalibration[index] = packet.currentCalibrationX600 / 600.0f;
           activeVoltageCalibration[index] = packet.voltageCalibrationX600 / 600.0f;
           activeCalibrationValid[index] = packet.currentCalibrationX600 >= 1 && packet.voltageCalibrationX600 >= 1;
