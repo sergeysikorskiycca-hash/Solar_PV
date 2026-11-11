@@ -94,9 +94,10 @@ private:
   static bool newer(uint8_t a, uint8_t b);
   static uint16_t encodeValues(uint8_t* out, const uint8_t* ids,
                                const uint32_t* values, uint8_t count);
+  // Reads legacy records with more IDs but retains only the fixed IDs 1 and 2.
   static bool decodeValues(const uint8_t* data, uint16_t length,
                            uint8_t count, uint8_t* ids, uint32_t* values,
-                           uint16_t& used);
+                           uint16_t& used, uint8_t& retainedCount);
   void registerId(uint8_t id);
   void snapshotPendingDay(uint32_t date);
   void applyRestoredCheckpoint();
