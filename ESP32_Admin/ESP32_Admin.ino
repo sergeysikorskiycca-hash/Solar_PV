@@ -170,7 +170,7 @@ uint16_t gatewaySensorPacketNumber = 0;
 bool gatewaySensorValid = false;
 
 // Latest values for each ESP-NOW sensor ID (sensorId 1 maps to String 1).
-static const uint16_t MAX_TRACKED_STRING_IDS = 255;
+static const uint16_t MAX_TRACKED_STRING_IDS = MAX_STRING_SENSORS;
 bool stringSensorValid[MAX_TRACKED_STRING_IDS] = {};
 uint32_t stringSensorLastSeenMs[MAX_TRACKED_STRING_IDS] = {};
 float stringSensorVoltage[MAX_TRACKED_STRING_IDS] = {};
@@ -357,11 +357,11 @@ String makeEnergyHistoryJson() {
   String j = "{\"ready\":" + String(energyCalendarStore.ready() ? "true" : "false") +
              ",\"storageLimited\":" + String(energyCalendarStore.storageLimited() ? "true" : "false") +
              ",\"detectedStrings\":" + String(detectedStrings) +
-             ",\"checkpointStringCapacity\":125,\"estimatedArchiveDays\":" + String(estimatedArchiveDays) +
+             ",\"checkpointStringCapacity\":2,\"estimatedArchiveDays\":" + String(estimatedArchiveDays) +
              ",\"currentDate\":" + String(energyCalendarStore.currentDate()) + ",\"current\":[";
   bool first = true;
   uint64_t currentTotal = 0;
-  for (uint16_t id = 1; id <= 255; ++id) {
+  for (uint16_t id = 1; id <= MAX_STRING_SENSORS; ++id) {
     const uint32_t wh = energyCalendarStore.currentDayWh((uint8_t)id);
     if (!wh) continue;
     if (!first) j += ",";
@@ -382,12 +382,12 @@ String makeEnergyHistoryJson() {
              (unsigned long)(date % 100UL));
     j += "{\"date\":\"" + String(dateText) + "\",\"dateKey\":" + String(date) + ",\"totalWh\":\"";
     uint64_t dayTotal = 0;
-    for (uint16_t id = 1; id <= 255; ++id) dayTotal += energyCalendarStore.archivedDayWh(dayIndex, (uint8_t)id);
+    for (uint16_t id = 1; id <= MAX_STRING_SENSORS; ++id) dayTotal += energyCalendarStore.archivedDayWh(dayIndex, (uint8_t)id);
     char dayTotalText[24];
     snprintf(dayTotalText, sizeof(dayTotalText), "%llu", (unsigned long long)dayTotal);
     j += String(dayTotalText) + "\",\"strings\":[";
     bool firstString = true;
-    for (uint16_t id = 1; id <= 255; ++id) {
+    for (uint16_t id = 1; id <= MAX_STRING_SENSORS; ++id) {
       const uint32_t wh = energyCalendarStore.archivedDayWh(dayIndex, (uint8_t)id);
       if (!wh) continue;
       if (!firstString) j += ",";
@@ -492,8 +492,8 @@ void handleSaveDisplay() {
         WidgetElementConfig& element = w.elements[e];
         element.kind = clampInt(sourceElement["kind"] | ELEMENT_SENSOR, ELEMENT_SENSOR, ELEMENT_TOTAL);
         element.sourceId = element.kind == ELEMENT_TOTAL ? 0 :
-                           (element.kind == ELEMENT_CALIBRATION ? clampInt(sourceElement["sourceId"] | 1, 1, 255) :
-                            clampInt(sourceElement["sourceId"] | 1, 0, 255));
+                           (element.kind == ELEMENT_CALIBRATION ? clampInt(sourceElement["sourceId"] | 1, 1, MAX_STRING_SENSORS) :
+                            clampInt(sourceElement["sourceId"] | 1, 0, MAX_STRING_SENSORS));
         element.metric = clampInt(sourceElement["metric"] | 0, 0, element.kind == ELEMENT_TOTAL ? 127 : 5);
         if (element.kind == ELEMENT_WIFI_CONTROL) { element.kind = ELEMENT_WIFI_STATUS; element.metric = 4; }
         element.fontSize = clampInt(sourceElement["fontSize"] | 2, 0, 5);
