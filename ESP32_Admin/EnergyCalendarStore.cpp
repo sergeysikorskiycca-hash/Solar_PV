@@ -56,17 +56,29 @@ uint16_t EnergyCalendarStore::encodeValues(uint8_t* out, const uint8_t* ids,
 
 bool EnergyCalendarStore::decodeValues(const uint8_t* data, uint16_t length,
                                         uint8_t count, uint8_t* ids, uint32_t* values,
-                                        uint16_t& used) {
+                                        uint16_t& used, uint8_t& retainedCount) {
   used = 0;
-  if (count > 2 || (uint32_t)count * 4U > length) return false;
+  retainedCount = 0;
+  if ((uint32_t)count * 4U > length) return false;
+
+  // Older firmware could store many sensor IDs. Parse the complete record so
+  // its CRC/length remain valid, but keep only the two IDs supported now.
   for (uint16_t i = 0; i < count; ++i) {
     const uint8_t id = data[used++];
-    if (!id || id > 2) return false;
+    if (!id) return false;
     const uint32_t value = (uint32_t)data[used] |
       ((uint32_t)data[used + 1] << 8) | ((uint32_t)data[used + 2] << 16);
     used += 3;
-    ids[i] = id;
-    values[i] = value;
+
+    if (id > 2) continue;
+    bool duplicate = false;
+    for (uint8_t kept = 0; kept < retainedCount; ++kept)
+      if (ids[kept] == id) { duplicate = true; break; }
+    if (!duplicate && retainedCount < 2) {
+      ids[retainedCount] = id;
+      values[retainedCount] = value;
+      ++retainedCount;
+    }
   }
   return true;
 }
@@ -301,9 +313,10 @@ void EnergyCalendarStore::scanArchive() {
     if (crc8(p, length - 1U) != p[length - 1U]) continue;
 
     uint16_t check = 0;
-    uint8_t ids[2];
-    uint32_t values[2];
-    if (!decodeValues(p + 8, (uint16_t)(length - 9U), count, ids, values, check) ||
+    uint8_t retainedCount = 0;
+    uint8_t ids[2] = {};
+    uint32_t values[2] = {};
+    if (!decodeValues(p + 8, (uint16_t)(length - 9U), count, ids, values, check, retainedCount) ||
         check != (uint16_t)(length - 9U)) continue;
 
     const uint32_t recordDate = (uint32_t)p[3] | ((uint32_t)p[4] << 8) |
@@ -471,14 +484,15 @@ void EnergyCalendarStore::handleResponse(uint32_t nowMs) {
             const uint8_t sequence = p[2];
             if (!checkpointValid_ || newer(sequence, checkpointSequence_)) {
               uint16_t used = 0;
+              uint8_t retainedCount = 0;
               if (decodeValues(p + 8, (uint16_t)(recordLength - 9U), count,
-                               checkpointIds_, checkpointWh_, used) &&
+                               checkpointIds_, checkpointWh_, used, retainedCount) &&
                   used == (uint16_t)(recordLength - 9U)) {
                 checkpointValid_ = true;
                 checkpointSequence_ = sequence;
                 checkpointDate_ = (uint32_t)p[3] | ((uint32_t)p[4] << 8) |
                                   ((uint32_t)p[5] << 16) | ((uint32_t)p[6] << 24);
-                checkpointCount_ = count;
+                checkpointCount_ = retainedCount;
                 activeCheckpoint_ = scanBank_;
               }
             }
@@ -522,8 +536,10 @@ void EnergyCalendarStore::handleResponse(uint32_t nowMs) {
       checkpointValid_ = true;
       checkpointCount_ = checkpointBuffer_[7];
       uint16_t used = 0;
+      uint8_t retainedCount = 0;
       decodeValues(checkpointBuffer_ + 8, (uint16_t)(checkpointLength_ - 9U),
-                   checkpointCount_, checkpointIds_, checkpointWh_, used);
+                   checkpointCount_, checkpointIds_, checkpointWh_, used, retainedCount);
+      checkpointCount_ = retainedCount;
       stage_ = READY;
       nextActionMs_ = nowMs + CHECKPOINT_INTERVAL_MS;
     } else if (stage_ == ARCH_INVALIDATE) {
