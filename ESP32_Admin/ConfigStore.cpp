@@ -189,7 +189,7 @@ bool loadPageKey(const String& key, const String& value) {
   }
   else if (suffix == "HeadingSize") w.headingSize = clampInt(value.toInt(), 0, 5);
   else if (suffix == "ContentSize") w.contentSize = clampInt(value.toInt(), 0, 5);
-  else if (suffix == "StringCount") legacyStringCounts[p][wi] = clampInt(value.toInt(), 1, 10);
+  else if (suffix == "StringCount") legacyStringCounts[p][wi] = clampInt(value.toInt(), 1, 2);
   else if (suffix == "Locked") w.locked = value == "1";
   else if (suffix == "ShowHeading") w.showHeading = value == "1";
   else if (suffix == "ShowBorder") w.showBorder = value == "1";
@@ -295,7 +295,7 @@ void loadConfig() {
           legacyType == LEGACY_STRINGS_CURRENT || legacyType == LEGACY_STRINGS_POWER) {
         if (firstElementMissing) {
           const uint8_t count = legacyStringCount ? legacyStringCount : 2;
-          w.elementCount = clampInt(count, 1, MAX_WIDGET_ELEMENTS);
+          w.elementCount = clampInt(count, 1, 2);
           for (uint8_t e = 0; e < w.elementCount; ++e) {
             WidgetElementConfig& element = w.elements[e];
             element.label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
@@ -320,7 +320,7 @@ void loadConfig() {
         w.elements[0].metric = 2; w.elements[0].fontSize = w.contentSize; w.elements[0].color = w.contentColor;
       } else if (legacyType == LEGACY_CALIBRATION && w.elementCount == 0) {
         const uint8_t count = legacyStringCount ? legacyStringCount : 2;
-        w.elementCount = clampInt(count, 2, 6);
+        w.elementCount = clampInt(count, 2, 2);
         for (uint8_t e = 0; e < w.elementCount; ++e) {
           w.elements[e].label = cfg.uiTexts.stringPrefix + " " + String(e + 1);
           w.elements[e].kind = ELEMENT_CALIBRATION; w.elements[e].sourceId = e + 1; w.elements[e].metric = 2;
