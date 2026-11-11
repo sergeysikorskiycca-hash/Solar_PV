@@ -175,11 +175,23 @@ void EnergyCalendarStore::applyRestoredCheckpoint() {
       dailyWh_[index] = total > 0x00FFFFFEUL ? 0x00FFFFFEUL : (uint32_t)total;
     }
   } else {
-    pendingDate_ = checkpointDate_;
-    pendingCount_ = checkpointCount_;
+    if (pendingDate_ != checkpointDate_) {
+      pendingDate_ = checkpointDate_;
+      pendingCount_ = 0;
+    }
     for (uint16_t i = 0; i < checkpointCount_; ++i) {
-      pendingIds_[i] = checkpointIds_[i];
-      pendingWh_[i] = checkpointWh_[i];
+      const uint8_t id = checkpointIds_[i];
+      uint8_t position = 0;
+      while (position < pendingCount_ && pendingIds_[position] != id) ++position;
+      if (position == pendingCount_ && pendingCount_ < 255) {
+        pendingIds_[pendingCount_] = id;
+        pendingWh_[pendingCount_] = 0;
+        ++pendingCount_;
+      }
+      if (position < pendingCount_) {
+        const uint64_t combined = (uint64_t)pendingWh_[position] + checkpointWh_[i];
+        pendingWh_[position] = combined > 0x00FFFFFEUL ? 0x00FFFFFEUL : (uint32_t)combined;
+      }
     }
     archiveRequested_ = pendingCount_ != 0;
   }
@@ -203,7 +215,6 @@ void EnergyCalendarStore::update(uint8_t sensorId, float powerW, uint32_t nowMs,
     memset(dailyWh_, 0, sizeof(dailyWh_));
     memset(dailyRemainderWh_, 0, sizeof(dailyRemainderWh_));
     memset(sampleSeen_, 0, sizeof(sampleSeen_));
-    restored_ = false;
     saveRequested_ = true;
   }
 
