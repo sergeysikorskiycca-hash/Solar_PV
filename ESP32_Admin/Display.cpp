@@ -270,9 +270,9 @@ struct IncrementalWidgetCache {
   uint8_t contentSize, align, color, background, count, rowSpacing;
   int8_t contentLetterSpacing;
   bool wifiEditing;
-  String lines[18];
-  uint16_t colors[18];
-  uint8_t fontSizes[18];
+  String lines[MAX_WIDGET_ELEMENTS];
+  uint16_t colors[MAX_WIDGET_ELEMENTS];
+  uint8_t fontSizes[MAX_WIDGET_ELEMENTS];
 };
 static IncrementalWidgetCache incrementalCaches[MAX_PAGES][MAX_WIDGETS_PER_PAGE];
 
