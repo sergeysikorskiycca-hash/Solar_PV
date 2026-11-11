@@ -164,7 +164,23 @@ void EnergyCalendarStore::snapshotPendingDay(uint32_t date) {
 void EnergyCalendarStore::applyRestoredCheckpoint() {
   if (restored_ || !currentDate_ || !ready_) return;
   restored_ = true;
-  if (!checkpointValid_) return;
+  int16_t currentArchivedIndex = -1;
+  for (uint8_t i = 0; i < archiveCount_; ++i)
+    if (archiveIndex_[i].date == currentDate_) { currentArchivedIndex = i; break; }
+
+  if (!checkpointValid_) {
+    if (currentArchivedIndex >= 0) {
+      for (uint16_t id = 1; id <= 255; ++id) {
+        const uint32_t archivedWh = archivedDayWh((uint8_t)currentArchivedIndex, (uint8_t)id);
+        if (!archivedWh) continue;
+        registerId((uint8_t)id);
+        const uint16_t index = id - 1U;
+        const uint64_t total = (uint64_t)dailyWh_[index] + archivedWh;
+        dailyWh_[index] = total > 0x00FFFFFEUL ? 0x00FFFFFEUL : (uint32_t)total;
+      }
+    }
+    return;
+  }
 
   if (checkpointDate_ == currentDate_) {
     int16_t archivedIndex = -1;
@@ -183,6 +199,16 @@ void EnergyCalendarStore::applyRestoredCheckpoint() {
       dailyWh_[index] = total > 0x00FFFFFEUL ? 0x00FFFFFEUL : (uint32_t)total;
     }
   } else {
+    if (currentArchivedIndex >= 0) {
+      for (uint16_t id = 1; id <= 255; ++id) {
+        const uint32_t archivedWh = archivedDayWh((uint8_t)currentArchivedIndex, (uint8_t)id);
+        if (!archivedWh) continue;
+        registerId((uint8_t)id);
+        const uint16_t index = id - 1U;
+        const uint64_t total = (uint64_t)dailyWh_[index] + archivedWh;
+        dailyWh_[index] = total > 0x00FFFFFEUL ? 0x00FFFFFEUL : (uint32_t)total;
+      }
+    }
     bool archiveAlreadyHasDate = false;
     for (uint8_t i = 0; i < archiveCount_; ++i)
       if (archiveIndex_[i].date == checkpointDate_) { archiveAlreadyHasDate = true; break; }
