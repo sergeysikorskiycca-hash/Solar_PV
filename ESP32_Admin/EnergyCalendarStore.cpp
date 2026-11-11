@@ -116,11 +116,11 @@ void EnergyCalendarStore::registerId(uint8_t id) {
   if (!id) return;
   for (uint16_t i = 0; i < detectedCount_; ++i)
     if (detectedIds_[i] == id) return;
-  if (detectedCount_ < 255) detectedIds_[detectedCount_++] = id;
+  if (detectedCount_ < 2) detectedIds_[detectedCount_++] = id;
 }
 
 uint32_t EnergyCalendarStore::currentDayWh(uint8_t sensorId) const {
-  return sensorId ? dailyWh_[(uint16_t)sensorId - 1U] : 0;
+  return sensorId && sensorId <= 2 ? dailyWh_[(uint16_t)sensorId - 1U] : 0;
 }
 
 uint8_t EnergyCalendarStore::archivedDayCount() const { return archiveCount_; }
@@ -130,7 +130,7 @@ uint32_t EnergyCalendarStore::archivedDate(uint8_t index) const {
 }
 
 uint32_t EnergyCalendarStore::archivedDayWh(uint8_t index, uint8_t sensorId) const {
-  if (index >= archiveCount_ || !sensorId) return 0;
+  if (index >= archiveCount_ || !sensorId || sensorId > 2) return 0;
   const ArchiveIndex& item = archiveIndex_[index];
   if (!item.valid || item.offset + item.length > ARCHIVE_SIZE) return 0;
   const uint8_t count = archiveBuffer_[item.offset + 7];
@@ -170,7 +170,7 @@ void EnergyCalendarStore::applyRestoredCheckpoint() {
 
   if (!checkpointValid_) {
     if (currentArchivedIndex >= 0) {
-      for (uint16_t id = 1; id <= 255; ++id) {
+      for (uint16_t id = 1; id <= 2; ++id) {
         const uint32_t archivedWh = archivedDayWh((uint8_t)currentArchivedIndex, (uint8_t)id);
         if (!archivedWh) continue;
         registerId((uint8_t)id);
@@ -200,7 +200,7 @@ void EnergyCalendarStore::applyRestoredCheckpoint() {
     }
   } else {
     if (currentArchivedIndex >= 0) {
-      for (uint16_t id = 1; id <= 255; ++id) {
+      for (uint16_t id = 1; id <= 2; ++id) {
         const uint32_t archivedWh = archivedDayWh((uint8_t)currentArchivedIndex, (uint8_t)id);
         if (!archivedWh) continue;
         registerId((uint8_t)id);
@@ -222,7 +222,7 @@ void EnergyCalendarStore::applyRestoredCheckpoint() {
       const uint8_t id = checkpointIds_[i];
       uint8_t position = 0;
       while (position < pendingCount_ && pendingIds_[position] != id) ++position;
-      if (position == pendingCount_ && pendingCount_ < 255) {
+      if (position == pendingCount_ && pendingCount_ < 2) {
         pendingIds_[pendingCount_] = id;
         pendingWh_[pendingCount_] = 0;
         ++pendingCount_;
@@ -239,7 +239,7 @@ void EnergyCalendarStore::applyRestoredCheckpoint() {
 
 void EnergyCalendarStore::update(uint8_t sensorId, float powerW, uint32_t nowMs,
                                   bool timeValid, uint16_t year, uint8_t month, uint8_t day) {
-  if (!sensorId || !isfinite(powerW)) return;
+  if (!sensorId || sensorId > 2 || !isfinite(powerW)) return;
   const uint16_t index = (uint16_t)sensorId - 1U;
   if (!timeValid || !validDate(year, month, day)) {
     sampleSeen_[index] = false;
@@ -301,8 +301,8 @@ void EnergyCalendarStore::scanArchive() {
     if (crc8(p, length - 1U) != p[length - 1U]) continue;
 
     uint16_t check = 0;
-    uint8_t ids[255];
-    uint32_t values[255];
+    uint8_t ids[2];
+    uint32_t values[2];
     if (!decodeValues(p + 8, (uint16_t)(length - 9U), count, ids, values, check) ||
         check != (uint16_t)(length - 9U)) continue;
 
@@ -356,8 +356,8 @@ void EnergyCalendarStore::scanArchive() {
 }
 
 void EnergyCalendarStore::startCheckpoint(uint32_t nowMs) {
-  uint8_t ids[255];
-  uint32_t values[255];
+  uint8_t ids[2];
+  uint32_t values[2];
   uint8_t count = 0;
   for (uint16_t i = 0; i < detectedCount_; ++i) {
     const uint8_t id = detectedIds_[i];
