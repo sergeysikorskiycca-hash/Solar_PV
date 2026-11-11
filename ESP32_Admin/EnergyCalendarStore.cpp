@@ -73,7 +73,7 @@ bool EnergyCalendarStore::decodeValues(const uint8_t* data, uint16_t length,
 
 void EnergyCalendarStore::begin(uint32_t nowMs) {
   stage_ = SCAN_CP0;
-  pending_ = NONE;
+  pending_ = PENDING_NONE;
   waiting_ = false;
   ready_ = false;
   checkpointValid_ = false;
@@ -380,7 +380,7 @@ void EnergyCalendarStore::handleResponse(uint32_t nowMs) {
   if (state == EnergyEepromTransport::FAILED) {
     energyEepromTransport.consume();
     waiting_ = false;
-    pending_ = NONE;
+    pending_ = PENDING_NONE;
     if (stage_ == SCAN_CP0 || stage_ == SCAN_CP1 || stage_ == SCAN_ARCHIVE) {
       stage_ = SCAN_CP0;
       scanBank_ = 0;
@@ -407,7 +407,7 @@ void EnergyCalendarStore::handleResponse(uint32_t nowMs) {
   waiting_ = false;
   pending_ = NONE;
 
-  if (completed == READ) {
+  if (completed == PENDING_READ) {
     if (stage_ == SCAN_CP0 || stage_ == SCAN_CP1) {
       memcpy(checkpointBuffer_ + ioOffset_, data, length);
       ioOffset_ = (uint16_t)(ioOffset_ + length);
@@ -424,7 +424,6 @@ void EnergyCalendarStore::handleResponse(uint32_t nowMs) {
               if (decodeValues(p + 8, (uint16_t)(recordLength - 9U), count,
                                checkpointIds_, checkpointWh_, used) &&
                   used == (uint16_t)(recordLength - 9U)) {
-                memcpy(bestCheckpoint_, checkpointBuffer_, CHECKPOINT_SIZE);
                 checkpointValid_ = true;
                 checkpointSequence_ = sequence;
                 checkpointDate_ = (uint32_t)p[3] | ((uint32_t)p[4] << 8) |
@@ -459,7 +458,7 @@ void EnergyCalendarStore::handleResponse(uint32_t nowMs) {
     return;
   }
 
-  if (completed == WRITE) {
+  if (completed == PENDING_WRITE) {
     if (stage_ == CP_INVALIDATE) {
       stage_ = CP_BODY;
       ioOffset_ = 1;
@@ -503,7 +502,7 @@ void EnergyCalendarStore::schedule(uint32_t nowMs) {
     const uint16_t base = (uint16_t)(BASE + (uint16_t)scanBank_ * CHECKPOINT_SIZE);
     const uint8_t length = (uint8_t)((CHECKPOINT_SIZE - ioOffset_) > 8U ? 8U : (CHECKPOINT_SIZE - ioOffset_));
     if (length && queueRead((uint16_t)(base + ioOffset_), length)) {
-      pending_ = READ; pendingLength_ = length; waiting_ = true;
+      pending_ = PENDING_READ; pendingLength_ = length; waiting_ = true;
     }
     return;
   }
@@ -528,7 +527,7 @@ void EnergyCalendarStore::schedule(uint32_t nowMs) {
     const uint16_t base = stage_ == CP_INVALIDATE
       ? (uint16_t)(BASE + (uint16_t)targetBank_ * CHECKPOINT_SIZE)
       : (uint16_t)(ARCHIVE_BASE + archiveWriteOffset_);
-    if (queueWrite(base, &invalid, 1)) { pending_ = WRITE; waiting_ = true; }
+    if (queueWrite(base, &invalid, 1)) { pending_ = PENDING_WRITE; waiting_ = true; }
     return;
   }
 
