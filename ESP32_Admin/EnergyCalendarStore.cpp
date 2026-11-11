@@ -175,6 +175,11 @@ void EnergyCalendarStore::applyRestoredCheckpoint() {
       dailyWh_[index] = total > 0x00FFFFFEUL ? 0x00FFFFFEUL : (uint32_t)total;
     }
   } else {
+    bool archiveAlreadyHasDate = false;
+    for (uint8_t i = 0; i < archiveCount_; ++i)
+      if (archiveIndex_[i].date == checkpointDate_) { archiveAlreadyHasDate = true; break; }
+
+    if (pendingDate_ != checkpointDate_ && archiveAlreadyHasDate) return;
     if (pendingDate_ != checkpointDate_) {
       pendingDate_ = checkpointDate_;
       pendingCount_ = 0;
