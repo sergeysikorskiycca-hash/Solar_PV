@@ -169,7 +169,7 @@ bool loadPageKey(const String& key, const String& value) {
     WidgetElementConfig& element = w.elements[elementIndex];
     if (elementField == "Label") element.label = sanitizeTitle(value);
     else if (elementField == "Kind") element.kind = clampInt(value.toInt(), ELEMENT_SENSOR, ELEMENT_TOTAL);
-    else if (elementField == "Source") element.sourceId = clampInt(value.toInt(), 0, 11);
+    else if (elementField == "Source") element.sourceId = clampInt(value.toInt(), 0, 255);
     else if (elementField == "Metric") element.metric = clampInt(value.toInt(), 0, 127);
     else if (elementField == "Size") element.fontSize = clampInt(value.toInt(), 0, 5);
     else if (elementField == "Color") element.color = clampInt(value.toInt(), 0, 5);
