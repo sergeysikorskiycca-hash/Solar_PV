@@ -5,6 +5,8 @@
 // Shared configuration model for the ESP32 admin firmware.
 static constexpr uint8_t MAX_SAVED_NETWORKS = 8;
 static constexpr uint8_t MAX_SENSOR_NODES = 2;
+// Shared sensor-count alias used by ESP32 admin modules.
+static constexpr uint8_t MAX_STRING_SENSORS = MAX_SENSOR_NODES;
 static constexpr uint8_t MAX_PAGES = 8;
 static constexpr uint8_t MAX_WIDGETS_PER_PAGE = 12;
 static constexpr uint8_t MAX_WIDGET_ELEMENTS = 12;
