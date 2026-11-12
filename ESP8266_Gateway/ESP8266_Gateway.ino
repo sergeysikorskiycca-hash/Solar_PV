@@ -165,8 +165,11 @@ static uint8_t fromBcd(uint8_t value) {
   return (uint8_t)(((value >> 4) * 10) + (value & 0x0F));
 }
 
+static uint8_t lastRtcStatus = 0xFF;
+
 static bool readRtc() {
-  // DS3231 OSF (Oscillator Stop Flag) means calendar time cannot be trusted.
+  // OSF is diagnostic only: it must not block reading the calendar.
+  // Do not clear OSF automatically; the user has verified the clock time.
   Wire.beginTransmission(RTC_ADDRESS);
   Wire.write((uint8_t)0x0F);
   if (Wire.endTransmission(false) != 0) return false;
@@ -174,8 +177,7 @@ static bool readRtc() {
     while (Wire.available()) Wire.read();
     return false;
   }
-  const uint8_t rtcStatus = (uint8_t)Wire.read();
-  if (rtcStatus & 0x80) return false;
+  lastRtcStatus = (uint8_t)Wire.read();
 
   Wire.beginTransmission(RTC_ADDRESS);
   Wire.write((uint8_t)0x00);
@@ -491,7 +493,7 @@ void setup() {
   Serial.println(F("Solar_PV ESP8266 Gateway — ESP-NOW + I2C"));
 
   Wire.begin(SDA_PIN, SCL_PIN);
-  Wire.setClock(100000);
+  Wire.setClock(50000);
 
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
@@ -529,10 +531,12 @@ void loop() {
 
   if (now - lastLogMs >= 1000UL) {
     lastLogMs = now;
-    Serial.printf("DS3231: %s | %04u-%02u-%02u %02u:%02u:%02u\n",
+    Serial.printf("DS3231: %s | %04u-%02u-%02u %02u:%02u:%02u | status=0x%02X OSF=%s\\n",
                   rtcPresent ? "READ OK" : "READ FAILED",
                   (unsigned)packet.year, (unsigned)packet.month, (unsigned)packet.day,
-                  (unsigned)packet.hour, (unsigned)packet.minute, (unsigned)packet.second);
+                  (unsigned)packet.hour, (unsigned)packet.minute, (unsigned)packet.second,
+                  (unsigned)lastRtcStatus,
+                  (lastRtcStatus & 0x80) ? "SET" : "CLEAR");
     Serial.printf("I2C ESP32: %s | writeErr=%u | readBytes=%u/21 | ACK magic=0x%02X seq=%u status=0x%02X | ESP-NOW: %s\n",
                   lastAckOk ? "OK" : "NO RESPONSE",
                   (unsigned)lastI2CWriteError,
