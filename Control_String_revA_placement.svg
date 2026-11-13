@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120mm" height="90mm" viewBox="0 0 1200 900">
+<defs><style>
+.board{fill:#e6dfb7;stroke:#222;stroke-width:5}.part{fill:#333;stroke:#111;stroke-width:3}
+.pad{fill:#d9a441;stroke:#754d12;stroke-width:2}.txt{font:22px Arial,sans-serif;fill:#111}
+.small{font:16px Arial,sans-serif;fill:#111}.hv{fill:#f7d6d6;stroke:#b22;stroke-width:2;stroke-dasharray:8 6}
+.lv{fill:#d7e9f7;stroke:#2672a5;stroke-width:2;stroke-dasharray:8 6}
+.note{font:17px Arial,sans-serif;fill:#333}</style></defs>
+<rect x="25" y="25" width="1150" height="850" rx="18" class="board"/>
+<text x="50" y="65" class="txt">Solar_PV / Control_String rev.A — placement concept only</text>
+<text x="50" y="92" class="small">115 × 85 mm concept; footprints and dimensions require verification</text>
+<rect x="55" y="125" width="520" height="690" rx="10" class="lv"/>
+<text x="75" y="158" class="txt">LOW VOLTAGE / LOGIC</text>
+<rect x="100" y="210" width="260" height="360" rx="12" class="part"/>
+<text x="230" y="390" text-anchor="middle" fill="#fff" font-size="28">WEMOS</text>
+<text x="230" y="420" text-anchor="middle" fill="#fff" font-size="22">D1 mini</text>
+<text x="230" y="455" text-anchor="middle" fill="#fff" font-size="17">removable module</text>
+<circle cx="125" cy="230" r="8" class="pad"/><circle cx="335" cy="230" r="8" class="pad"/><circle cx="125" cy="272" r="8" class="pad"/><circle cx="335" cy="272" r="8" class="pad"/><circle cx="125" cy="314" r="8" class="pad"/><circle cx="335" cy="314" r="8" class="pad"/><circle cx="125" cy="356" r="8" class="pad"/><circle cx="335" cy="356" r="8" class="pad"/><circle cx="125" cy="398" r="8" class="pad"/><circle cx="335" cy="398" r="8" class="pad"/><circle cx="125" cy="440" r="8" class="pad"/><circle cx="335" cy="440" r="8" class="pad"/><circle cx="125" cy="482" r="8" class="pad"/><circle cx="335" cy="482" r="8" class="pad"/><circle cx="125" cy="524" r="8" class="pad"/><circle cx="335" cy="524" r="8" class="pad"/>
+<text x="230" y="600" text-anchor="middle" class="small">D5/GPIO14 = SDA</text>
+<text x="230" y="625" text-anchor="middle" class="small">D6/GPIO12 = SCL</text>
+<rect x="395" y="220" width="120" height="90" rx="6" class="part"/>
+<text x="455" y="255" text-anchor="middle" fill="#fff" font-size="20">INA226</text><text x="455" y="282" text-anchor="middle" fill="#fff" font-size="17">0x44</text>
+<rect x="395" y="360" width="120" height="90" rx="6" class="part"/>
+<text x="455" y="395" text-anchor="middle" fill="#fff" font-size="20">INA226</text><text x="455" y="422" text-anchor="middle" fill="#fff" font-size="17">0x45</text>
+<rect x="405" y="520" width="100" height="70" rx="6" class="part"/>
+<text x="455" y="560" text-anchor="middle" fill="#fff" font-size="18">FRAM</text>
+<text x="455" y="582" text-anchor="middle" fill="#fff" font-size="14">MB85RC256V</text>
+<rect x="85" y="700" width="115" height="65" rx="5" class="part"/>
+<text x="142" y="728" text-anchor="middle" fill="#fff" font-size="18">J_SH1</text><text x="142" y="750" text-anchor="middle" fill="#fff" font-size="14">S1+ / S1−</text>
+<rect x="230" y="700" width="115" height="65" rx="5" class="part"/>
+<text x="287" y="728" text-anchor="middle" fill="#fff" font-size="18">J_SH2</text><text x="287" y="750" text-anchor="middle" fill="#fff" font-size="14">S2+ / S2−</text>
+<rect x="600" y="125" width="45" height="690" fill="#fff" stroke="#b22" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="623" y="475" transform="rotate(-90 623 475)" text-anchor="middle" class="small">HV / LV separation — clearance TBD</text>
+<rect x="670" y="125" width="465" height="690" rx="10" class="hv"/>
+<text x="690" y="158" class="txt">PV SENSE / HIGH VOLTAGE DIVIDERS</text>
+<text x="710" y="205" class="txt">CHANNEL 1</text><rect x="710" y="230" width="390" height="190" rx="8" fill="#fff" stroke="#b22" stroke-width="2"/><text x="730" y="260" class="small">J_PV1 — PV1+ sense only</text><rect x="745" y="285" width="35" height="24" class="pad"/><text x="762" y="327" text-anchor="middle" class="small">R1</text><rect x="797" y="285" width="35" height="24" class="pad"/><text x="814" y="327" text-anchor="middle" class="small">R2</text><rect x="849" y="285" width="35" height="24" class="pad"/><text x="866" y="327" text-anchor="middle" class="small">R3</text><rect x="901" y="285" width="35" height="24" class="pad"/><text x="918" y="327" text-anchor="middle" class="small">R4</text><rect x="953" y="285" width="35" height="24" class="pad"/><text x="970" y="327" text-anchor="middle" class="small">R5</text><rect x="1005" y="285" width="35" height="24" class="pad"/><text x="1022" y="327" text-anchor="middle" class="small">R6</text><rect x="770" y="350" width="85" height="30" class="pad"/><text x="812" y="372" text-anchor="middle" class="small">RLOW</text><text x="900" y="372" class="small">to INA226 #1 VBUS</text><text x="710" y="475" class="txt">CHANNEL 2</text><rect x="710" y="500" width="390" height="190" rx="8" fill="#fff" stroke="#b22" stroke-width="2"/><text x="730" y="530" class="small">J_PV2 — PV2+ sense only</text><rect x="745" y="555" width="35" height="24" class="pad"/><text x="762" y="597" text-anchor="middle" class="small">R1</text><rect x="797" y="555" width="35" height="24" class="pad"/><text x="814" y="597" text-anchor="middle" class="small">R2</text><rect x="849" y="555" width="35" height="24" class="pad"/><text x="866" y="597" text-anchor="middle" class="small">R3</text><rect x="901" y="555" width="35" height="24" class="pad"/><text x="918" y="597" text-anchor="middle" class="small">R4</text><rect x="953" y="555" width="35" height="24" class="pad"/><text x="970" y="597" text-anchor="middle" class="small">R5</text><rect x="1005" y="555" width="35" height="24" class="pad"/><text x="1022" y="597" text-anchor="middle" class="small">R6</text><rect x="770" y="620" width="85" height="30" class="pad"/><text x="812" y="642" text-anchor="middle" class="small">RLOW</text><text x="900" y="642" class="small">to INA226 #2 VBUS</text>
+<text x="710" y="785" class="note">No PV power current on PCB. Draft only — not for fabrication.</text>
+<text x="55" y="850" class="small">No routed copper, DRC, verified footprints or HV insulation approval.</text>
+</svg>
