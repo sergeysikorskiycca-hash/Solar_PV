@@ -493,9 +493,14 @@ void handleSaveDisplay() {
         element.sourceId = element.kind == ELEMENT_TOTAL ? 0 :
                            (element.kind == ELEMENT_CALIBRATION ? clampInt(sourceElement["sourceId"] | 1, 1, MAX_STRING_SENSORS) :
                             clampInt(sourceElement["sourceId"] | 1, 0, MAX_STRING_SENSORS));
-        element.metric = clampInt(sourceElement["metric"] | 0, 0, element.kind == ELEMENT_TOTAL ? 127 : 5);
-        if (element.kind == ELEMENT_TOTAL && element.metric >= 64)
-          element.metric = 64 + ((element.metric - 64) & 0x03);
+        element.metric = clampInt(sourceElement["metric"] | 0, 0, element.kind == ELEMENT_TOTAL ? 131 : 5);
+        if (element.kind == ELEMENT_TOTAL) {
+          if (element.metric == 2 || element.metric == 5) element.metric = 67;
+          else if (element.metric == 4) element.metric = 131;
+          else if (element.metric >= 128) element.metric = 128 + ((element.metric - 128) & 0x03);
+          else if (element.metric >= 64) element.metric = 64 + ((element.metric - 64) & 0x03);
+          else element.metric = 67;
+        }
         if (element.kind == ELEMENT_WIFI_CONTROL) { element.kind = ELEMENT_WIFI_STATUS; element.metric = 4; }
         element.fontSize = clampInt(sourceElement["fontSize"] | 2, 0, 5);
         element.color = clampInt(sourceElement["color"] | 3, 0, 5);
