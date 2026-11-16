@@ -85,21 +85,25 @@ static String widgetElementText(const WidgetElementConfig& element) {
   const String prefix = element.label.length() ? element.label + ": " : "";
   if (element.kind == ELEMENT_TEXT) return element.label;
   if (element.kind == ELEMENT_TOTAL) {
-    if (element.metric == 4)
-      return prefix + String((double)energyCounter.totalWh() / 1000.0, 3) + " кВт·ч";
-    float total = 0.0f;
-    bool any = false;
-    if (element.metric == 2) {
-      for (uint16_t i = 0; i < 255; ++i) {
-        if (stringSensorFresh((uint8_t)i)) { total += stringSensorPower[i]; any = true; }
-      }
-    } else if (element.metric >= 64) {
-      const uint8_t sensorMask = element.metric - 64;
-      for (uint8_t i = 0; i < 6; ++i) {
-        if ((sensorMask & (1U << i)) && stringSensorFresh(i)) {
-          total += stringSensorPower[i];
+    if (element.metric >= 128) {
+      const uint8_t sensorMask = element.metric - 128;
+      uint64_t totalWh = 0;
+      bool any = false;
+      for (uint8_t id = 1; id <= MAX_STRING_SENSORS; ++id) {
+        if (sensorMask & (1U << (id - 1))) {
+          totalWh += energyCounter.stringWh(id);
           any = true;
         }
+      }
+      return prefix + (any ? String((double)totalWh / 1000.0, 3) + " кВт·ч" : String("— кВт·ч"));
+    }
+    const uint8_t sensorMask = element.metric >= 64 ? element.metric - 64 : 0;
+    float total = 0.0f;
+    bool any = false;
+    for (uint8_t i = 0; i < MAX_STRING_SENSORS; ++i) {
+      if ((sensorMask & (1U << i)) && stringSensorFresh(i)) {
+        total += stringSensorPower[i];
+        any = true;
       }
     }
     return prefix + (any ? String(total, 1) + " Вт" : String("— Вт"));
