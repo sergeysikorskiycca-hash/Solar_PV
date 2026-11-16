@@ -170,7 +170,7 @@ bool loadPageKey(const String& key, const String& value) {
     if (elementField == "Label") element.label = sanitizeTitle(value);
     else if (elementField == "Kind") element.kind = clampInt(value.toInt(), ELEMENT_SENSOR, ELEMENT_TOTAL);
     else if (elementField == "Source") element.sourceId = clampInt(value.toInt(), 0, 255);
-    else if (elementField == "Metric") element.metric = clampInt(value.toInt(), 0, 127);
+    else if (elementField == "Metric") element.metric = clampInt(value.toInt(), 0, 131);
     else if (elementField == "Size") element.fontSize = clampInt(value.toInt(), 0, 5);
     else if (elementField == "Color") element.color = clampInt(value.toInt(), 0, 5);
     else return false;
@@ -362,13 +362,13 @@ void loadConfig() {
         }
         if (element.kind == ELEMENT_TOTAL) {
           element.sourceId = 0;
-          element.metric = clampInt(element.metric, 0, 127);
-          // Legacy masks could select sensors 3..6; retain only fixed IDs 1 and 2.
-          if (element.metric >= 64) {
-            const uint8_t normalizedMetric = 64 + ((element.metric - 64) & 0x03);
-            if (normalizedMetric != element.metric) legacyLayoutMigrated = true;
-            element.metric = normalizedMetric;
-          }
+          const uint8_t oldMetric = element.metric;
+          if (oldMetric == 2 || oldMetric == 5) element.metric = 67;
+          else if (oldMetric == 4) element.metric = 131;
+          else if (oldMetric >= 128) element.metric = 128 + ((oldMetric - 128) & 0x03);
+          else if (oldMetric >= 64) element.metric = 64 + ((oldMetric - 64) & 0x03);
+          else element.metric = 67;
+          if (element.metric != oldMetric) legacyLayoutMigrated = true;
         } else {
           if (element.sourceId > 2) legacyLayoutMigrated = true;
           element.sourceId = clampInt(element.sourceId, 0, 2);
