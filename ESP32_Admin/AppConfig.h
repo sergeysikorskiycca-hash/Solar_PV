@@ -29,7 +29,7 @@ struct WidgetElementConfig {
   String label;
   uint8_t kind;     // WidgetElementKind.
   uint8_t sourceId; // 0=gateway, 1..2=the two fixed string sensor IDs.
-  uint8_t metric;   // Kind-specific option; ELEMENT_TOTAL uses 2=power, 4=energy, 64..67=selected IDs 1..2.
+  uint8_t metric;   // Kind-specific option; ELEMENT_TOTAL uses 64..67=power mask, 128..131=energy mask for IDs 1..2.
   uint8_t fontSize; // 0..5.
   uint8_t color;    // 0..5.
 };
