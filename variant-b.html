@@ -32,7 +32,7 @@ const DataSource = Object.freeze({
 });
 
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===b.dataset.page))}));
-function apply(){let n=Number(include1.checked)+Number(include2.checked);power.innerHTML=((include1.checked?1084:0)+(include2.checked?758:0)).toLocaleString('ru-RU')+' <em>Вт</em>';applied.textContent=' Применено: '+n+' из 2 строк. Индивидуальные счётчики сохранены.'}
+function apply(){const d=DataSource.getSnapshot(),n=Number(include1.checked)+Number(include2.checked);power.innerHTML=((include1.checked?d.strings[0].power_W:0)+(include2.checked?d.strings[1].power_W:0)).toLocaleString('ru-RU')+' <em>Вт</em>';applied.textContent=' Применено: '+n+' из 2 строк. Индивидуальные счётчики сохранены.'}
 function clock(){now.textContent=new Date().toLocaleString('ru-RU')}clock();setInterval(clock,1000);
 
 // Для подключения ESP32 заменяется только DataSource; контракт DEMO_DATA сохраняется.
