@@ -31,6 +31,6 @@ function render(){
 function move(d){page=(page+d+pages.length)%pages.length;render()}
 document.getElementById("prev").onclick=()=>move(-1);document.getElementById("next").onclick=()=>move(1);
 document.getElementById("up").onclick=()=>move(-1);document.getElementById("down").onclick=()=>move(1);
-document.addEventListener("keydown",e=>{if(["ArrowLeft","ArrowUp"].includes(e.key)){move(-1);e.preventDefault()}if(["ArrowRight","ArrowDown","Enter"].includes(e.key)){move(1);e.preventDefault()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){page=0;render();e.preventDefault();return}if(["ArrowLeft","ArrowUp"].includes(e.key)){move(-1);e.preventDefault()}if(["ArrowRight","ArrowDown","Enter"].includes(e.key)){move(1);e.preventDefault()}});
 function clock(){document.getElementById("time").textContent=new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}clock();setInterval(clock,1000);render();
 </script></body></html>
