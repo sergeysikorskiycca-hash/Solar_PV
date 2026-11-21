@@ -28,7 +28,23 @@
 <section id="diag" class="page"><div class="barhead"><h2>05 / ДИАГНОСТИКА И СОСТОЯНИЕ УЗЛОВ</h2></div><div class="panel"><div class="line"><span>ESP8266 Gateway · ESP-NOW / I²C</span><b class="state">SIMULATED OK</b></div><div class="line"><span>ESP32 CPU · WEB / TFT</span><b class="state">SIMULATED OK</b></div><div class="line"><span>INA226 · sourceId 1</span><b class="state">TEST DATA</b></div><div class="line"><span>INA226 · sourceId 2</span><b class="state">TEST DATA</b></div><div class="line"><span>DS3231 RTC</span><b style="color:var(--yellow)">NOT POLLED</b></div><div class="line"><span>ESP32 API</span><b style="color:var(--yellow)">FUTURE DATA ADAPTER</b></div></div><div class="notice">Резервируемые будущие сущности: аккумулятор, импорт электроэнергии из сети, генерация инвертора. Не представлены как действующие каналы.</div></section>
 <div class="footer">SCADA DEMO BUILD · СИГНАЛЫ И ПОТОКИ ВИЗУАЛЬНЫЕ · УПРАВЛЕНИЕ ОБОРУДОВАНИЕМ ОТСУТСТВУЕТ</div></div>
 <script>
+const DEMO_DATA = Object.freeze({
+ source: "demo",
+ timestamp: new Date().toISOString(),
+ system: { gateway: "online", cpu: "online", rtc: "demo", wifi: { ap: "on", station: "demo" } },
+ strings: [
+  { id: "string-1", sensor: "INA226", voltage_V: 186.4, current_A: 5.82, power_W: 1084, energy_Wh: 7214600, calibration: { voltage: 1.000, current: 1.150 }, includedInTotal: true },
+  { id: "string-2", sensor: "INA226", voltage_V: 182.1, current_A: 4.16, power_W: 758, energy_Wh: 5631400, calibration: { voltage: 1.000, current: 1.150 }, includedInTotal: true }
+ ],
+ energy: { saveIntervalMinutes: 15, monthlyDisplayResetDay: 1 }
+});
+const DataSource = Object.freeze({
+ getSnapshot() { return DEMO_DATA; }
+});
+
 document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===b.dataset.page))}));
 function selection(){const n=Number(s1.checked)+Number(s2.checked);sum.innerHTML=((s1.checked?1084:0)+(s2.checked?758:0)).toLocaleString('ru-RU')+' <em>Вт</em>';channels.textContent=n+' / 2';wire1.classList.toggle('off',!s1.checked);wire2.classList.toggle('off',!s2.checked);msg.textContent=' Выбор обновлён. Индивидуальные счётчики сохранены.'}
 function tick(){time.textContent=new Date().toLocaleString('ru-RU')}tick();setInterval(tick,1000);
+
+// Для подключения ESP32 заменяется только DataSource; контракт DEMO_DATA сохраняется.
 </script></body></html>
