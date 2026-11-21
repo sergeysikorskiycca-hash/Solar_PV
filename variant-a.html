@@ -33,7 +33,7 @@ const DataSource = Object.freeze({
 });
 
 const pages=[...document.querySelectorAll('.page')];document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x===b));pages.forEach(p=>p.classList.toggle('active',p.id===b.dataset.page))}));
-function updateSelection(){const n=Number(document.querySelector('#sel1').checked)+Number(document.querySelector('#sel2').checked);document.querySelector('#activeCount').textContent=n+' / 2';document.querySelector('#totalPower').textContent=(document.querySelector('#sel1').checked?1084:0)+(document.querySelector('#sel2').checked?758:0);document.querySelector('#selectionMsg').textContent='Выбор применён в демо. Индивидуальные накопленные счётчики не изменены.'}
+function updateSelection(){const d=DataSource.getSnapshot(),a=document.querySelector('#sel1').checked,b=document.querySelector('#sel2').checked,n=Number(a)+Number(b);document.querySelector('#activeCount').textContent=n+' / 2';document.querySelector('#totalPower').textContent=(a?d.strings[0].power_W:0)+(b?d.strings[1].power_W:0);document.querySelector('#selectionMsg').textContent='Выбор применён в демо. Индивидуальные накопленные счётчики не изменены.'}
 function tick(){document.querySelector('#clock').textContent=new Date().toLocaleString('ru-RU')}tick();setInterval(tick,1000);
 
 // Для подключения ESP32 заменяется только DataSource; контракт DEMO_DATA сохраняется.
