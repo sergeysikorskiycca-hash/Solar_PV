@@ -43,7 +43,7 @@ const DataSource = Object.freeze({
 });
 
 document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===b.dataset.page))}));
-function selection(){const n=Number(s1.checked)+Number(s2.checked);sum.innerHTML=((s1.checked?1084:0)+(s2.checked?758:0)).toLocaleString('ru-RU')+' <em>Вт</em>';channels.textContent=n+' / 2';wire1.classList.toggle('off',!s1.checked);wire2.classList.toggle('off',!s2.checked);msg.textContent=' Выбор обновлён. Индивидуальные счётчики сохранены.'}
+function selection(){const d=DataSource.getSnapshot(),n=Number(s1.checked)+Number(s2.checked);sum.innerHTML=((s1.checked?d.strings[0].power_W:0)+(s2.checked?d.strings[1].power_W:0)).toLocaleString('ru-RU')+' <em>Вт</em>';channels.textContent=n+' / 2';wire1.classList.toggle('off',!s1.checked);wire2.classList.toggle('off',!s2.checked);msg.textContent=' Выбор обновлён. Индивидуальные счётчики сохранены.'}
 function tick(){time.textContent=new Date().toLocaleString('ru-RU')}tick();setInterval(tick,1000);
 
 // Для подключения ESP32 заменяется только DataSource; контракт DEMO_DATA сохраняется.
