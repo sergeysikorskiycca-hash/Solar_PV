@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solar PV — 4 интерактивные демо-админки</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#101820;color:#eaf0f4;font:14px/1.45 "Segoe UI",Arial,sans-serif;padding:22px}
+header,.workspace{max-width:1180px;margin:auto}header{margin-bottom:18px}h1{font-size:25px;margin:0 0 5px}header p{color:#aebdc7;margin:0}
+.workspace{display:grid;grid-template-columns:245px minmax(280px,1fr);gap:22px;align-items:start}
+aside{display:grid;gap:8px;position:sticky;top:14px}.choice{border:1px solid #43525e;border-radius:8px;background:#1a2630;color:#e9f1f6;padding:12px;text-align:left;cursor:pointer}.choice b{display:block;font-size:13px}.choice small{display:block;color:#a8b7c1;margin-top:3px}.choice.active{border-color:#f2b84b;background:#283541;box-shadow:inset 3px 0 #f2b84b}
+main{min-width:0}.stage{display:flex;gap:25px;align-items:flex-start;flex-wrap:wrap}.device{background:#26323b;border:1px solid #5b6972;border-radius:25px;padding:12px;box-shadow:0 18px 45px #0008}.screen{width:240px;height:320px;overflow:hidden;position:relative;background:var(--bg);color:var(--fg);border:1px solid var(--edge);font:10px/1.3 Arial,sans-serif;display:flex;flex-direction:column}
+.screen[data-theme="1"]{--bg:#080d12;--panel:#121d26;--panel2:#1b2a35;--edge:#354957;--fg:#edf4f8;--muted:#8ea3b1;--accent:#ffb547;--good:#65d99b;--bad:#ff7474;--radius:3px}
+.screen[data-theme="2"]{--bg:#101b25;--panel:#192d3b;--panel2:#244253;--edge:#426174;--fg:#edf7fb;--muted:#a3bbc9;--accent:#5bd0f0;--good:#77dfaa;--bad:#ff8787;--radius:2px}
+.screen[data-theme="4"]{--bg:#071711;--panel:#10271b;--panel2:#1b3a28;--edge:#376047;--fg:#e9f7ec;--muted:#94b69c;--accent:#80e078;--good:#b4ed8a;--bad:#ff8585;--radius:1px}
+.screen[data-theme="9"]{--bg:#071827;--panel:#0c2638;--panel2:#10344a;--edge:#24617c;--fg:#ddf6ff;--muted:#83b2c5;--accent:#36d8e8;--good:#73e3bd;--bad:#ff8787;--radius:0px;background-image:linear-gradient(#12334a55 1px,transparent 1px),linear-gradient(90deg,#12334a55 1px,transparent 1px);background-size:16px 16px}
+.screen[data-theme="2"] .topbar{border-bottom:2px solid var(--accent)}
+.screen[data-theme="4"] .topbar{border-bottom:1px dashed var(--accent)}
+.screen[data-theme="9"] .topbar{border-bottom:1px solid var(--accent);letter-spacing:1px}
+.topbar{height:29px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 8px;background:var(--panel);border-bottom:1px solid var(--edge);font-weight:bold;font-size:9px;position:relative;z-index:1}
+.topbar small{font-weight:normal;color:var(--muted);font-size:8px}
+.tabs{height:25px;flex:none;display:flex;gap:2px;padding:3px 4px;background:var(--panel2);position:relative;z-index:1}
+.tabs button{flex:1;min-width:0;padding:2px 0;border:1px solid transparent;border-radius:var(--radius);background:transparent;color:var(--muted);font-size:7px;cursor:pointer}
+.tabs button.active{color:var(--fg);border-color:var(--accent);background:var(--panel)}
+.screenbody{padding:8px;overflow:auto;flex:1;position:relative;z-index:1;scrollbar-width:thin;scrollbar-color:var(--edge) transparent}
+.foot{height:24px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 7px;background:var(--panel);border-top:1px solid var(--edge);font-size:7px;color:var(--muted)}
+button,input,select{font:inherit}.screen button{cursor:pointer}
+.hero{padding:6px 7px;background:var(--panel);border:1px solid var(--edge);border-radius:var(--radius);margin-bottom:7px}
+.kicker{font-size:7px;letter-spacing:1px;color:var(--muted);font-weight:bold}.big{font-size:34px;line-height:1.1;letter-spacing:-1px;font-weight:800;color:var(--accent);margin:4px 0}.big em{font-size:10px;font-style:normal;color:var(--muted);letter-spacing:0}
+.status{font-size:8px;color:var(--good);margin-top:3px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.tile{background:var(--panel);border:1px solid var(--edge);border-radius:var(--radius);padding:7px;min-width:0}.tile small{display:block;color:var(--muted);font-size:7px}.tile b{display:block;font-size:11px;margin-top:3px}
+.lineitem{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:7px;margin:5px 0;background:var(--panel);border:1px solid var(--edge);border-radius:var(--radius)}
+.lineitem .meta{min-width:0}.lineitem strong{display:block;font-size:9px}.lineitem small{display:block;color:var(--muted);font-size:7px;margin-top:2px}.lineitem .value{font-weight:bold;color:var(--accent);font-size:10px;white-space:nowrap}
+.pill{font-size:7px;border:1px solid var(--edge);padding:3px 5px;color:var(--good);white-space:nowrap}
+.action{background:var(--panel2);border:1px solid var(--edge);color:var(--fg);border-radius:var(--radius);padding:6px 7px;font-size:8px}
+.action.primary{border-color:var(--accent);color:var(--accent)}.action.danger{border-color:var(--bad);color:var(--bad)}
+.actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.field{display:flex;justify-content:space-between;align-items:center;gap:5px;padding:6px 0;border-bottom:1px solid var(--edge);font-size:8px}.field label{color:var(--muted);flex:1}.field input[type=number],.field select{width:76px;background:var(--panel2);border:1px solid var(--edge);color:var(--fg);padding:4px;border-radius:var(--radius);font-size:9px}.field input[type=checkbox]{accent-color:var(--accent)}
+.meter{height:5px;background:var(--panel2);margin-top:5px;border-radius:5px;overflow:hidden}.meter i{display:block;height:100%;background:var(--accent)}
+.diagram{display:grid;gap:3px;text-align:center}.node{background:var(--panel);border:1px solid var(--edge);padding:7px;display:flex;justify-content:space-between;font-size:8px}.arrow{text-align:center;color:var(--accent);font-size:13px;line-height:12px}.bus{border:1px solid var(--accent);padding:8px;text-align:center;color:var(--accent);font-weight:bold;font-size:9px;background:var(--panel2)}
+.gauges{display:grid;grid-template-columns:1fr 1fr;gap:5px}.dial{height:83px;display:grid;place-items:center;text-align:center;background:conic-gradient(var(--accent) 0 69%,var(--panel2) 69%);border-radius:50%;width:83px;margin:auto;position:relative}.dial:after{content:"";position:absolute;inset:7px;background:var(--panel);border-radius:50%}.dial b,.dial small{position:relative;z-index:1}.dial b{font-size:12px}.dial small{display:block;font-size:7px;color:var(--muted)}
+.message{padding:6px;border:1px solid var(--accent);background:var(--panel2);font-size:8px;margin:5px 0}
+.hardware{margin-top:13px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}.hardware button{background:#26343e;color:#fff;border:1px solid #5b6d78;border-radius:6px;padding:9px 12px;cursor:pointer}.hardware button:active{transform:translateY(1px);background:#405461}.hardware .ok{border-color:#d7a744;color:#ffd16e}.hardware .back{border-color:#b96c6c;color:#ffaaaa}
+.hardware-caption{font-size:11px;color:#aebdc7;margin:8px 0}.description{max-width:360px;flex:1;min-width:220px}.description h2{font-size:20px;margin:0 0 6px}.description p{color:#bac7cf;font-size:12px}.description ul{color:#bac7cf;font-size:11px;padding-left:18px;line-height:1.8}.legend{font-size:11px;color:#9eafb9;margin-top:12px}
+.toast{position:absolute;left:8px;right:8px;bottom:29px;background:var(--panel2);border:1px solid var(--accent);padding:6px;text-align:center;font-size:8px;z-index:5;display:none}
+@media(max-width:760px){body{padding:12px}.workspace{grid-template-columns:1fr}.workspace aside{position:static;grid-template-columns:1fr 1fr}.stage{justify-content:center}.description{max-width:100%}}
+</style>
+</head>
+<body>
+<header><h1>Solar PV · четыре интерактивные демо-админки</h1><p>Выбери дизайн, переключай страницы, меняй настройки и управляй демонстрационными данными. Все четыре варианта работают независимо от оборудования.</p></header>
+<div class="workspace">
+<aside id="choices">
+<button class="choice active" data-theme="1"><b>01 · Цифровой прибор</b><small>Текущий стиль: крупные цифры и лаконичные блоки</small></button>
+<button class="choice" data-theme="2"><b>02 · Аналоговая станция</b><small>Шкалы, измерительные приборы, инженерная панель</small></button>
+<button class="choice" data-theme="4"><b>04 · Энергетический поток</b><small>Мнемосхема движения энергии от двух PV-строк</small></button>
+<button class="choice" data-theme="9"><b>09 · Технический чертёж</b><small>Сетка, схема соединений и координатная графика</small></button>
+</aside>
+<main><div class="stage">
+<div>
+<div class="device"><div class="screen" id="screen" data-theme="1">
+<div class="topbar"><span>SOLAR PV / DEMO</span><small id="clock">12:48:00</small></div>
+<div class="tabs" id="tabs"></div><div class="screenbody" id="body"></div>
+<div class="foot"><span id="footleft">BACK</span><span id="pagecount">01 / 05</span><span id="footright">OK</span></div><div class="toast" id="toast"></div>
+</div></div>
+<div class="hardware-caption">Виртуальные кнопки контроллера · работают так же, как управление с клавиатуры</div>
+<div class="hardware">
+<button data-hw="up">▲ UP</button><button data-hw="left">◀ LEFT</button><button class="ok" data-hw="ok">OK</button><button data-hw="right">RIGHT ▶</button><button data-hw="down">▼ DOWN</button><button class="back" data-hw="back">BACK</button>
+</div>
+</div>
+<div class="description"><h2 id="themeTitle">01 · Цифровой прибор</h2><p id="themeDesc">Крупная мощность, минимум отвлекающих деталей. Главная информация читается с первого взгляда.</p>
+<ul><li>5 полноценных страниц: обзор, строки, энергия, настройки, система.</li><li>Управление мышью, виртуальными кнопками и клавиатурой.</li><li>Включение/исключение PV1 и PV2 из общей мощности.</li><li>Настройка интервала записи, дня сброса и яркости.</li><li>Демонстрация запуска/остановки генерации и сброса счётчиков.</li></ul>
+<div class="legend"><b>Клавиатура:</b> ← → — страницы; ↑ ↓ — выбор элемента; Enter — действие; Esc — назад к обзору.</div>
+<div class="legend">Тестовые данные: PV1 — 186,4 В / 5,82 А / 1 084 Вт; PV2 — 182,1 В / 4,16 А / 758 Вт. Ровно две строки. Состояние сохраняется только до перезагрузки страницы.</div>
+</div></div></main></div>
+<script>
+const themes={
+"1":{title:"01 · Цифровой прибор",desc:"Крупная мощность, минимум отвлекающих деталей. Строгий приборный экран.",},
+"2":{title:"02 · Аналоговая станция",desc:"Инженерная панель с круговыми шкалами, показаниями и статусными блоками."},
+"4":{title:"04 · Энергетический поток",desc:"Наглядная вертикальная мнемосхема: две строки объединяются на общей DC-шине."},
+"9":{title:"09 · Технический чертёж",desc:"Техническая разметка, координатная сетка и структурированная телеметрия."}
+};
+const pages=["Обзор","Строки","Энергия","Настройки","Система"];
+const state={theme:"1",page:0,focus:0,enabled:[true,true],running:true,writeMin:15,resetDay:1,brightness:85,showEnergy:true,energy:[7214.6,5631.4],today:8.42,toast:"",toastUntil:0};
+const $=id=>document.getElementById(id);
+const totalPower=()=>state.running?((state.enabled[0]?1084:0)+(state.enabled[1]?758:0)):0;
+const fmt=n=>Math.round(n).toLocaleString("ru-RU");
+function notify(s){state.toast=s;state.toastUntil=Date.now()+2200;renderToast()}
+function renderToast(){const t=$("toast");if(state.toast&&Date.now()<state.toastUntil){t.textContent=state.toast;t.style.display="block"}else{t.style.display="none";state.toast=""}}
+function tabs(){ $("tabs").innerHTML=pages.map((p,i)=>'<button data-page="'+i+'" class="'+(state.page===i?'active':'')+'">'+(i+1)+'. '+p+'</button>').join("");}
+function hero(){return '<div class="hero"><div class="kicker">СУММАРНАЯ МОЩНОСТЬ</div><div class="big">'+fmt(totalPower())+'<em> Вт</em></div><div class="status">'+(state.running?'● СИСТЕМА РАБОТАЕТ':'● ГЕНЕРАЦИЯ ОСТАНОВЛЕНА')+' · '+state.enabled.filter(Boolean).length+'/2 СТРОКИ</div></div>'}
+function stringLine(i){const p=i===0?1084:758,v=i===0?"186,4":"182,1",a=i===0?"5,82":"4,16";return '<div class="lineitem"><div class="meta"><strong>☀ PV '+(i+1)+' · СТРОКА '+(i+1)+'</strong><small>'+v+' В · '+a+' А · '+(state.enabled[i]?'ВКЛЮЧЕНА':'ИСКЛЮЧЕНА')+'</small></div><div class="value">'+(state.running?fmt(p):"0")+' Вт</div></div>'}
+function overview(){let p=totalPower();if(state.theme==="2")return '<div class="kicker">ИЗМЕРИТЕЛЬНАЯ СТАНЦИЯ</div><div class="gauges"><div class="tile"><div class="dial"><div><b>186,4</b><small>ВОЛЬТ</small></div></div><small style="text-align:center">PV1 НАПРЯЖЕНИЕ</small></div><div class="tile"><div class="dial"><div><b>5,82</b><small>АМПЕР</small></div></div><small style="text-align:center">PV1 ТОК</small></div></div>'+hero()+stringLine(0)+stringLine(1)+'<div class="grid2"><div class="tile"><small>ЭНЕРГИЯ СЕГОДНЯ</small><b>'+state.today.toFixed(2)+' кВт·ч</b></div><div class="tile"><small>НАКОПЛЕНО</small><b>'+fmt(state.energy[0]+state.energy[1])+' кВт·ч</b></div></div>';
+if(state.theme==="4")return '<div class="kicker">СХЕМА ПОТОКА ЭНЕРГИИ</div><div class="diagram"><div class="node"><b>☀ PV 1</b><strong>'+(state.running&&state.enabled[0]?'1 084':'0')+' Вт</strong></div><div class="arrow">↓</div><div class="node"><b>☀ PV 2</b><strong>'+(state.running&&state.enabled[1]?'758':'0')+' Вт</strong></div><div class="arrow">↓</div><div class="bus">ОБЩАЯ DC-ШИНА<br>'+fmt(p)+' Вт</div><div class="arrow">↓</div><div class="node"><b>КОНТРОЛЛЕР ESP32</b><span>ТЕСТОВЫЙ РЕЖИМ</span></div></div><div class="grid2" style="margin-top:7px"><div class="tile"><small>СЕГОДНЯ</small><b>'+state.today.toFixed(2)+' кВт·ч</b></div><div class="tile"><small>ВСЕГО</small><b>'+fmt(state.energy[0]+state.energy[1])+' кВт·ч</b></div></div>';
+if(state.theme==="9")return '<div class="tile"><div class="kicker">PV ARRAY / LIVE TELEMETRY</div><div class="big">'+fmt(p)+'<em> W</em></div><div class="status">[ '+(state.running?'ONLINE':'STOPPED')+' ]</div></div><div class="message">DC BUS ── '+fmt(p)+' W ── CPU / TFT</div>'+stringLine(0)+stringLine(1)+'<div class="grid2"><div class="tile"><small>ENERGY / TODAY</small><b>'+state.today.toFixed(2)+' kWh</b></div><div class="tile"><small>LIFETIME</small><b>'+fmt(state.energy[0]+state.energy[1])+' kWh</b></div></div><div class="message">SYS.STATUS: '+(state.running?'NOMINAL':'PAUSED')+' · INPUTS: 2</div>';
+return hero()+ '<div class="grid2"><div class="tile"><small>СЕГОДНЯ</small><b>'+state.today.toFixed(2)+' кВт·ч</b></div><div class="tile"><small>НАКОПЛЕНО</small><b>'+fmt(state.energy[0]+state.energy[1])+' кВт·ч</b></div></div>'+stringLine(0)+stringLine(1)+'<div class="actions"><button class="action primary" data-action="toggleRun">'+(state.running?'Остановить':'Запустить')+' генерацию</button></div>'}
+function strings(){return '<div class="kicker">ДВА НЕЗАВИСИМЫХ КАНАЛА</div>'+[0,1].map(i=>'<div class="tile" style="margin:6px 0"><div style="display:flex;justify-content:space-between;align-items:center"><b>PV '+(i+1)+' / СТРОКА '+(i+1)+'</b><span class="pill">'+(state.enabled[i]?'В СУММЕ':'НЕ В СУММЕ')+'</span></div><div class="big" style="font-size:23px">'+(state.running?fmt(i===0?1084:758):'0')+'<em> Вт</em></div><div class="grid2"><div><small>НАПРЯЖЕНИЕ</small><b>'+(i===0?'186,4':'182,1')+' В</b></div><div><small>ТОК</small><b>'+(i===0?'5,82':'4,16')+' А</b></div></div><div class="meter"><i style="width:'+(i===0?72:51)+'%"></i></div><div class="actions"><button class="action '+(state.enabled[i]?'primary':'')+'" data-action="toggleString" data-index="'+i+'">'+(state.enabled[i]?'Исключить из суммы':'Включить в сумму')+'</button></div></div>').join('')+'<div class="message">Индивидуальные счётчики энергии продолжают учитываться независимо от включения строки в суммарное отображение.</div>'}
+function energy(){return '<div class="kicker">УЧЁТ ВЫРАБОТКИ</div><div class="tile"><small>ОБЩАЯ НАКОПЛЕННАЯ ЭНЕРГИЯ</small><div class="big" style="font-size:26px">'+(state.energy[0]+state.energy[1]).toFixed(1)+'<em> кВт·ч</em></div></div>'+[0,1].map(i=>'<div class="lineitem"><div class="meta"><strong>СТРОКА '+(i+1)+'</strong><small>Собственный счётчик энергии</small></div><div class="value">'+state.energy[i].toFixed(1)+' кВт·ч</div></div>').join('')+'<div class="grid2"><div class="tile"><small>СЕГОДНЯ</small><b>'+state.today.toFixed(2)+' кВт·ч</b></div><div class="tile"><small>ЗАПИСЬ В ПАМЯТЬ</small><b>Каждые '+state.writeMin+' мин</b></div></div><div class="actions"><button class="action primary" data-action="resetDisplay">Сбросить дневной итог</button><button class="action danger" data-action="addEnergy">+ 0,1 кВт·ч тест</button></div><div class="message">Демо-сброс меняет только дневное отображение. Накопленные счётчики строк не обнуляются.</div>'}
+function settings(){return '<div class="kicker">ПАРАМЕТРЫ ДЕМО-СИСТЕМЫ</div><div class="field"><label for="writeMin">Интервал записи, мин (5–60)</label><input id="writeMin" type="number" min="5" max="60" step="5" value="'+state.writeMin+'"></div><div class="field"><label for="resetDay">День ежемесячного сброса (1–28)</label><input id="resetDay" type="number" min="1" max="28" value="'+state.resetDay+'"></div><div class="field"><label for="brightness">Яркость экрана, %</label><input id="brightness" type="number" min="10" max="100" step="5" value="'+state.brightness+'"></div><div class="field"><label for="showEnergy">Показывать энергию на обзоре</label><input id="showEnergy" type="checkbox" '+(state.showEnergy?'checked':'')+'></div><div class="actions"><button class="action primary" data-action="saveSettings">Сохранить настройки</button><button class="action" data-action="defaults">По умолчанию</button></div><div class="message">Изменения действуют только внутри этой демонстрационной страницы и не записываются в оборудование.</div>'}
+function system(){return '<div class="kicker">СОСТОЯНИЕ СИСТЕМЫ</div>'+[['Режим','ДЕМО / OFFLINE'],['Контроллер','ESP32 · имитация'],['Датчики','2 канала · тестовые'],['RTC','НЕ ПОДКЛЮЧЁН'],['Wi-Fi','НЕ ПОДКЛЮЧЁН'],['Память','ЛОКАЛЬНАЯ ИМИТАЦИЯ'],['Дисплей','ST7789 · 240×320']].map(x=>'<div class="field"><label>'+x[0]+'</label><b>'+x[1]+'</b></div>').join('')+'<div class="actions"><button class="action primary" data-action="toggleRun">'+(state.running?'Остановить тест':'Возобновить тест')+'</button><button class="action danger" data-action="factory">Сбросить демо</button></div><div class="message">Ни одна команда не отправляется в Solar_PV, ESP32 или ESP8266. Это полностью автономный макет.</div>'}
+function render(){const screen=$("screen");screen.dataset.theme=state.theme;tabs();const content=[overview,strings,energy,settings,system][state.page]();$("body").innerHTML=content;$("pagecount").textContent=String(state.page+1).padStart(2,"0")+" / 05";$("footleft").textContent=state.page===0?"BACK":"◀ "+pages[state.page-1].toUpperCase();$("footright").textContent=state.page===4?"OK":"OK ▶";$("themeTitle").textContent=themes[state.theme].title;$("themeDesc").textContent=themes[state.theme].desc;document.querySelectorAll(".choice").forEach(b=>b.classList.toggle("active",b.dataset.theme===state.theme));$("screen").style.filter="brightness("+Math.max(.5,state.brightness/100)+")";renderToast()}
+function page(n){state.page=(n+5)%5;state.focus=0;render()}
+function action(el){const a=el.dataset.action,i=Number(el.dataset.index);if(a==="toggleString"){state.enabled[i]=!state.enabled[i];notify("PV"+(i+1)+(state.enabled[i]?" включена в сумму":" исключена из суммы"))}
+else if(a==="toggleRun"){state.running=!state.running;notify(state.running?"Тестовая генерация запущена":"Тестовая генерация остановлена")}
+else if(a==="addEnergy"){state.energy[i||0]+=0.1;state.today+=0.1;notify("Добавлено 0,1 кВт·ч к PV1 (тест)")}
+else if(a==="resetDisplay"){state.today=0;notify("Дневной итог сброшен. Накопленные счётчики сохранены")}
+else if(a==="saveSettings"){state.writeMin=Math.min(60,Math.max(5,Number($("writeMin").value)||15));state.resetDay=Math.min(28,Math.max(1,Number($("resetDay").value)||1));state.brightness=Math.min(100,Math.max(10,Number($("brightness").value)||85));state.showEnergy=$("showEnergy").checked;notify("Настройки демо сохранены")}
+else if(a==="defaults"){Object.assign(state,{writeMin:15,resetDay:1,brightness:85,showEnergy:true});notify("Настройки по умолчанию")}
+else if(a==="factory"){Object.assign(state,{enabled:[true,true],running:true,writeMin:15,resetDay:1,brightness:85,showEnergy:true,energy:[7214.6,5631.4],today:8.42});notify("Демо-состояние восстановлено")}
+render()}
+function hw(key){if(key==="right"||key==="down")page(state.page+1);else if(key==="left"||key==="up")page(state.page-1);else if(key==="back"){if(state.page!==0)page(0);else notify("Вы на главном экране")}else if(key==="ok"){const el=$("body").querySelector("[data-action]");if(el){action(el)}else notify("На этой странице нет доступного действия")}}
+$("choices").addEventListener("click",e=>{const b=e.target.closest("[data-theme]");if(!b)return;state.theme=b.dataset.theme;state.page=0;render()});
+$("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-page]");if(b)page(Number(b.dataset.page))});
+$("body").addEventListener("click",e=>{const b=e.target.closest("[data-action]");if(b)action(b)});
+document.querySelector(".hardware").addEventListener("click",e=>{const b=e.target.closest("[data-hw]");if(b)hw(b.dataset.hw)});
+document.addEventListener("keydown",e=>{if(["INPUT","SELECT","TEXTAREA"].includes(document.activeElement.tagName))return;if(e.key==="ArrowRight"){e.preventDefault();hw("right")}else if(e.key==="ArrowLeft"){e.preventDefault();hw("left")}else if(e.key==="ArrowDown"){e.preventDefault();hw("down")}else if(e.key==="ArrowUp"){e.preventDefault();hw("up")}else if(e.key==="Enter"){e.preventDefault();hw("ok")}else if(e.key==="Escape"){e.preventDefault();hw("back")}else if(/^[1-5]$/.test(e.key)){page(Number(e.key)-1)}});
+setInterval(()=>{$("clock").textContent=new Date().toLocaleTimeString("ru-RU")},1000);
+render();
+</script>
+</body></html>
