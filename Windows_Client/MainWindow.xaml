@@ -10,26 +10,6 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Menu x:Name="MainMenu" Grid.Row="0" Padding="8,3" Background="#17263A" Foreground="#E8EEF7">
-            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <StackPanel>
-                <TextBlock Text="SOLAR_PV" FontSize="13" FontWeight="Bold" Foreground="#F5B942" />
-                <TextBlock Text="Мониторинг солнечной станции" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0"/>
-                <TextBlock Text="Настольный клиент · Windows 10 / 11" Foreground="#8FA2BA" FontSize="13" Margin="0,4,0,0"/>
-            </StackPanel>
-            <Border Grid.Column="1" Background="#1A2B3E" CornerRadius="10" Padding="14,9" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal">
-                    <Ellipse x:Name="StatusDot" Width="9" Height="9" Fill="#F5B942" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="ConnectionText" Text="ДЕМО РЕЖИМ" Foreground="#F5B942" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Border>
-        </Menu>
-
-        <Grid Grid.Row="1" Margin="26,18,26,18">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
             <MenuItem Header="Файл">
                 <MenuItem Header="Выход" Click="Exit_Click"/>
             </MenuItem>
@@ -52,6 +32,14 @@
                 <Separator/>
                 <MenuItem Header="О программе Solar_PV" Click="About_Click"/>
             </MenuItem>
+        </Menu>
+
+        <Grid Grid.Row="1" Margin="26,18,26,18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
         <Grid Grid.Row="0" Margin="0,0,0,18">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -152,5 +140,6 @@
             <TextBlock x:Name="VersionText" Text="Solar_PV Desktop" Foreground="#71849B" FontSize="11"/>
             <TextBlock Text="Клиент Windows 10 / 11 · режим чтения" Foreground="#71849B" FontSize="11" DockPanel.Dock="Right"/>
         </DockPanel>
+        </Grid>
     </Grid>
 </Window>
