@@ -32,32 +32,37 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($appVersion)) { throw "Client version is missing from the project file." }
           "app_version=$appVersion" >> $env:GITHUB_OUTPUT
 
-      - name: Publish self-contained Windows app
+      - name: Publish self-contained portable Windows app
         run: dotnet publish Windows_Client/SolarPV.Client.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows_Client/publish
+
+      - name: Create portable update package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path "Windows_Client/publish/*" -DestinationPath "dist/Solar_PV_Windows_Portable_Update.zip" -CompressionLevel Optimal
 
       - name: Install Inno Setup
         run: choco install innosetup --yes --no-progress
 
-      - name: Build installer
+      - name: Build standalone installer
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "Windows_Client/installer/Solar_PV.iss"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Publish installer and version metadata
+      - name: Publish installer and portable update package
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: \${{ github.token }}
         shell: pwsh
         run: |
-          $appVersion = "${{ steps.version.outputs.app_version }}"
+          $appVersion = "\${{ steps.version.outputs.app_version }}"
           gh release view solar-pv-windows-demo *> $null
           if ($LASTEXITCODE -ne 0) {
             gh release create solar-pv-windows-demo --title "Solar_PV Windows $appVersion" --notes "Версия клиента: $appVersion"
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          gh release upload solar-pv-windows-demo dist/Solar_PV_Windows_Demo_Setup.exe --clobber
+          gh release upload solar-pv-windows-demo dist/Solar_PV_Windows_Demo_Setup.exe dist/Solar_PV_Windows_Portable_Update.zip --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $notes = "Версия клиента: $appVersion" + [Environment]::NewLine + [Environment]::NewLine + "Установщик для Windows 10/11 x64. Обновление можно выполнить из самой программы."
+          $notes = "Версия клиента: $appVersion" + [Environment]::NewLine + [Environment]::NewLine + "Установщик Windows 10/11 x64 и отдельный пакет обновления. Обновление выполняется внутри программы без повторного запуска установщика."
           gh release edit solar-pv-windows-demo --title "Solar_PV Windows $appVersion" --notes $notes
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

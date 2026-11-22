@@ -125,7 +125,7 @@
             </StackPanel>
         </ScrollViewer>
         <DockPanel Grid.Row="3" Margin="2,12,2,0">
-            <TextBlock Text="Solar_PV Desktop 0.2.0" Foreground="#71849B" FontSize="11"/>
+            <TextBlock Text="Solar_PV Desktop 0.3.0" Foreground="#71849B" FontSize="11"/>
             <TextBlock Text="Клиент Windows 10 / 11 · режим чтения" Foreground="#71849B" FontSize="11" DockPanel.Dock="Right"/>
         </DockPanel>
     </Grid>

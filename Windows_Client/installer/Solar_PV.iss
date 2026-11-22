@@ -1,5 +1,5 @@
 #define MyAppName "Solar_PV"
-#define MyAppVersion "0.2.0"
+#define MyAppVersion "0.3.0"
 #define MyPublisher "Solar_PV"
 
 [Setup]
@@ -19,6 +19,9 @@ PrivilegesRequired=admin
 UninstallDisplayIcon={app}\Solar_PV.exe
 CloseApplications=yes
 RestartApplications=no
+
+[Dirs]
+Name: "{app}"; Permissions: users-modify
 
 [Files]
 Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

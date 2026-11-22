@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        AddressBox.Text = ClientSettings.LoadControllerAddress() ?? AddressBox.Text;
         _pollTimer.Tick += async (_, _) => await PollAsync();
         ShowDemo();
     }
@@ -56,6 +57,7 @@ public partial class MainWindow : Window
         }
 
         _baseAddress = uri.ToString().TrimEnd('/');
+        ClientSettings.SaveControllerAddress(_baseAddress);
         ConnectButton.IsEnabled = false;
         ConnectButton.Content = "Подключение…";
         try
@@ -105,8 +107,7 @@ public partial class MainWindow : Window
 
     private void ApplyControllerData(JsonElement root)
     {
-        if (root.TryGetProperty("totalEnergyWh", out var totalWh) &&
-            totalWh.TryGetDouble(out var wh))
+        if (root.TryGetProperty("totalEnergyWh", out var totalWh) && totalWh.TryGetDouble(out var wh))
             TotalEnergyText.Text = (wh / 1000.0).ToString("N1", CultureInfo.GetCultureInfo("ru-RU"));
 
         if (!root.TryGetProperty("stringTelemetry", out var telemetry) || telemetry.ValueKind != JsonValueKind.Array)
