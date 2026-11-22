@@ -112,6 +112,8 @@ public partial class MainWindow : Window
         if (!root.TryGetProperty("stringTelemetry", out var telemetry) || telemetry.ValueKind != JsonValueKind.Array)
             return;
 
+        SetString(1, "Нет данных", "— В", "— А", "— кВт·ч", "НЕТ ДАННЫХ");
+        SetString(2, "Нет данных", "— В", "— А", "— кВт·ч", "НЕТ ДАННЫХ");
         double totalPower = 0;
         foreach (var item in telemetry.EnumerateArray())
         {
