@@ -1,10 +1,14 @@
 <Window x:Class="SolarPV.Client.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Solar_PV — Панель станции" Height="790" Width="1180"
         MinHeight="680" MinWidth="980" WindowStartupLocation="CenterScreen"
-        WindowStyle="None" ResizeMode="CanResizeWithGrip"
-        Background="{StaticResource WindowBrush}">
+        WindowStyle="None" ResizeMode="CanResize"
+        Background="{StaticResource WindowBrush}" StateChanged="MainWindow_StateChanged">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="34" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
     <Window.Resources>
         <Style TargetType="{x:Type MenuItem}">
             <Setter Property="Foreground" Value="#F4F7FB"/>
@@ -22,13 +26,42 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="TitleBarButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#F4F7FB"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#31445E"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#405875"/></Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="CloseTitleBarButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource TitleBarButtonStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#C42B1C"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#9E2116"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
     <Grid Margin="0">
         <Grid.RowDefinitions>
+            <RowDefinition Height="34"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Menu x:Name="MainMenu" Grid.Row="0" Padding="8,3" Background="#17263A" Foreground="#F4F7FB" IsMainMenu="True">
+        <Grid Grid.Row="0" Background="#17263A" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/><ColumnDefinition Width="46"/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
+            <TextBlock Text="Solar_PV" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#F4F7FB"/>
+            <Button Grid.Column="1" Content="—" Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeWindow_Click" ToolTip="Свернуть"/>
+            <Button x:Name="MaximizeRestoreButton" Grid.Column="2" Content="□" Style="{StaticResource TitleBarButtonStyle}" Click="MaximizeRestoreWindow_Click" ToolTip="Развернуть"/>
+            <Button Grid.Column="3" Content="×" FontSize="20" Style="{StaticResource CloseTitleBarButtonStyle}" Click="CloseWindow_Click" ToolTip="Закрыть"/>
+        </Grid>
+        <Menu x:Name="MainMenu" Grid.Row="1" Padding="8,3" Background="#17263A" Foreground="#F4F7FB" IsMainMenu="True">
             <MenuItem Header="Файл">
                 <MenuItem Header="Выход" Click="Exit_Click"/>
             </MenuItem>
@@ -53,7 +86,7 @@
             </MenuItem>
         </Menu>
 
-        <Grid Grid.Row="1" Margin="26,18,26,18">
+        <Grid Grid.Row="2" Margin="26,18,26,18">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
