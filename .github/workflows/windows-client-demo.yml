@@ -1,16 +1,11 @@
 name: Windows client demo
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "Windows_Client/**"
-      - ".github/workflows/windows-client-demo.yml"
   workflow_dispatch:
 
 concurrency:
   group: windows-client-release
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -21,12 +16,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-
       - name: Read client version
         id: version
         shell: pwsh
@@ -35,25 +28,21 @@ jobs:
           $appVersion = $project.Project.PropertyGroup.Version
           if ([string]::IsNullOrWhiteSpace($appVersion)) { throw "Client version is missing from the project file." }
           "app_version=$appVersion" >> $env:GITHUB_OUTPUT
-
       - name: Publish self-contained portable Windows app
         run: dotnet publish Windows_Client/SolarPV.Client.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows_Client/publish
-
       - name: Create portable update package
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Compress-Archive -Path "Windows_Client/publish/*" -DestinationPath "dist/Solar_PV_Windows_Portable_Update.zip" -CompressionLevel Optimal
-
       - name: Install Inno Setup
         run: choco install innosetup --yes --no-progress
-
       - name: Build standalone installer
         shell: pwsh
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "Windows_Client/installer/Solar_PV.iss"
+          $appVersion = "${{ steps.version.outputs.app_version }}"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$appVersion" "Windows_Client/installer/Solar_PV.iss"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
       - name: Publish installer and portable update package
         env:
           GH_TOKEN: ${{ github.token }}

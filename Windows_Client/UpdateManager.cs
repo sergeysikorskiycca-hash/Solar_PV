@@ -1,7 +1,8 @@
-using System.IO;
 using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -29,11 +30,7 @@ public partial class MainWindow
         if (_checkingUpdates) return;
         _checkingUpdates = true;
         _updateMenuItem = sender as MenuItem;
-        if (_updateMenuItem is not null)
-        {
-            _updateMenuItem.IsEnabled = false;
-            _updateMenuItem.Header = "Проверка…";
-        }
+        if (_updateMenuItem is not null) _updateMenuItem.IsEnabled = false;
         try
         {
             using var response = await UpdateHttp.GetAsync(ReleaseApiUrl);
@@ -41,137 +38,141 @@ public partial class MainWindow
             using var release = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             var root = release.RootElement;
             var body = root.TryGetProperty("body", out var bodyNode) ? bodyNode.GetString() ?? "" : "";
-            var versionLine = body.Split('\n').FirstOrDefault(line => line.TrimStart().StartsWith("Версия клиента:", StringComparison.OrdinalIgnoreCase));
-            var versionText = versionLine?.Split(':', 2).Last().Trim();
-
-            if (!Version.TryParse(versionText, out var remoteVersion))
-            {
-                MessageBox.Show("Не удалось определить версию опубликованной сборки. Обновление пока недоступно.",
-                    "Solar_PV — обновление", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
+            var line = body.Split('\n').FirstOrDefault(x => x.TrimStart().StartsWith("Версия клиента:", StringComparison.OrdinalIgnoreCase));
+            if (!Version.TryParse(line?.Split(':', 2).Last().Trim(), out var remoteVersion) || remoteVersion is null)
+                throw new InvalidDataException("Не удалось определить версию опубликованной сборки.");
 
             var currentVersion = typeof(MainWindow).Assembly.GetName().Version ?? new Version(0, 0, 0);
             if (remoteVersion <= currentVersion)
             {
-                MessageBox.Show($"Установлена последняя версия Solar_PV ({currentVersion.ToString(3)}).",
-                    "Solar_PV — обновление", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Установлена последняя версия Solar_PV (" + currentVersion.ToString(3) + ").", "Solar_PV — обновление");
                 return;
             }
 
             var asset = root.GetProperty("assets").EnumerateArray()
-                .FirstOrDefault(item => item.TryGetProperty("name", out var name) && name.GetString() == UpdateAssetName);
+                .FirstOrDefault(x => x.GetProperty("name").GetString() == UpdateAssetName);
             if (asset.ValueKind == JsonValueKind.Undefined)
-            {
-                MessageBox.Show("Новая версия найдена, но пакет обновления ещё не опубликован. Попробуйте позже.",
-                    "Solar_PV — обновление", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var digest = asset.TryGetProperty("digest", out var digestNode) ? digestNode.GetString() : null;
-            var downloadUrl = asset.GetProperty("browser_download_url").GetString();
-            if (string.IsNullOrWhiteSpace(digest) || !digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) ||
-                string.IsNullOrWhiteSpace(downloadUrl))
-            {
-                MessageBox.Show("GitHub не предоставил контрольную сумму пакета. В целях безопасности обновление отменено.",
-                    "Solar_PV — обновление", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
+                throw new InvalidDataException("Пакет обновления ещё не опубликован.");
+            var digest = asset.GetProperty("digest").GetString();
+            var url = asset.GetProperty("browser_download_url").GetString();
+            if (string.IsNullOrWhiteSpace(digest) || !digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(url))
+                throw new InvalidDataException("GitHub не предоставил корректную контрольную сумму SHA-256.");
 
             var answer = MessageBox.Show(
-                $"Доступна новая версия Solar_PV: {remoteVersion.ToString(3)}.\n\nУстановленная версия: {currentVersion.ToString(3)}.\n\nСкачать и применить обновление без повторного запуска установщика?",
-                "Solar_PV — найдено обновление", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                "Доступна версия " + remoteVersion.ToString(3) + ". Установленная версия: " + currentVersion.ToString(3) + ".\n\nПрименить обновление?",
+                "Solar_PV — обновление", MessageBoxButton.YesNo, MessageBoxImage.Information);
             if (answer == MessageBoxResult.Yes)
-                await InstallUpdateAsync(downloadUrl, digest["sha256:".Length..]);
+                await InstallUpdateAsync(url, digest["sha256:".Length..], remoteVersion);
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Не удалось проверить обновления или загрузить пакет.\n\n" + ex.Message,
+            MessageBox.Show("Не удалось проверить или применить обновление.\n\n" + ex.Message,
                 "Solar_PV — обновление", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
         {
             _checkingUpdates = false;
-            if (IsLoaded && _updateMenuItem is not null)
-            {
-                _updateMenuItem.IsEnabled = true;
-                _updateMenuItem.Header = "Проверить обновления…";
-            }
+            if (IsLoaded && _updateMenuItem is not null) _updateMenuItem.IsEnabled = true;
             _updateMenuItem = null;
         }
     }
 
-    private async Task InstallUpdateAsync(string downloadUrl, string expectedHash)
+    private async Task InstallUpdateAsync(string downloadUrl, string expectedHash, Version expectedVersion)
     {
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "Solar_PV_Update");
-        Directory.CreateDirectory(tempDirectory);
-        var downloadPath = Path.Combine(tempDirectory, UpdateAssetName + ".download");
-        var archivePath = Path.Combine(tempDirectory, UpdateAssetName);
-        var scriptPath = Path.Combine(tempDirectory, "Apply_Solar_PV_Update.ps1");
-        var executablePath = Environment.ProcessPath;
-        if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath))
+        var temp = Path.Combine(Path.GetTempPath(), "Solar_PV_Update");
+        Directory.CreateDirectory(temp);
+        var download = Path.Combine(temp, UpdateAssetName + ".download");
+        var archive = Path.Combine(temp, UpdateAssetName);
+        var scriptPath = Path.Combine(temp, "Apply_Solar_PV_Update.ps1");
+        var exe = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(exe) || !File.Exists(exe))
             throw new InvalidOperationException("Не удалось определить путь запущенной программы.");
 
-        var applicationDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
-        if (_updateMenuItem is not null)
-            _updateMenuItem.Header = "Загрузка обновления…";
         using (var response = await UpdateHttp.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead))
         {
             response.EnsureSuccessStatusCode();
             await using var source = await response.Content.ReadAsStreamAsync();
-            await using var destination = new FileStream(downloadPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            await source.CopyToAsync(destination);
+            await using var target = new FileStream(download, FileMode.Create, FileAccess.Write, FileShare.None);
+            await source.CopyToAsync(target);
         }
 
         string actualHash;
-        await using (var downloaded = File.OpenRead(downloadPath))
-            actualHash = Convert.ToHexString(await SHA256.HashDataAsync(downloaded));
-
-        if (!CryptographicOperations.FixedTimeEquals(Convert.FromHexString(actualHash), Convert.FromHexString(expectedHash)))
+        await using (var file = File.OpenRead(download))
+            actualHash = Convert.ToHexString(await SHA256.HashDataAsync(file));
+        byte[] expectedBytes;
+        try { expectedBytes = Convert.FromHexString(expectedHash); }
+        catch (FormatException)
         {
-            File.Delete(downloadPath);
-            throw new InvalidDataException("Контрольная сумма пакета не совпала. Файл удалён, обновление не выполнялось.");
+            File.Delete(download);
+            throw new InvalidDataException("GitHub вернул некорректную контрольную сумму.");
         }
+        if (!CryptographicOperations.FixedTimeEquals(Convert.FromHexString(actualHash), expectedBytes))
+        {
+            File.Delete(download);
+            throw new InvalidDataException("Контрольная сумма пакета не совпала. Обновление отменено.");
+        }
+        File.Move(download, archive, true);
 
-        File.Move(downloadPath, archivePath, true);
-        static string PsQuote(string value) => "'" + value.Replace("'", "''") + "'";
-        var script = """
-            $ErrorActionPreference = 'Stop'
-            $processIdToWait = __PROCESS_ID__
-            $archive = __ARCHIVE_PATH__
-            $destination = __APP_DIRECTORY__
-            $app = __APP_PATH__
-            $staging = Join-Path $env:TEMP ('Solar_PV_Stage_' + [guid]::NewGuid().ToString('N'))
-            $log = Join-Path $env:TEMP 'Solar_PV_Update.log'
-            try {
-                while (Get-Process -Id $processIdToWait -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 500 }
-                Expand-Archive -LiteralPath $archive -DestinationPath $staging -Force
-                Copy-Item -Path (Join-Path $staging '*') -Destination $destination -Recurse -Force
-                Start-Process -FilePath $app
-                Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
-                Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
-                Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue
-            }
-            catch {
-                $_ | Out-String | Set-Content -LiteralPath $log
-                Add-Type -AssemblyName PresentationFramework
-                [System.Windows.MessageBox]::Show("Не удалось применить обновление. Подробности: $log", "Solar_PV — ошибка обновления") | Out-Null
-                if (Test-Path -LiteralPath $app) { Start-Process -FilePath $app }
-            }
-            """;
-        script = script.Replace("__PROCESS_ID__", Environment.ProcessId.ToString())
-            .Replace("__ARCHIVE_PATH__", PsQuote(archivePath))
-            .Replace("__APP_DIRECTORY__", PsQuote(applicationDirectory))
-            .Replace("__APP_PATH__", PsQuote(executablePath));
-        await File.WriteAllTextAsync(scriptPath, script);
+        static string Quote(string value) => "'" + value.Replace("'", "''") + "'";
+        var lines = new[]
+        {
+            "$ErrorActionPreference = 'Stop'",
+            "$targetProcessId = " + Environment.ProcessId,
+            "$archive = " + Quote(archive),
+            "$destination = " + Quote(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar)),
+            "$app = " + Quote(exe),
+            "$expected = [version]" + Quote(expectedVersion.ToString()),
+            "$stage = Join-Path $env:TEMP ('Solar_PV_Stage_' + [guid]::NewGuid().ToString('N'))",
+            "$backup = Join-Path $env:TEMP ('Solar_PV_Backup_' + [guid]::NewGuid().ToString('N'))",
+            "$log = Join-Path $env:TEMP 'Solar_PV_Update.log'",
+            "$backupReady = $false",
+            "try {",
+            "  while (Get-Process -Id $targetProcessId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 300 }",
+            "  Expand-Archive -LiteralPath $archive -DestinationPath $stage -Force",
+            "  $newExe = Join-Path $stage 'Solar_PV.exe'",
+            "  if (-not (Test-Path -LiteralPath $newExe -PathType Leaf)) { throw 'В корне архива не найден Solar_PV.exe.' }",
+            "  $newFile = Get-Item -LiteralPath $newExe",
+            "  if ($newFile.Length -lt 1000000) { throw 'Размер EXE в архиве меньше ожидаемого.' }",
+            "  if ([version]$newFile.VersionInfo.FileVersion -lt $expected) { throw 'Версия EXE в архиве ниже версии выпуска.' }",
+            "  if (-not (Test-Path -LiteralPath $app -PathType Leaf)) { throw 'Не найден установленный Solar_PV.exe.' }",
+            "  New-Item -ItemType Directory -Path $backup -Force | Out-Null",
+            "  Copy-Item -Path (Join-Path $destination '*') -Destination $backup -Recurse -Force",
+            "  if (-not (Test-Path -LiteralPath (Join-Path $backup 'Solar_PV.exe'))) { throw 'Не удалось создать резервную копию.' }",
+            "  $backupReady = $true",
+            "  Copy-Item -Path (Join-Path $stage '*') -Destination $destination -Recurse -Force",
+            "  $installed = Join-Path $destination 'Solar_PV.exe'",
+            "  if ((Get-Item -LiteralPath $installed).Length -ne $newFile.Length) { throw 'Размер установленного EXE не совпадает.' }",
+            "  if ([version](Get-Item -LiteralPath $installed).VersionInfo.FileVersion -lt $expected) { throw 'Версия установленного EXE не совпадает.' }",
+            "  $newProcess = Start-Process -FilePath $installed -PassThru",
+            "  Start-Sleep -Seconds 4",
+            "  $newProcess.Refresh()",
+            "  if ($newProcess.HasExited) { throw 'Новая версия завершилась сразу после запуска. Выполняется откат.' }",
+            "  Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue",
+            "  Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue",
+            "  Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue",
+            "  Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue",
+            "} catch {",
+            "  $_ | Out-String | Set-Content -LiteralPath $log -Encoding UTF8",
+            "  if ($backupReady) {",
+            "    try { Get-ChildItem -LiteralPath $destination -Force | Remove-Item -Recurse -Force; Copy-Item -Path (Join-Path $backup '*') -Destination $destination -Recurse -Force }",
+            "    catch { ($_ | Out-String) | Add-Content -LiteralPath $log }",
+            "  }",
+            "  try { if (Test-Path -LiteralPath $app) { Start-Process -FilePath $app } }",
+            "  catch { ($_ | Out-String) | Add-Content -LiteralPath $log }",
+            "  Add-Type -AssemblyName PresentationFramework",
+            "  [System.Windows.MessageBox]::Show('Обновление не удалось. Подробности: ' + $log, 'Solar_PV — ошибка обновления') | Out-Null",
+            "}"
+        };
+        await File.WriteAllTextAsync(scriptPath, string.Join(Environment.NewLine, lines), new UTF8Encoding(false));
 
-        Process.Start(new ProcessStartInfo
+        var updater = Process.Start(new ProcessStartInfo
         {
             FileName = "powershell.exe",
-            Arguments = $"-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{scriptPath}\"",
+            Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"" + scriptPath + "\"",
             UseShellExecute = true,
             WindowStyle = ProcessWindowStyle.Hidden
         });
+        if (updater is null) throw new InvalidOperationException("Windows не запустила процесс обновления.");
         Application.Current.Shutdown();
     }
 }
