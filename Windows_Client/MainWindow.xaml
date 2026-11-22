@@ -4,15 +4,12 @@
         Title="Solar_PV — Панель станции" Height="790" Width="1180"
         MinHeight="680" MinWidth="980" WindowStartupLocation="CenterScreen"
         Background="{StaticResource WindowBrush}">
-    <Grid Margin="26">
+    <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Grid Grid.Row="0" Margin="0,0,0,22">
+        <Menu x:Name="MainMenu" Grid.Row="0" Padding="8,3" Background="#17263A" Foreground="#E8EEF7">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel>
                 <TextBlock Text="SOLAR_PV" FontSize="13" FontWeight="Bold" Foreground="#F5B942" />
@@ -25,9 +22,14 @@
                     <TextBlock x:Name="ConnectionText" Text="ДЕМО РЕЖИМ" Foreground="#F5B942" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
-        </Grid>
+        </Menu>
 
-        <Menu Grid.Row="1" Margin="-8,0,-8,14" Padding="4,2" Background="#17263A" Foreground="#E8EEF7">
+        <Grid Grid.Row="1" Margin="26,18,26,18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
             <MenuItem Header="Файл">
                 <MenuItem Header="Выход" Click="Exit_Click"/>
             </MenuItem>
@@ -50,9 +52,7 @@
                 <Separator/>
                 <MenuItem Header="О программе Solar_PV" Click="About_Click"/>
             </MenuItem>
-        </Menu>
-
-        <Grid Grid.Row="2" Margin="0,0,0,18">
+        <Grid Grid.Row="0" Margin="0,0,0,18">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="Солнечная генерация" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -69,7 +69,7 @@
             </StackPanel>
         </Grid>
 
-        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <Grid Margin="0,0,0,8">
                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
@@ -148,8 +148,8 @@
                 </Border>
             </StackPanel>
         </ScrollViewer>
-        <DockPanel Grid.Row="4" Margin="2,12,2,0">
-            <TextBlock Text="Solar_PV Desktop 0.3.0" Foreground="#71849B" FontSize="11"/>
+        <DockPanel Grid.Row="2" Margin="2,12,2,0">
+            <TextBlock x:Name="VersionText" Text="Solar_PV Desktop" Foreground="#71849B" FontSize="11"/>
             <TextBlock Text="Клиент Windows 10 / 11 · режим чтения" Foreground="#71849B" FontSize="11" DockPanel.Dock="Right"/>
         </DockPanel>
     </Grid>
