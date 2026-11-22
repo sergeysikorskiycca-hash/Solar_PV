@@ -19,7 +19,13 @@
             <Style.Triggers>
                 <Trigger Property="IsHighlighted" Value="True">
                     <Setter Property="Foreground" Value="#FFFFFF"/>
-                    <Setter Property="Background" Value="#356A9F"/>
+                    <Setter Property="Background" Value="#245A86"/>
+                    <Setter Property="TextElement.Foreground" Value="#FFFFFF"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                    <Setter Property="Background" Value="#245A86"/>
+                    <Setter Property="TextElement.Foreground" Value="#FFFFFF"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Foreground" Value="#AAB4C0"/>
@@ -57,9 +63,9 @@
         <Grid Grid.Row="0" Background="#17263A" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/><ColumnDefinition Width="46"/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
             <TextBlock Text="Solar_PV" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#F4F7FB"/>
-            <Button Grid.Column="1" Content="—" Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeWindow_Click" ToolTip="Свернуть"/>
-            <Button x:Name="MaximizeRestoreButton" Grid.Column="2" Content="□" Style="{StaticResource TitleBarButtonStyle}" Click="MaximizeRestoreWindow_Click" ToolTip="Развернуть"/>
-            <Button Grid.Column="3" Content="×" FontSize="20" Style="{StaticResource CloseTitleBarButtonStyle}" Click="CloseWindow_Click" ToolTip="Закрыть"/>
+            <Button Grid.Column="1" Content="—" Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeWindow_Click" ToolTip="Свернуть" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+            <Button x:Name="MaximizeRestoreButton" Grid.Column="2" Content="□" Style="{StaticResource TitleBarButtonStyle}" Click="MaximizeRestoreWindow_Click" ToolTip="Развернуть" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+            <Button Grid.Column="3" Content="×" FontSize="20" Style="{StaticResource CloseTitleBarButtonStyle}" Click="CloseWindow_Click" ToolTip="Закрыть" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
         </Grid>
         <Menu x:Name="MainMenu" Grid.Row="1" Padding="8,3" Background="#17263A" Foreground="#F4F7FB" IsMainMenu="True">
             <MenuItem Header="Файл">
