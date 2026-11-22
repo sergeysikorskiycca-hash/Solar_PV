@@ -52,10 +52,10 @@ jobs:
 
       - name: Publish installer and portable update package
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $appVersion = "\${{ steps.version.outputs.app_version }}"
+          $appVersion = "${{ steps.version.outputs.app_version }}"
           gh release view solar-pv-windows-demo *> $null
           if ($LASTEXITCODE -ne 0) {
             gh release create solar-pv-windows-demo --title "Solar_PV Windows $appVersion" --notes "Версия клиента: $appVersion"
