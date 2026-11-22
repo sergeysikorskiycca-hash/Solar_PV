@@ -1,0 +1,50 @@
+name: Windows client demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Windows_Client/**"
+      - ".github/workflows/windows-client-demo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish self-contained Windows app
+        run: dotnet publish Windows_Client/SolarPV.Client.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows_Client/publish
+
+      - name: Install Inno Setup
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "Windows_Client/installer/Solar_PV.iss"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish demo installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release view solar-pv-windows-demo *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create solar-pv-windows-demo --title "Solar_PV Windows Demo" --notes "Демонстрационная сборка клиента Solar_PV для Windows 10/11 x64."
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          gh release upload solar-pv-windows-demo dist/Solar_PV_Windows_Demo_Setup.exe --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
