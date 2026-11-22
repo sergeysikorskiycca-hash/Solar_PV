@@ -112,9 +112,19 @@ public partial class MainWindow : Window
             Property = System.Windows.Controls.MenuItem.IsHighlightedProperty,
             Value = true
         };
-        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(palette[6])));
-        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(palette[2])));
+        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush("#245A86")));
+        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush("#FFFFFF")));
+        highlighted.Setters.Add(new Setter(System.Windows.Documents.TextElement.ForegroundProperty, PaletteBrush("#FFFFFF")));
         menuItemStyle.Triggers.Add(highlighted);
+        var hovered = new Trigger
+        {
+            Property = System.Windows.UIElement.IsMouseOverProperty,
+            Value = true
+        };
+        hovered.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush("#245A86")));
+        hovered.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush("#FFFFFF")));
+        hovered.Setters.Add(new Setter(System.Windows.Documents.TextElement.ForegroundProperty, PaletteBrush("#FFFFFF")));
+        menuItemStyle.Triggers.Add(hovered);
         MainMenu.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
         MainMenu.ItemContainerStyle = menuItemStyle;
         void Visit(DependencyObject parent)
