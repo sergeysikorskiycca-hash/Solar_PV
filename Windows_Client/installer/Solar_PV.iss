@@ -1,5 +1,5 @@
 #define MyAppName "Solar_PV"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.2.0"
 #define MyPublisher "Solar_PV"
 
 [Setup]
@@ -17,6 +17,8 @@ WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=admin
 UninstallDisplayIcon={app}\Solar_PV.exe
+CloseApplications=yes
+RestartApplications=no
 
 [Files]
 Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

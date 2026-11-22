@@ -39,6 +39,9 @@
                         Padding="15,8" Background="#F5B942" Foreground="#17202D" BorderThickness="0" FontWeight="SemiBold"/>
                 <Button Content="Демо" Click="Demo_Click" Margin="8,0,0,0" Padding="15,8"
                         Background="#26384D" Foreground="#E8EEF7" BorderThickness="0"/>
+                <Button x:Name="UpdateButton" Content="Проверить обновления" Click="CheckUpdates_Click"
+                        Margin="8,0,0,0" Padding="13,8" Background="#26384D"
+                        Foreground="#E8EEF7" BorderBrush="#405875" BorderThickness="1"/>
             </StackPanel>
         </Grid>
 
@@ -122,8 +125,8 @@
             </StackPanel>
         </ScrollViewer>
         <DockPanel Grid.Row="3" Margin="2,12,2,0">
-            <TextBlock Text="Solar_PV Desktop Demo 0.1.0" Foreground="#71849B" FontSize="11"/>
-            <TextBlock Text="Демонстрационная сборка · команды управления станцией отключены" Foreground="#71849B" FontSize="11" DockPanel.Dock="Right"/>
+            <TextBlock Text="Solar_PV Desktop 0.2.0" Foreground="#71849B" FontSize="11"/>
+            <TextBlock Text="Клиент Windows 10 / 11 · режим чтения" Foreground="#71849B" FontSize="11" DockPanel.Dock="Right"/>
         </DockPanel>
     </Grid>
 </Window>

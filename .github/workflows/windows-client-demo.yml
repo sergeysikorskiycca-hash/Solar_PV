@@ -23,6 +23,15 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Read client version
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content "Windows_Client/SolarPV.Client.csproj"
+          $appVersion = $project.Project.PropertyGroup.Version
+          if ([string]::IsNullOrWhiteSpace($appVersion)) { throw "Client version is missing from the project file." }
+          "app_version=$appVersion" >> $env:GITHUB_OUTPUT
+
       - name: Publish self-contained Windows app
         run: dotnet publish Windows_Client/SolarPV.Client.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows_Client/publish
 
@@ -36,15 +45,19 @@ jobs:
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "Windows_Client/installer/Solar_PV.iss"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Publish demo installer
+      - name: Publish installer and version metadata
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
+          $appVersion = "${{ steps.version.outputs.app_version }}"
           gh release view solar-pv-windows-demo *> $null
           if ($LASTEXITCODE -ne 0) {
-            gh release create solar-pv-windows-demo --title "Solar_PV Windows Demo" --notes "Демонстрационная сборка клиента Solar_PV для Windows 10/11 x64."
+            gh release create solar-pv-windows-demo --title "Solar_PV Windows $appVersion" --notes "Версия клиента: $appVersion"
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
           gh release upload solar-pv-windows-demo dist/Solar_PV_Windows_Demo_Setup.exe --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $notes = "Версия клиента: $appVersion" + [Environment]::NewLine + [Environment]::NewLine + "Установщик для Windows 10/11 x64. Обновление можно выполнить из самой программы."
+          gh release edit solar-pv-windows-demo --title "Solar_PV Windows $appVersion" --notes $notes
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
