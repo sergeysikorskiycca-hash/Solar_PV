@@ -63,6 +63,6 @@ jobs:
           }
           gh release upload solar-pv-windows-demo dist/Solar_PV_Windows_Demo_Setup.exe dist/Solar_PV_Windows_Portable_Update.zip --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $notes = "Версия клиента: $appVersion" + [Environment]::NewLine + [Environment]::NewLine + "Установщик Windows 10/11 x64 и отдельный пакет обновления. Обновление выполняется внутри программы без повторного запуска установщика."
+          $notes = "Версия клиента: $appVersion" + [Environment]::NewLine + [Environment]::NewLine + "Установщик Windows 10/11 x64 и portable-пакет обновления. Обновление выполняется внутри программы без повторного запуска установщика."
           gh release edit solar-pv-windows-demo --title "Solar_PV Windows $appVersion" --notes $notes
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
