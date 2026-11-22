@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace SolarPV.Client;
 
@@ -13,6 +14,7 @@ public partial class MainWindow
     private const string UpdateAssetName = "Solar_PV_Windows_Portable_Update.zip";
     private static readonly HttpClient UpdateHttp = CreateUpdateClient();
     private bool _checkingUpdates;
+    private MenuItem? _updateMenuItem;
 
     private static HttpClient CreateUpdateClient()
     {
@@ -26,8 +28,12 @@ public partial class MainWindow
     {
         if (_checkingUpdates) return;
         _checkingUpdates = true;
-        UpdateButton.IsEnabled = false;
-        UpdateButton.Content = "Проверка…";
+        _updateMenuItem = sender as MenuItem;
+        if (_updateMenuItem is not null)
+        {
+            _updateMenuItem.IsEnabled = false;
+            _updateMenuItem.Header = "Проверка…";
+        }
         try
         {
             using var response = await UpdateHttp.GetAsync(ReleaseApiUrl);
@@ -86,11 +92,12 @@ public partial class MainWindow
         finally
         {
             _checkingUpdates = false;
-            if (IsLoaded)
+            if (IsLoaded && _updateMenuItem is not null)
             {
-                UpdateButton.IsEnabled = true;
-                UpdateButton.Content = "Проверить обновления";
+                _updateMenuItem.IsEnabled = true;
+                _updateMenuItem.Header = "Проверить обновления…";
             }
+            _updateMenuItem = null;
         }
     }
 
@@ -106,7 +113,8 @@ public partial class MainWindow
             throw new InvalidOperationException("Не удалось определить путь запущенной программы.");
 
         var applicationDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
-        UpdateButton.Content = "Загрузка обновления…";
+        if (_updateMenuItem is not null)
+            _updateMenuItem.Header = "Загрузка обновления…";
         using (var response = await UpdateHttp.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead))
         {
             response.EnsureSuccessStatusCode();
