@@ -117,9 +117,6 @@ public partial class MainWindow : Window
 
     private void ShowDemo()
     {
-        ConnectionText.Text = "ДЕМО РЕЖИМ";
-        ConnectionText.Foreground = Brushes.Goldenrod;
-        StatusDot.Fill = Brushes.Goldenrod;
         DataModeText.Text = "  ·  демонстрационные данные";
         SystemStateText.Text = "Тестовые значения";
         TotalPowerText.Text = "1 842";
@@ -168,9 +165,6 @@ public partial class MainWindow : Window
             using var json = await JsonDocument.ParseAsync(stream);
             ApplyControllerData(json.RootElement);
             _connected = true;
-            ConnectionText.Text = "ESP32 ПОДКЛЮЧЁН";
-            ConnectionText.Foreground = Brushes.LightGreen;
-            StatusDot.Fill = Brushes.LightGreen;
             DataModeText.Text = "  ·  данные контроллера";
             SystemStateText.Text = "Связь установлена";
             NetworkInfoText.Text = "Получены данные от " + _baseAddress;
@@ -181,9 +175,6 @@ public partial class MainWindow : Window
         {
             _pollTimer.Stop();
             _connected = false;
-            ConnectionText.Text = "НЕТ СВЯЗИ";
-            ConnectionText.Foreground = Brushes.IndianRed;
-            StatusDot.Fill = Brushes.IndianRed;
             DataModeText.Text = "  ·  ожидание контроллера";
             SystemStateText.Text = "Контроллер недоступен";
             NetworkInfoText.Text = "Не удалось получить /api/config: " + ex.Message;
