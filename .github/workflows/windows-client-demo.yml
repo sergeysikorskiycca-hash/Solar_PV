@@ -30,6 +30,11 @@ jobs:
           "app_version=$appVersion" >> $env:GITHUB_OUTPUT
       - name: Publish self-contained portable Windows app
         run: dotnet publish Windows_Client/SolarPV.Client.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows_Client/publish
+      - name: Write package version
+        shell: pwsh
+        run: |
+          $appVersion = "${{ steps.version.outputs.app_version }}"
+          [System.IO.File]::WriteAllText("Windows_Client/publish/version.txt", $appVersion, [System.Text.UTF8Encoding]::new($false))
       - name: Create portable update package
         shell: pwsh
         run: |
@@ -41,7 +46,7 @@ jobs:
         shell: pwsh
         run: |
           $appVersion = "${{ steps.version.outputs.app_version }}"
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$appVersion" "Windows_Client/installer/Solar_PV.iss"
+          & "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" "/DMyAppVersion=$appVersion" "Windows_Client/installer/Solar_PV.iss"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Publish installer and portable update package
         env:
