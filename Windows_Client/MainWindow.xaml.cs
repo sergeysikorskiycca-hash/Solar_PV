@@ -106,6 +106,7 @@ public partial class MainWindow : Window
         var menuItemStyle = new Style(typeof(System.Windows.Controls.MenuItem));
         menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(palette[7])));
         menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(palette[2])));
+        menuItemStyle.Setters.Add(new Setter(System.Windows.Documents.TextElement.ForegroundProperty, PaletteBrush(palette[2])));
         menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.PaddingProperty, new Thickness(10, 6, 10, 6)));
         var highlighted = new Trigger
         {
@@ -134,8 +135,6 @@ public partial class MainWindow : Window
                 var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
                 if (child is System.Windows.Controls.Control control && control.Background is SolidColorBrush bg)
                     control.Background = ConvertBrush(bg);
-                if (child is System.Windows.Controls.TextBlock text && text.Foreground is SolidColorBrush fg)
-                    text.Foreground = ConvertBrush(fg);
                 if (child is System.Windows.Controls.Border border && border.Background is SolidColorBrush borderBg)
                     border.Background = ConvertBrush(borderBg);
                 Visit(child);
