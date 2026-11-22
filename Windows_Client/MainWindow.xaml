@@ -8,6 +8,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -26,7 +27,32 @@
             </Border>
         </Grid>
 
-        <Grid Grid.Row="1" Margin="0,0,0,18">
+        <Menu Grid.Row="1" Margin="-8,0,-8,14" Padding="4,2" Background="#17263A" Foreground="#E8EEF7">
+            <MenuItem Header="Файл">
+                <MenuItem Header="Выход" Click="Exit_Click"/>
+            </MenuItem>
+            <MenuItem Header="Вид">
+                <MenuItem Header="Темы оформления">
+                    <MenuItem Header="Классическая светлая" Tag="Light" Click="Theme_Click"/>
+                    <MenuItem Header="Office" Tag="Office" Click="Theme_Click"/>
+                    <Separator/>
+                    <MenuItem Header="Тёмная" Tag="Dark" Click="Theme_Click"/>
+                    <MenuItem Header="Графитовая" Tag="Graphite" Click="Theme_Click"/>
+                    <MenuItem Header="Синяя" Tag="Blue" Click="Theme_Click"/>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="Инструменты">
+                <MenuItem Header="Подключить ESP32" Click="Connect_Click"/>
+                <MenuItem Header="Демонстрационный режим" Click="Demo_Click"/>
+            </MenuItem>
+            <MenuItem Header="Справка">
+                <MenuItem Header="Проверить обновления…" Click="CheckUpdates_Click"/>
+                <Separator/>
+                <MenuItem Header="О программе Solar_PV" Click="About_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <Grid Grid.Row="2" Margin="0,0,0,18">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="Солнечная генерация" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -39,13 +65,11 @@
                         Padding="15,8" Background="#F5B942" Foreground="#17202D" BorderThickness="0" FontWeight="SemiBold"/>
                 <Button Content="Демо" Click="Demo_Click" Margin="8,0,0,0" Padding="15,8"
                         Background="#26384D" Foreground="#E8EEF7" BorderThickness="0"/>
-                <Button x:Name="UpdateButton" Content="Проверить обновления" Click="CheckUpdates_Click"
-                        Margin="8,0,0,0" Padding="13,8" Background="#26384D"
-                        Foreground="#E8EEF7" BorderBrush="#405875" BorderThickness="1"/>
+
             </StackPanel>
         </Grid>
 
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <Grid Margin="0,0,0,8">
                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
@@ -124,7 +148,7 @@
                 </Border>
             </StackPanel>
         </ScrollViewer>
-        <DockPanel Grid.Row="3" Margin="2,12,2,0">
+        <DockPanel Grid.Row="4" Margin="2,12,2,0">
             <TextBlock Text="Solar_PV Desktop 0.3.0" Foreground="#71849B" FontSize="11"/>
             <TextBlock Text="Клиент Windows 10 / 11 · режим чтения" Foreground="#71849B" FontSize="11" DockPanel.Dock="Right"/>
         </DockPanel>
