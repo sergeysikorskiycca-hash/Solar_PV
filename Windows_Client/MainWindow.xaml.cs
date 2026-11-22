@@ -28,7 +28,7 @@ public partial class MainWindow : Window
     private void About_Click(object sender, RoutedEventArgs e)
     {
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
-        MessageBox.Show($"Solar_PV Desktop {version}\\nКлиент мониторинга солнечной станции\\nWindows 10 / 11",
+        MessageBox.Show($"Solar_PV Desktop {version}\nКлиент мониторинга солнечной станции\nWindows 10 / 11",
             "О программе", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
