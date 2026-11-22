@@ -17,12 +17,39 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        UpdateWindowStateButton();
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"Solar_PV Desktop {version}";
         AddressBox.Text = ClientSettings.LoadControllerAddress() ?? AddressBox.Text;
         ApplyTheme(ClientSettings.LoadTheme() ?? "Dark");
         _pollTimer.Tick += async (_, _) => await PollAsync();
         ShowDemo();
+    }
+
+    private void TitleBar_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != System.Windows.Input.MouseButton.Left) return;
+        if (e.ClickCount == 2) ToggleWindowState();
+        else DragMove();
+    }
+
+    private void MinimizeWindow_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+    private void MaximizeRestoreWindow_Click(object sender, RoutedEventArgs e) => ToggleWindowState();
+    private void CloseWindow_Click(object sender, RoutedEventArgs e) => Close();
+    private void MainWindow_StateChanged(object? sender, EventArgs e) => UpdateWindowStateButton();
+
+    private void ToggleWindowState()
+    {
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        UpdateWindowStateButton();
+    }
+
+    private void UpdateWindowStateButton()
+    {
+        if (MaximizeRestoreButton == null) return;
+        var maximized = WindowState == WindowState.Maximized;
+        MaximizeRestoreButton.Content = maximized ? "❐" : "□";
+        MaximizeRestoreButton.ToolTip = maximized ? "Восстановить" : "Развернуть";
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
