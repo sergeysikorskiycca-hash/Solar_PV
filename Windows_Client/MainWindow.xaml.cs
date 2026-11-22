@@ -51,10 +51,7 @@ public partial class MainWindow : Window
         };
         var map = new Dictionary<string, string>
         {
-            ["#0B1220"] = palette[0], ["#121E30"] = palette[1], ["#E8EEF7"] = palette[2],
-            ["#8FA2BA"] = palette[3], ["#F5B942"] = palette[4], ["#17202D"] = palette[0],
-            ["#17263A"] = palette[7], ["#30445E"] = palette[6], ["#26384D"] = palette[7],
-            ["#405875"] = palette[6], ["#1A2B3E"] = palette[1], ["#121E30"] = palette[1]
+            undefined
         };
         Brush ConvertBrush(Brush brush)
         {
