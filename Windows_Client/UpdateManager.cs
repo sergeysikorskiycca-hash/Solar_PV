@@ -125,12 +125,15 @@ public partial class MainWindow
 
         File.Move(installerPath, finalInstallerPath, true);
         static string PsQuote(string value) => "'" + value.Replace("'", "''") + "'";
-        var script = $"""
-            $processIdToWait = {Environment.ProcessId}
-            while (Get-Process -Id $processIdToWait -ErrorAction SilentlyContinue) {{ Start-Sleep -Seconds 1 }}
-            $installer = Start-Process -FilePath {PsQuote(finalInstallerPath)} -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CLOSEAPPLICATIONS' -Wait -PassThru
-            Start-Process -FilePath {PsQuote(executablePath)}
+        var script = """
+            $processIdToWait = __PROCESS_ID__
+            while (Get-Process -Id $processIdToWait -ErrorAction SilentlyContinue) { Start-Sleep -Seconds 1 }
+            $installer = Start-Process -FilePath '__INSTALLER_PATH__' -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CLOSEAPPLICATIONS' -Wait -PassThru
+            if ($installer.ExitCode -eq 0) { Start-Process -FilePath '__APP_PATH__' }
             """;
+        script = script.Replace("__PROCESS_ID__", Environment.ProcessId.ToString())
+            .Replace("'__INSTALLER_PATH__'", PsQuote(finalInstallerPath))
+            .Replace("'__APP_PATH__'", PsQuote(executablePath));
         await File.WriteAllTextAsync(scriptPath, script);
 
         Process.Start(new ProcessStartInfo
