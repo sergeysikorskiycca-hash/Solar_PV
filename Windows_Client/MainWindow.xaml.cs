@@ -17,6 +17,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
+        VersionText.Text = $"Solar_PV Desktop {version}";
         AddressBox.Text = ClientSettings.LoadControllerAddress() ?? AddressBox.Text;
         ApplyTheme(ClientSettings.LoadTheme() ?? "Dark");
         _pollTimer.Tick += async (_, _) => await PollAsync();
@@ -68,8 +70,26 @@ public partial class MainWindow : Window
             }
             return brush;
         }
-        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[0]));
-        Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[2]));
+        SolidColorBrush PaletteBrush(string value) =>
+            new((Color)ColorConverter.ConvertFromString(value));
+        Background = PaletteBrush(palette[0]);
+        Foreground = PaletteBrush(palette[2]);
+        MainMenu.Background = PaletteBrush(palette[7]);
+        MainMenu.Foreground = PaletteBrush(palette[2]);
+        var menuItemStyle = new Style(typeof(System.Windows.Controls.MenuItem));
+        menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(palette[7])));
+        menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(palette[2])));
+        menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.PaddingProperty, new Thickness(10, 6, 10, 6)));
+        var highlighted = new Trigger
+        {
+            Property = System.Windows.Controls.MenuItem.IsHighlightedProperty,
+            Value = true
+        };
+        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(palette[6])));
+        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(palette[2])));
+        menuItemStyle.Triggers.Add(highlighted);
+        MainMenu.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
+        MainMenu.ItemContainerStyle = menuItemStyle;
         void Visit(DependencyObject parent)
         {
             for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
