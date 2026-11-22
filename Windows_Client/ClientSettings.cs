@@ -22,16 +22,44 @@ internal sealed class ClientSettings
         catch { return null; }
     }
 
-    public static string? LoadTheme()\n    {\n        try\n        {\n            if (!File.Exists(SettingsPath)) return null;\n            var settings = JsonSerializer.Deserialize<ClientSettings>(File.ReadAllText(SettingsPath));\n            return settings?.Theme;\n        }\n        catch { return null; }\n    }\n\n    public static void SaveTheme(string theme)\n    {\n        try\n        {\n            Directory.CreateDirectory(DataDirectory);\n            var current = File.Exists(SettingsPath)\n                ? JsonSerializer.Deserialize<ClientSettings>(File.ReadAllText(SettingsPath)) ?? new ClientSettings()\n                : new ClientSettings();\n            current.Theme = theme;\n            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(current, new JsonSerializerOptions { WriteIndented = true }));\n        }\n        catch { }\n    }\n\n    public static void SaveControllerAddress(string address)
+    public static string? LoadTheme()
+    {
+        try
+        {
+            if (!File.Exists(SettingsPath)) return null;
+            var settings = JsonSerializer.Deserialize<ClientSettings>(File.ReadAllText(SettingsPath));
+            return string.IsNullOrWhiteSpace(settings?.Theme) ? null : settings.Theme;
+        }
+        catch { return null; }
+    }
+
+    public static void SaveTheme(string theme)
     {
         try
         {
             Directory.CreateDirectory(DataDirectory);
-            var temporaryPath = SettingsPath + ".tmp";
-            File.WriteAllText(temporaryPath, JsonSerializer.Serialize(
-                new ClientSettings { ControllerAddress = address, Theme = LoadTheme() ?? "Dark" },
-                new JsonSerializerOptions { WriteIndented = true }));
-            File.Move(temporaryPath, SettingsPath, true);
+            var current = File.Exists(SettingsPath)
+                ? JsonSerializer.Deserialize<ClientSettings>(File.ReadAllText(SettingsPath)) ?? new ClientSettings()
+                : new ClientSettings();
+            current.Theme = theme;
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(current, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch
+        {
+            // Settings failures must not interrupt monitoring.
+        }
+    }
+
+    public static void SaveControllerAddress(string address)
+    {
+        try
+        {
+            Directory.CreateDirectory(DataDirectory);
+            var current = File.Exists(SettingsPath)
+                ? JsonSerializer.Deserialize<ClientSettings>(File.ReadAllText(SettingsPath)) ?? new ClientSettings()
+                : new ClientSettings();
+            current.ControllerAddress = address;
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(current, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch
         {
