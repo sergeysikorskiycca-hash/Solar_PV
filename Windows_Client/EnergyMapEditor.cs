@@ -466,6 +466,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
     public double ElementHeight { get; private set; }
     public string ElementText { get; private set; } = "";
     public string DataSource { get; private set; } = "";
+    public bool DeleteRequested { get; private set; }
 
     public EnergyMapPropertiesDialog(EnergyMapElement element, Window owner)
     {
@@ -499,6 +500,24 @@ internal sealed class EnergyMapPropertiesDialog : Window
             BorderThickness = new Thickness(0),
             IsCancel = true
         };
+        var delete = new Button
+        {
+            Content = "Удалить",
+            Padding = new Thickness(14, 7, 14, 7),
+            Margin = new Thickness(0, 0, 8, 0),
+            Background = new SolidColorBrush(Color.FromRgb(150, 48, 55)),
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(0)
+        };
+        delete.Click += (_, _) =>
+        {
+            var result = MessageBox.Show(this,
+                "Удалить выбранный информационный блок со схемы? Это действие нельзя отменить.",
+                "Удаление объекта", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes) return;
+            DeleteRequested = true;
+            DialogResult = true;
+        };
         var save = new Button
         {
             Content = "Сохранить",
@@ -527,6 +546,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
             DataSource = _dataSourceBox.SelectedItem as string ?? "";
             DialogResult = true;
         };
+        buttons.Children.Add(delete);
         buttons.Children.Add(cancel);
         buttons.Children.Add(save);
         root.Children.Add(buttons);
