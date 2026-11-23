@@ -202,6 +202,18 @@ public partial class MainWindow : Window
         var palette = _activePalette ?? new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" };
         DigitalDashboard.Visibility = design == "Digital" ? Visibility.Visible : Visibility.Collapsed;
         AnalogDashboard.Visibility = design == "Analog" ? Visibility.Visible : Visibility.Collapsed;
+        if (design == "Analog")
+        {
+            DashboardContentGrid.SetBinding(System.Windows.FrameworkElement.WidthProperty,
+                new System.Windows.Data.Binding(nameof(System.Windows.Controls.ScrollViewer.ViewportWidth)) { Source = DashboardScrollViewer });
+            DashboardContentGrid.SetBinding(System.Windows.FrameworkElement.HeightProperty,
+                new System.Windows.Data.Binding(nameof(System.Windows.Controls.ScrollViewer.ViewportHeight)) { Source = DashboardScrollViewer });
+        }
+        else
+        {
+            DashboardContentGrid.ClearValue(System.Windows.FrameworkElement.WidthProperty);
+            DashboardContentGrid.ClearValue(System.Windows.FrameworkElement.HeightProperty);
+        }
         LegacyDashboard.Visibility = design is "Digital" or "Analog" ? Visibility.Collapsed : Visibility.Visible;
         var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[4]));
         var borderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[6]));
