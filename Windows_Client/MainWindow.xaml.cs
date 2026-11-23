@@ -101,6 +101,7 @@ public partial class MainWindow : Window
             RenderEnergyMapElements();
             SaveEnergyMapLayout();
         }
+        EnergyMapToolbar.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapEditButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapElementsButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapObjectHitCanvas.IsHitTestVisible = enabled && !_energyMapEditMode;
