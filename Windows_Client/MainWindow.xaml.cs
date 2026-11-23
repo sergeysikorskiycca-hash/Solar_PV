@@ -125,18 +125,18 @@ public partial class MainWindow : Window
             Property = System.Windows.Controls.MenuItem.IsHighlightedProperty,
             Value = true
         };
-        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush("#245A86")));
-        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush("#FFFFFF")));
-        highlighted.Setters.Add(new Setter(System.Windows.Documents.TextElement.ForegroundProperty, PaletteBrush("#FFFFFF")));
+        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush("#DCE6F2")));
+        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush("#17202D")));
+        highlighted.Setters.Add(new Setter(System.Windows.Documents.TextElement.ForegroundProperty, PaletteBrush("#17202D")));
         menuItemStyle.Triggers.Add(highlighted);
         var hovered = new Trigger
         {
             Property = System.Windows.UIElement.IsMouseOverProperty,
             Value = true
         };
-        hovered.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush("#245A86")));
-        hovered.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush("#FFFFFF")));
-        hovered.Setters.Add(new Setter(System.Windows.Documents.TextElement.ForegroundProperty, PaletteBrush("#FFFFFF")));
+        hovered.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush("#DCE6F2")));
+        hovered.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush("#17202D")));
+        hovered.Setters.Add(new Setter(System.Windows.Documents.TextElement.ForegroundProperty, PaletteBrush("#17202D")));
         menuItemStyle.Triggers.Add(hovered);
         MainMenu.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
         MainMenu.ItemContainerStyle = menuItemStyle;
