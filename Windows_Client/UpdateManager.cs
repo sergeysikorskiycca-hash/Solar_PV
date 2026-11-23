@@ -268,7 +268,7 @@ public partial class MainWindow
         var startInfo = new ProcessStartInfo
         {
             FileName = "powershell.exe",
-            Arguments = "-NoProfile -ExecutionPolicy Bypass -NoExit -File \"" + scriptPath + "\"",
+            Arguments = "-NoProfile -ExecutionPolicy Bypass -File \"" + scriptPath + "\"",
             UseShellExecute = true,
             WindowStyle = ProcessWindowStyle.Normal
         };
