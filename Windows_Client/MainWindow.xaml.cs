@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
+using SharpVectors.Converters;
 
 namespace SolarPV.Client;
 
@@ -22,6 +23,7 @@ public partial class MainWindow : Window
     private string _baseAddress = "";
     private string[]? _activePalette;
     private readonly Dictionary<string, System.Windows.Controls.Border> _energyMapItems = new();
+    private List<EnergyMapElement> _energyMapElements = new();
     private bool _energyMapEditMode;
     private System.Windows.Controls.Border? _draggedEnergyMapItem;
     private System.Windows.Point _energyMapDragOffset;
@@ -423,72 +425,106 @@ public partial class MainWindow : Window
 
     private void BuildEnergyMapItems()
     {
-        var saved = ClientSettings.LoadEnergyMapPositions();
-        AddEnergyMapItem("Pv1Voltage", "PV1 · НАПРЯЖЕНИЕ", "— В", 75, 530);
-        AddEnergyMapItem("Pv1Current", "PV1 · ТОК", "— А", 75, 585);
-        AddEnergyMapItem("Pv1Power", "PV1 · МОЩНОСТЬ", "— Вт", 75, 640);
-        AddEnergyMapItem("Pv2Voltage", "PV2 · НАПРЯЖЕНИЕ", "— В", 330, 530);
-        AddEnergyMapItem("Pv2Current", "PV2 · ТОК", "— А", 330, 585);
-        AddEnergyMapItem("Pv2Power", "PV2 · МОЩНОСТЬ", "— Вт", 330, 640);
-        AddEnergyMapItem("HousePower", "ДОМ · МОЩНОСТЬ", "Нет данных", 1090, 670);
-        AddEnergyMapItem("GridPower", "ЛЭП · МОЩНОСТЬ", "Нет данных", 1090, 590);
-        AddEnergyMapItem("InverterPower", "ИНВЕРТОР · МОЩНОСТЬ", "Нет данных", 720, 410);
-        AddEnergyMapItem("BatteryVoltage", "АКБ · НАПРЯЖЕНИЕ", "Нет данных", 1090, 770);
-        AddEnergyMapItem("BatteryCharge", "АКБ · ЗАРЯД", "Нет данных", 1090, 825);
-        AddEnergyMapItem("BatteryPower", "АКБ · МОЩНОСТЬ", "Нет данных", 1090, 880);
+        var resource = Application.GetResourceStream(new Uri("pack://application:,,,/Screenshot_1_vector.svg"));
+        if (resource is null) throw new InvalidOperationException("Не найден ресурс энергосхемы SVG.");
+        string source;
+        using (resource.Stream)
+        using (var reader = new StreamReader(resource.Stream))
+            source = reader.ReadToEnd();
 
-        foreach (var pair in saved)
+        var defaults = EnergyMapSvgDocument.CreateDefaults(source, out var backgroundSvg);
+        _energyMapElements = ClientSettings.LoadEnergyMapElements();
+        if (_energyMapElements.Count == 0)
         {
-            if (!_energyMapItems.TryGetValue(pair.Key, out var item)) continue;
-            System.Windows.Controls.Canvas.SetLeft(item, Math.Clamp(pair.Value.X, 0, 1409 - item.Width));
-            System.Windows.Controls.Canvas.SetTop(item, Math.Clamp(pair.Value.Y, 0, 937 - item.Height));
+            _energyMapElements = defaults;
+            var pv1 = _energyMapElements.FirstOrDefault(item => item.Kind == "Indicator" && item.Text.Contains("0.31", StringComparison.Ordinal));
+            var pv2 = _energyMapElements.FirstOrDefault(item => item.Kind == "Indicator" && item.Text.Contains("0.30", StringComparison.Ordinal));
+            if (pv1 is not null) pv1.DataSource = "Pv1Power";
+            if (pv2 is not null) pv2.DataSource = "Pv2Power";
+            ClientSettings.SaveEnergyMapElements(_energyMapElements);
+        }
+
+        var svg = new SvgViewbox
+        {
+            Width = 1409,
+            Height = 905,
+            Stretch = Stretch.Fill,
+            IsHitTestVisible = false
+        };
+        svg.Load(backgroundSvg, false);
+        EnergyMapSvgHost.Children.Clear();
+        EnergyMapSvgHost.Children.Add(svg);
+        RenderEnergyMapElements();
+    }
+
+    private void RenderEnergyMapElements()
+    {
+        EnergyMapItemsCanvas.Children.Clear();
+        _energyMapItems.Clear();
+
+        foreach (var element in _energyMapElements)
+        {
+            var text = new System.Windows.Controls.TextBlock
+            {
+                Text = GetEnergyMapDisplayText(element),
+                Foreground = EnergyMapBrush(element.Foreground, Brushes.White),
+                FontSize = element.FontSize,
+                FontWeight = element.Bold ? FontWeights.Bold : FontWeights.Normal,
+                FontFamily = new FontFamily("Arial"),
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            var isIndicator = element.Kind == "Indicator";
+            var item = new System.Windows.Controls.Border
+            {
+                Width = Math.Max(12, element.Width),
+                Height = Math.Max(12, element.Height),
+                Padding = isIndicator ? new Thickness(5, 2, 5, 2) : new Thickness(0),
+                Background = isIndicator ? EnergyMapBrush(element.Background, Brushes.Transparent) : Brushes.Transparent,
+                BorderBrush = EnergyMapBrush(element.BorderColor, Brushes.Transparent),
+                BorderThickness = new Thickness(isIndicator ? element.BorderWidth : 0),
+                CornerRadius = new CornerRadius(element.CornerRadius),
+                Child = text,
+                Tag = element.Id,
+                Cursor = _energyMapEditMode ? System.Windows.Input.Cursors.SizeAll : System.Windows.Input.Cursors.Arrow,
+                ToolTip = element.Text
+            };
+            item.MouseLeftButtonDown += EnergyMapItem_MouseLeftButtonDown;
+            item.MouseMove += EnergyMapItem_MouseMove;
+            item.MouseLeftButtonUp += EnergyMapItem_MouseLeftButtonUp;
+            _energyMapItems[element.Id] = item;
+            EnergyMapItemsCanvas.Children.Add(item);
+            System.Windows.Controls.Canvas.SetLeft(item, Math.Clamp(element.X, 0, 1409 - item.Width));
+            System.Windows.Controls.Canvas.SetTop(item, Math.Clamp(element.Y, 0, 905 - item.Height));
         }
     }
 
-    private void AddEnergyMapItem(string id, string caption, string value, double x, double y)
+    private static Brush EnergyMapBrush(string value, Brush fallback)
     {
-        var panel = new System.Windows.Controls.StackPanel();
-        panel.Children.Add(new System.Windows.Controls.TextBlock
+        try
         {
-            Text = caption,
-            Foreground = new SolidColorBrush(Color.FromRgb(187, 220, 243)),
-            FontSize = 10,
-            FontWeight = FontWeights.SemiBold
-        });
-        panel.Children.Add(new System.Windows.Controls.TextBlock
-        {
-            Text = value,
-            Foreground = Brushes.White,
-            FontSize = 17,
-            FontWeight = FontWeights.Bold
-        });
-        var item = new System.Windows.Controls.Border
-        {
-            Width = 176,
-            Height = 52,
-            Padding = new Thickness(8, 5, 8, 5),
-            Background = new SolidColorBrush(Color.FromArgb(238, 11, 43, 75)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(125, 187, 232)),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(5),
-            Child = panel,
-            Tag = id,
-            Cursor = System.Windows.Input.Cursors.Arrow,
-            ToolTip = "Включите режим «Настроить», чтобы перемещать этот показатель"
-        };
-        item.MouseLeftButtonDown += EnergyMapItem_MouseLeftButtonDown;
-        item.MouseMove += EnergyMapItem_MouseMove;
-        item.MouseLeftButtonUp += EnergyMapItem_MouseLeftButtonUp;
-        _energyMapItems[id] = item;
-        EnergyMapItemsCanvas.Children.Add(item);
-        System.Windows.Controls.Canvas.SetLeft(item, x);
-        System.Windows.Controls.Canvas.SetTop(item, y);
+            var converted = ColorConverter.ConvertFromString(value);
+            return converted is Color color ? new SolidColorBrush(color) : fallback;
+        }
+        catch { return fallback; }
+    }
+
+    private static string GetEnergyMapDisplayText(EnergyMapElement element)
+    {
+        if (string.IsNullOrEmpty(element.DataSource) || string.IsNullOrEmpty(element.CurrentValue))
+            return element.Text;
+        return element.Text.Contains("{value}", StringComparison.Ordinal)
+            ? element.Text.Replace("{value}", element.CurrentValue, StringComparison.Ordinal)
+            : element.CurrentValue;
     }
 
     private void EnergyMapEdit_Click(object sender, RoutedEventArgs e)
     {
         _energyMapEditMode = !_energyMapEditMode;
-        EnergyMapEditButton.Content = _energyMapEditMode ? "Завершить настройку" : "Настроить";
+        EnergyMapEditButton.Content = _energyMapEditMode ? "Завершить перенос" : "Перемещать";
         EnergyMapEditButton.Background = new SolidColorBrush(_energyMapEditMode
             ? Color.FromRgb(99, 214, 162) : Color.FromRgb(245, 185, 66));
         foreach (var item in _energyMapItems.Values)
@@ -498,10 +534,19 @@ public partial class MainWindow : Window
             item.Cursor = _energyMapEditMode
                 ? System.Windows.Input.Cursors.SizeAll : System.Windows.Input.Cursors.Arrow;
             item.ToolTip = _energyMapEditMode
-                ? "Перетащите показание мышью"
-                : "Включите режим «Настроить», чтобы перемещать этот показатель";
+                ? "Перетащите элемент мышью"
+                : item.Child is System.Windows.Controls.TextBlock text ? text.Text : "";
         }
         if (!_energyMapEditMode) SaveEnergyMapLayout();
+    }
+
+    private void EnergyMapElements_Click(object sender, RoutedEventArgs e)
+    {
+        var editor = new EnergyMapEditorWindow(_energyMapElements, this);
+        if (editor.ShowDialog() != true) return;
+        _energyMapElements = editor.Elements;
+        RenderEnergyMapElements();
+        SaveEnergyMapLayout();
     }
 
     private void EnergyMapItem_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -520,9 +565,14 @@ public partial class MainWindow : Window
             return;
         var position = e.GetPosition(EnergyMapItemsCanvas);
         var x = Math.Clamp(position.X - _energyMapDragOffset.X, 0, 1409 - _draggedEnergyMapItem.Width);
-        var y = Math.Clamp(position.Y - _energyMapDragOffset.Y, 0, 937 - _draggedEnergyMapItem.ActualHeight);
+        var y = Math.Clamp(position.Y - _energyMapDragOffset.Y, 0, 905 - _draggedEnergyMapItem.ActualHeight);
         System.Windows.Controls.Canvas.SetLeft(_draggedEnergyMapItem, x);
         System.Windows.Controls.Canvas.SetTop(_draggedEnergyMapItem, y);
+        if (_draggedEnergyMapItem.Tag is string id)
+        {
+            var model = _energyMapElements.FirstOrDefault(element => element.Id == id);
+            if (model is not null) { model.X = x; model.Y = y; }
+        }
     }
 
     private void EnergyMapItem_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -535,24 +585,18 @@ public partial class MainWindow : Window
 
     private void SaveEnergyMapLayout()
     {
-        var positions = new Dictionary<string, EnergyMapPosition>();
-        foreach (var pair in _energyMapItems)
-            positions[pair.Key] = new EnergyMapPosition
-            {
-                X = System.Windows.Controls.Canvas.GetLeft(pair.Value),
-                Y = System.Windows.Controls.Canvas.GetTop(pair.Value)
-            };
-        ClientSettings.SaveEnergyMapPositions(positions);
+        ClientSettings.SaveEnergyMapElements(_energyMapElements);
     }
 
     private void SetEnergyMapValue(string id, string value)
     {
-        if (!_energyMapItems.TryGetValue(id, out var item) ||
-            item.Child is not System.Windows.Controls.StackPanel panel ||
-            panel.Children.Count < 2 ||
-            panel.Children[1] is not System.Windows.Controls.TextBlock text)
-            return;
-        text.Text = value;
+        foreach (var element in _energyMapElements.Where(element => element.DataSource == id))
+        {
+            element.CurrentValue = value;
+            if (_energyMapItems.TryGetValue(element.Id, out var item) &&
+                item.Child is System.Windows.Controls.TextBlock text)
+                text.Text = GetEnergyMapDisplayText(element);
+        }
     }
 
     private void Demo_Click(object sender, RoutedEventArgs e)
