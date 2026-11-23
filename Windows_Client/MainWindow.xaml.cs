@@ -527,6 +527,8 @@ public partial class MainWindow : Window
                     Width = item.Width,
                     Height = item.Height,
                     Background = Brushes.Transparent,
+                    BorderBrush = Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
                     ToolTip = item.Name,
                     Tag = item.Id,
                     Cursor = System.Windows.Input.Cursors.Hand
