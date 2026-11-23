@@ -270,6 +270,12 @@ public partial class MainWindow : Window
         }
 
         ApplyTopMetricsTextColor(TopMetricsGrid);
+        if (theme == "Flow")
+        {
+            TotalPowerText.Foreground = accent;
+            String1Power.Foreground = accent;
+            String2Power.Foreground = accent;
+        }
 
         _activePalette = palette;
         ClientSettings.SaveTheme(theme);
