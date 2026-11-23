@@ -85,17 +85,17 @@
  <path d="M1174 723L1151 758H1168L1159 779L1185 746H1168Z" fill="#283d53"/>
  <!-- Energy arrows and labels -->
  <path d="M580 331H373" stroke="#ffb400" stroke-width="13" fill="none" marker-end="url(#arrAmber)"/>
- <rect x="411" y="284" width="132" height="43" rx="12" fill="#171c25" stroke="#ffb400" stroke-width="3"/><text x="477" y="314" font-size="27" font-weight="700" fill="#ffe04a">2.85 кВт</text>
+ <g transform="translate(477 305.5) scale(1.5) translate(-477 -305.5)"><rect x="411" y="284" width="132" height="43" rx="12" fill="#171c25" stroke="#ffb400" stroke-width="3"/><text x="477" y="314" font-size="27" font-weight="700" fill="#ffe04a">2.85 кВт</text></g>
  <path d="M1130 331H865" stroke="#087bff" stroke-width="13" fill="none" marker-end="url(#arrBlue)"/>
- <rect x="944" y="283" width="130" height="43" rx="12" fill="#102a4a" stroke="#1688ff" stroke-width="3"/><text x="1009" y="313" font-size="27" fill="#fff">1.75 кВт</text>
+ <g transform="translate(1009 304.5) scale(1.5) translate(-1009 -304.5)"><rect x="944" y="283" width="130" height="43" rx="12" fill="#102a4a" stroke="#1688ff" stroke-width="3"/><text x="1009" y="313" font-size="27" fill="#fff">1.75 кВт</text></g>
  <path d="M151 625V596" stroke="#168bff" stroke-width="0"/>
  <path d="M250 850H570Q648 850 648 772V454" stroke="#087bff" stroke-width="11" fill="none" marker-end="url(#arrBlue)"/>
  <path d="M520 790H700Q700 790 700 705V454" stroke="#087bff" stroke-width="11" fill="none" marker-end="url(#arrBlue)"/>
- <rect x="520" y="848" width="112" height="43" rx="11" fill="#0a2c57" stroke="#168bff" stroke-width="3"/><text x="576" y="878" font-size="25" fill="#fff">0.31 кВт</text>
- <rect x="520" y="735" width="112" height="43" rx="11" fill="#0a2c57" stroke="#168bff" stroke-width="3"/><text x="576" y="765" font-size="25" fill="#fff">0.30 кВт</text>
+ <g transform="translate(576 869.5) scale(1.5) translate(-576 -869.5)"><rect x="520" y="848" width="112" height="43" rx="11" fill="#0a2c57" stroke="#168bff" stroke-width="3"/><text x="576" y="878" font-size="25" fill="#fff">0.31 кВт</text></g>
+ <g transform="translate(576 756.5) scale(1.5) translate(-576 -756.5)"><rect x="520" y="735" width="112" height="43" rx="11" fill="#0a2c57" stroke="#168bff" stroke-width="3"/><text x="576" y="765" font-size="25" fill="#fff">0.30 кВт</text></g>
  <path d="M813 454V660Q813 703 857 703H1025" stroke="#f02b20" stroke-width="12" fill="none" marker-end="url(#arrRed)"/>
- <rect x="833" y="537" width="122" height="43" rx="11" fill="#5d1717" stroke="#ff4438" stroke-width="3"/><text x="894" y="567" font-size="26" fill="#fff">0.72 кВт</text>
+ <g transform="translate(894 558.5) scale(1.5) translate(-894 -558.5)"><rect x="833" y="537" width="122" height="43" rx="11" fill="#5d1717" stroke="#ff4438" stroke-width="3"/><text x="894" y="567" font-size="26" fill="#fff">0.72 кВт</text></g>
  <path d="M779 454V735Q779 751 822 751H1025" stroke="#13b944" stroke-width="12" fill="none" marker-end="url(#arrGreen)"/>
- <rect x="833" y="765" width="122" height="43" rx="11" fill="#0a4a24" stroke="#1bd95a" stroke-width="3"/><text x="894" y="795" font-size="26" fill="#fff">0.68 кВт</text>
+ <g transform="translate(894 786.5) scale(1.5) translate(-894 -786.5)"><rect x="833" y="765" width="122" height="43" rx="11" fill="#0a4a24" stroke="#1bd95a" stroke-width="3"/><text x="894" y="795" font-size="26" fill="#fff">0.68 кВт</text></g>
 </g>
 </svg>
