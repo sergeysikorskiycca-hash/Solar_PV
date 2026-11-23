@@ -622,6 +622,7 @@ public partial class MainWindow : Window
         SetDigitalString(2, 758, 182.1, 4.16);
         DigitalInverterPower.Text = "1 842 Вт";
         AnalogInverterPower.Text = "1 842 Вт";
+        SetEnergyMapValue("InverterPower", "1 842 Вт");
         AnalogInverterEnergy.Text = "12 846,0 кВт·ч";
         NetworkInfoText.Text = "Реальный контроллер не подключён. Нажмите «Подключить ESP32», чтобы начать чтение данных.";
         LastUpdateText.Text = "Обновлено: " + DateTime.Now.ToString("HH:mm:ss");
@@ -766,6 +767,7 @@ public partial class MainWindow : Window
         TotalPowerText.Text = Format(totalPower, "N0");
         DigitalInverterPower.Text = Format(totalPower, "N0") + " Вт";
         AnalogInverterPower.Text = Format(totalPower, "N0") + " Вт";
+        SetEnergyMapValue("InverterPower", Format(totalPower, "N0") + " Вт");
     }
 
 
