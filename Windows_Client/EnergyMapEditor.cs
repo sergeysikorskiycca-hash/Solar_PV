@@ -24,6 +24,7 @@ internal sealed class EnergyMapElement
     public double CornerRadius { get; set; }
     public bool Bold { get; set; }
     public string DataSource { get; set; } = "";
+    public string CurrentValue { get; set; } = "";
 
     public EnergyMapElement Copy() => (EnergyMapElement)MemberwiseClone();
 }
@@ -131,7 +132,7 @@ internal static class EnergyMapSvgDocument
     private static string NormalizeColor(string value)
     {
         if (value.StartsWith('#') && value.Length == 4)
-            return "#FF" + new string(value.Skip(1).Select(c => new string(c, 2)[0]).ToArray());
+            return "#FF" + string.Concat(value.Skip(1).Select(c => new string(c, 2)));
         if (value.StartsWith('#') && value.Length == 7)
             return "#FF" + value[1..];
         return value;
