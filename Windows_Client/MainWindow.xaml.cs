@@ -299,12 +299,46 @@ public partial class MainWindow : Window
         String1Power.Foreground = accent;
         String2Power.Foreground = accent;
 
+        TitleBarGrid.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[7]));
+        MainMenu.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[7]));
+        MainMenu.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[2]));
+        DashboardHeaderGrid.Background = Brushes.Transparent;
+        StringSectionHeader.Background = Brushes.Transparent;
+        AddressBox.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[1]));
+        AddressBox.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[2]));
+        AddressBox.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[6]));
+        ConnectButton.Background = accent;
+        ConnectButton.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[0]));
+
+        void RestoreMenuStyle(System.Windows.Controls.MenuItem item)
+        {
+            item.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[7]));
+            item.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[2]));
+            foreach (var child in item.Items)
+                if (child is System.Windows.Controls.MenuItem childItem)
+                    RestoreMenuStyle(childItem);
+        }
+        foreach (var entry in MainMenu.Items)
+            if (entry is System.Windows.Controls.MenuItem menuItem)
+                RestoreMenuStyle(menuItem);
+
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(TitleBarGrid); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(TitleBarGrid, i);
+            if (child is System.Windows.Controls.TextBlock titleText)
+                titleText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[2]));
+            if (child is System.Windows.Controls.Button titleButton)
+            {
+                titleButton.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[2]));
+                titleButton.Background = Brushes.Transparent;
+            }
+        }
+
         if (design == "Analog")
         {
             var dashboardBlue = new SolidColorBrush(Color.FromRgb(48, 169, 220));
             var cardBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[1]));
             var cardBorder = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[6]));
-            var mainText = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[2]));
             var mutedText = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[3]));
 
             TitleBarGrid.Background = dashboardBlue;
@@ -312,7 +346,6 @@ public partial class MainWindow : Window
             MainMenu.Foreground = Brushes.White;
             DashboardHeaderGrid.Background = dashboardBlue;
             DashboardHeaderGrid.Margin = new Thickness(0, 0, 0, 18);
-            DashboardHeaderGrid.Padding = new Thickness(12, 10, 12, 10);
             StringSectionHeader.Background = dashboardBlue;
             StringSectionHeader.CornerRadius = new CornerRadius(0);
 
