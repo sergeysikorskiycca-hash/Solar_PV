@@ -28,7 +28,11 @@ public partial class MainWindow : Window
 
     private readonly bool _isAdminMode;
 
-    public MainWindow(bool isAdminMode = false)
+    public MainWindow() : this(false)
+    {
+    }
+
+    public MainWindow(bool isAdminMode)
     {
         _isAdminMode = isAdminMode;
         InitializeComponent();
