@@ -607,6 +607,7 @@ public partial class MainWindow : Window
             System.Windows.Controls.Canvas.SetLeft(item, Math.Clamp(element.X, 0, 1409 - item.Width));
             System.Windows.Controls.Canvas.SetTop(item, Math.Clamp(element.Y, 0, 905 - item.Height));
         }
+        UpdateEnergyMapHitTesting();
     }
 
     private static FontFamily EnergyMapFont(string value)
