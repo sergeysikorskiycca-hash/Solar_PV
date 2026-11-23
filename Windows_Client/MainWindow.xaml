@@ -126,12 +126,12 @@
             </StackPanel>
         </Grid>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <Grid>
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <ScrollViewer x:Name="DashboardScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Grid x:Name="DashboardContentGrid">
+                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
 
-            <Grid x:Name="AnalogDashboard" Grid.Row="0" Visibility="Collapsed" Margin="0,0,0,14">
-                <Viewbox Stretch="Uniform" HorizontalAlignment="Stretch" MaxHeight="650">
+            <Grid x:Name="AnalogDashboard" Grid.Row="0" Visibility="Collapsed" Margin="0">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <Canvas Width="1409" Height="937">
                         <Image Source="pack://application:,,,/Screenshot_1.jpg" Width="1409" Height="937" Stretch="Fill"/>
                         <TextBlock x:Name="AnalogInverterPower" Visibility="Collapsed"/>
