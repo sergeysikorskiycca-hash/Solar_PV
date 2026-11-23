@@ -175,7 +175,7 @@
                                 <Button x:Name="EnergyMapEditButton" Content="Настроить" Click="EnergyMapEdit_Click" Padding="10,4" Background="#F5B942" Foreground="#17202D" BorderThickness="0" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>
-                        <Canvas x:Name="EnergyMapItemsCanvas"/>
+                        <Canvas x:Name="EnergyMapItemsCanvas" Width="1409" Height="937"/>
                     </Canvas>
                 </Viewbox>
             </Grid>
