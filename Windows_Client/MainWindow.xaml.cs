@@ -29,7 +29,8 @@ public partial class MainWindow : Window
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"Solar_PV Desktop {version}";
         AddressBox.Text = ClientSettings.LoadControllerAddress() ?? AddressBox.Text;
-        Loaded += (_, _) => ApplyTheme(ClientSettings.LoadTheme() ?? "Digital");
+        var savedDesign = ClientSettings.LoadTheme();
+        Loaded += (_, _) => ApplyTheme(savedDesign is "Analog" or "Flow" or "Blueprint" ? savedDesign : "Digital");
         _pollTimer.Tick += async (_, _) => await PollAsync();
         Closed += (_, _) => WriteConnectionLog("Клиент Solar_PV закрыт.");
         ShowDemo();
@@ -216,6 +217,32 @@ public partial class MainWindow : Window
             }
         }
         StyleCards(this);
+
+        var stringCards = StringCardsGrid.Children.OfType<System.Windows.Controls.Border>().ToArray();
+        StringCardsGrid.ColumnDefinitions.Clear();
+        StringCardsGrid.RowDefinitions.Clear();
+        if (theme == "Flow")
+        {
+            StringCardsGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
+            StringCardsGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+            StringCardsGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+            for (var i = 0; i < stringCards.Length; i++)
+            {
+                System.Windows.Controls.Grid.SetColumn(stringCards[i], 0);
+                System.Windows.Controls.Grid.SetRow(stringCards[i], i);
+            }
+        }
+        else
+        {
+            StringCardsGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
+            StringCardsGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
+            StringCardsGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+            for (var i = 0; i < stringCards.Length; i++)
+            {
+                System.Windows.Controls.Grid.SetColumn(stringCards[i], i);
+                System.Windows.Controls.Grid.SetRow(stringCards[i], 0);
+            }
+        }
 
         if (theme == "Blueprint")
         {
