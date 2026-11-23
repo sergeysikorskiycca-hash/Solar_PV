@@ -131,106 +131,36 @@
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
 
             <Grid x:Name="AnalogDashboard" Grid.Row="0" Visibility="Collapsed" Margin="0,0,0,14">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                <Border Grid.Row="0" Background="#07549A" BorderBrush="#66B8F5" BorderThickness="1.5" CornerRadius="13" Padding="13" Margin="0,0,0,12">
-                    <Grid>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="СХЕМА ЭНЕРГОСИСТЕМЫ" Foreground="White" FontSize="21" FontWeight="Bold" HorizontalAlignment="Center"/>
-                            <TextBlock Text="ПОТОКИ ЭНЕРГИИ И ТЕКУЩИЕ ПОКАЗАНИЯ" Foreground="#C9E7FF" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,3,0,0"/>
-                        </StackPanel>
-                        <Border Grid.Column="1" Background="#06396D" CornerRadius="8" Padding="10,6" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding ElementName=DataModeText, Path=Text}" Foreground="#EAF6FF" FontSize="10" VerticalAlignment="Center"/>
+                <Viewbox Stretch="Uniform" HorizontalAlignment="Stretch" MaxHeight="650">
+                    <Canvas Width="1409" Height="937">
+                        <Image Source="pack://application:,,,/Screenshot_1.jpg" Width="1409" Height="937" Stretch="Fill"/>
+                        <Border Canvas.Left="1000" Canvas.Top="16" Width="390" Height="42" Background="#E6103155" BorderBrush="#8BC9F5" BorderThickness="1" CornerRadius="9" Padding="9,5">
+                            <TextBlock Text="Схема иллюстративная · показания на рисунке условные" Foreground="White" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" TextAlignment="Center"/>
                         </Border>
-                    </Grid>
-                </Border>
-                <Grid Grid.Row="1" MinHeight="390">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.12*"/><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="1.12*"/></Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,10,10">
-                        <Border Background="#123E68" BorderBrush="#4E9AD4" BorderThickness="1.5" CornerRadius="12" Padding="13" MinHeight="112">
-                            <StackPanel>
-                                <TextBlock Text="ДОМ · ПОТРЕБЛЕНИЕ" Foreground="#D8ECFF" FontWeight="Bold" FontSize="13"/>
-                                <TextBlock Text="— кВт" Foreground="#FFD34E" FontSize="25" FontWeight="Bold" Margin="0,8,0,2"/>
-                                <TextBlock Text="Напряжение — В    Ток — А" Foreground="#EAF4FC" FontSize="12"/>
-                                <TextBlock Text="Нет данных контроллера" Foreground="#A9C9E3" FontSize="10" Margin="0,5,0,0"/>
-                            </StackPanel>
+                        <Border Canvas.Left="40" Canvas.Top="566" Width="202" Height="49" Background="#F20B2B4B" BorderBrush="#7DBBE8" BorderThickness="1" CornerRadius="5" Padding="5,3">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel><TextBlock Text="НАПРЯЖЕНИЕ" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv1Voltage" Text="— В" Foreground="White" FontSize="15" FontWeight="Bold"/></StackPanel>
+                                <StackPanel Grid.Column="1"><TextBlock Text="ТОК" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv1Current" Text="— А" Foreground="White" FontSize="15" FontWeight="Bold"/></StackPanel>
+                                <StackPanel Grid.Column="2"><TextBlock Text="МОЩНОСТЬ" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv1Power" Text="— Вт" Foreground="#FFD34E" FontSize="15" FontWeight="Bold"/></StackPanel>
+                            </Grid>
                         </Border>
-                    </StackPanel>
-                    <Border Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" Background="#173C5C" BorderBrush="#9AB8D0" BorderThickness="2" CornerRadius="17" Padding="16" Margin="2,18,2,18" VerticalAlignment="Center">
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="ИНВЕРТОР" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
-                            <Border Background="#071A2A" BorderBrush="#7B9BB5" BorderThickness="2" CornerRadius="10" Padding="12" Margin="0,13,0,0">
-                                <StackPanel>
-                                    <TextBlock Text="СУММАРНАЯ МОЩНОСТЬ PV" Foreground="#9DBBD2" FontSize="10" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="AnalogInverterPower" Text="1 842 Вт" Foreground="#FFD34E" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,5,0,2"/>
-                                    <TextBlock Text="Данные от двух солнечных строк" Foreground="#B9D2E5" FontSize="10" TextWrapping="Wrap" HorizontalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Background="#0D2B45" CornerRadius="8" Padding="9" Margin="0,13,0,0">
-                                <StackPanel>
-                                    <TextBlock Text="НАКОПЛЕННАЯ ЭНЕРГИЯ" Foreground="#9DBBD2" FontSize="10" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="AnalogInverterEnergy" Text="12 846,0 кВт·ч" Foreground="#FFFFFF" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                                </StackPanel>
-                            </Border>
-                            <TextBlock Text="Дополнительная телеметрия инвертора недоступна" Foreground="#B9D2E5" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" Margin="0,12,0,0"/>
-                        </StackPanel>
-                    </Border>
-                    <StackPanel Grid.Column="2" Grid.Row="0" Margin="10,0,0,10">
-                        <Border Background="#123E68" BorderBrush="#4E9AD4" BorderThickness="1.5" CornerRadius="12" Padding="13" MinHeight="112">
-                            <StackPanel>
-                                <TextBlock Text="ЭЛЕКТРОСЕТЬ · ЛЭП" Foreground="#D8ECFF" FontWeight="Bold" FontSize="13"/>
-                                <TextBlock Text="— В    — кВт" Foreground="#FFD34E" FontSize="23" FontWeight="Bold" Margin="0,8,0,2"/>
-                                <TextBlock Text="Потребление — кВт·ч" Foreground="#EAF4FC" FontSize="12"/>
-                                <TextBlock Text="Нет данных контроллера" Foreground="#A9C9E3" FontSize="10" Margin="0,5,0,0"/>
-                            </StackPanel>
+                        <Border Canvas.Left="291" Canvas.Top="566" Width="202" Height="49" Background="#F20B2B4B" BorderBrush="#7DBBE8" BorderThickness="1" CornerRadius="5" Padding="5,3">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel><TextBlock Text="НАПРЯЖЕНИЕ" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv2Voltage" Text="— В" Foreground="White" FontSize="15" FontWeight="Bold"/></StackPanel>
+                                <StackPanel Grid.Column="1"><TextBlock Text="ТОК" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv2Current" Text="— А" Foreground="White" FontSize="15" FontWeight="Bold"/></StackPanel>
+                                <StackPanel Grid.Column="2"><TextBlock Text="МОЩНОСТЬ" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv2Power" Text="— Вт" Foreground="#FFD34E" FontSize="15" FontWeight="Bold"/></StackPanel>
+                            </Grid>
                         </Border>
-                    </StackPanel>
-                    <StackPanel Grid.Column="0" Grid.Row="1" Margin="0,0,10,0">
-                        <Border Background="#0D3454" BorderBrush="#4E9AD4" BorderThickness="1.5" CornerRadius="12" Padding="12" Margin="0,0,0,9">
-                            <StackPanel>
-                                <TextBlock Text="СОЛНЕЧНАЯ ПАНЕЛЬ 1" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12"/>
-                                <TextBlock x:Name="AnalogPv1Power" Text="1 084 Вт" Foreground="#FFD34E" FontSize="24" FontWeight="Bold" Margin="0,6,0,3"/>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                    <StackPanel><TextBlock Text="НАПРЯЖЕНИЕ" Foreground="#A9C9E3" FontSize="9"/><TextBlock x:Name="AnalogPv1Voltage" Text="186,4 В" Foreground="White" FontSize="14" FontWeight="SemiBold"/></StackPanel>
-                                    <StackPanel Grid.Column="1"><TextBlock Text="ТОК" Foreground="#A9C9E3" FontSize="9"/><TextBlock x:Name="AnalogPv1Current" Text="5,82 А" Foreground="White" FontSize="14" FontWeight="SemiBold"/></StackPanel>
-                                </Grid>
-                                <TextBlock x:Name="AnalogPv1Energy" Text="Энергия: 7 214,6 кВт·ч" Foreground="#C8DDED" FontSize="10" Margin="0,6,0,0"/>
-                                <Border Background="#1688D2" Height="5" CornerRadius="3" Margin="0,8,0,0"/>
-                                <TextBlock Text="ПОТОК PV 1 → ИНВЕРТОР" Foreground="#BBDCF3" FontSize="9" HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                            </StackPanel>
+                        <Border Canvas.Left="40" Canvas.Top="619" Width="202" Height="27" Background="#E60B2B4B" CornerRadius="4" Padding="6,3">
+                            <TextBlock x:Name="AnalogPv1Energy" Text="Энергия: — кВт·ч" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
                         </Border>
-                        <Border Background="#0D3454" BorderBrush="#4E9AD4" BorderThickness="1.5" CornerRadius="12" Padding="12">
-                            <StackPanel>
-                                <TextBlock Text="СОЛНЕЧНАЯ ПАНЕЛЬ 2" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12"/>
-                                <TextBlock x:Name="AnalogPv2Power" Text="758 Вт" Foreground="#FFD34E" FontSize="24" FontWeight="Bold" Margin="0,6,0,3"/>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                    <StackPanel><TextBlock Text="НАПРЯЖЕНИЕ" Foreground="#A9C9E3" FontSize="9"/><TextBlock x:Name="AnalogPv2Voltage" Text="182,1 В" Foreground="White" FontSize="14" FontWeight="SemiBold"/></StackPanel>
-                                    <StackPanel Grid.Column="1"><TextBlock Text="ТОК" Foreground="#A9C9E3" FontSize="9"/><TextBlock x:Name="AnalogPv2Current" Text="4,16 А" Foreground="White" FontSize="14" FontWeight="SemiBold"/></StackPanel>
-                                </Grid>
-                                <TextBlock x:Name="AnalogPv2Energy" Text="Энергия: 5 631,4 кВт·ч" Foreground="#C8DDED" FontSize="10" Margin="0,6,0,0"/>
-                                <Border Background="#1688D2" Height="5" CornerRadius="3" Margin="0,8,0,0"/>
-                                <TextBlock Text="ПОТОК PV 2 → ИНВЕРТОР" Foreground="#BBDCF3" FontSize="9" HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                            </StackPanel>
+                        <Border Canvas.Left="291" Canvas.Top="619" Width="202" Height="27" Background="#E60B2B4B" CornerRadius="4" Padding="6,3">
+                            <TextBlock x:Name="AnalogPv2Energy" Text="Энергия: — кВт·ч" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
                         </Border>
-                    </StackPanel>
-                    <StackPanel Grid.Column="2" Grid.Row="1" Margin="10,0,0,0">
-                        <Border Background="#123E68" BorderBrush="#4E9AD4" BorderThickness="1.5" CornerRadius="12" Padding="13" MinHeight="166">
-                            <StackPanel>
-                                <TextBlock Text="АККУМУЛЯТОР" Foreground="#D8ECFF" FontWeight="Bold" FontSize="13"/>
-                                <TextBlock Text="— В     — %" Foreground="#FFD34E" FontSize="24" FontWeight="Bold" Margin="0,8,0,2"/>
-                                <TextBlock Text="Заряд: — кВт    Разряд: — кВт" Foreground="#EAF4FC" FontSize="12" TextWrapping="Wrap"/>
-                                <Border Background="#0A2B49" CornerRadius="5" Padding="8" Margin="0,10,0,0">
-                                    <StackPanel>
-                                        <TextBlock Text="ЗАРЯД  ↑" Foreground="#61D99B" FontWeight="Bold" FontSize="11"/>
-                                        <TextBlock Text="РАЗРЯД  ↓" Foreground="#FF7777" FontWeight="Bold" FontSize="11" Margin="0,5,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                                <TextBlock Text="Нет данных контроллера" Foreground="#A9C9E3" FontSize="10" Margin="0,8,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </Grid>
+                    </Canvas>
+                </Viewbox>
             </Grid>
             <Grid x:Name="DigitalDashboard" Visibility="Collapsed" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/><ColumnDefinition Width="220"/></Grid.ColumnDefinitions>

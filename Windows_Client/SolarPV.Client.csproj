@@ -8,10 +8,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Solar_PV</AssemblyName>
     <RootNamespace>SolarPV.Client</RootNamespace>
-    <Version>0.3.21</Version>
+    <Version>0.3.22</Version>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="../Screenshot_1.jpg" Link="Screenshot_1.jpg" />
+  </ItemGroup>
 </Project>
