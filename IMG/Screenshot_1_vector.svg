@@ -18,7 +18,7 @@
  <rect x="410" y="12" width="588" height="68" rx="22" fill="url(#panel)" stroke="#d9f3ff" stroke-width="3" filter="url(#shadow)"/>
  <text x="704" y="58" font-size="40" font-weight="700" fill="#fff">Схема энергосистемы</text>
  <!-- House -->
- <g filter="url(#shadow)">
+ <g filter="url(#shadow)" transform="scale(0.9 1)">
   <path d="M22 300L255 178L392 300V434H22Z" fill="#f3eee3" stroke="#44586a" stroke-width="5"/>
   <path d="M4 306L252 160L414 294L394 320L252 205L24 337Z" fill="#bd4c24" stroke="#71321d" stroke-width="6"/>
   <path d="M55 286L252 190L367 288" fill="none" stroke="#e77836" stroke-width="9"/>
