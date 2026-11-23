@@ -88,6 +88,7 @@
                 <MenuItem Header="Дизайн">
                     <MenuItem Header="01 · Цифровой прибор" Tag="Digital" Click="Design_Click"/>
                     <MenuItem Header="02 · Аналоговая станция" Tag="Analog" Click="Design_Click"/>
+                    <MenuItem Header="03 · Энергосхема" Tag="EnergyMap" Click="Design_Click"/>
                     <MenuItem Header="04 · Энергетический поток" Tag="Flow" Click="Design_Click"/>
                     <MenuItem Header="09 · Технический чертёж" Tag="Blueprint" Click="Design_Click"/>
                 </MenuItem>
@@ -161,6 +162,20 @@
                         <Border Canvas.Left="291" Canvas.Top="619" Width="202" Height="27" Background="#E60B2B4B" CornerRadius="4" Padding="6,3">
                             <TextBlock x:Name="AnalogPv2Energy" Text="Энергия: — кВт·ч" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
                         </Border>
+                    </Canvas>
+                </Viewbox>
+            </Grid>
+            <Grid x:Name="EnergyMapDashboard" Grid.Row="0" Visibility="Collapsed" Margin="0">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <Canvas Width="1409" Height="937">
+                        <Image Source="pack://application:,,,/Screenshot_1.jpg" Width="1409" Height="937" Stretch="Fill"/>
+                        <Border Canvas.Left="1000" Canvas.Top="16" Width="390" Height="46" Background="#E6103155" BorderBrush="#8BC9F5" BorderThickness="1" CornerRadius="9" Padding="8,5">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="ЭНЕРГОСХЕМА" Foreground="White" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                <Button x:Name="EnergyMapEditButton" Content="Настроить" Click="EnergyMapEdit_Click" Padding="10,4" Background="#F5B942" Foreground="#17202D" BorderThickness="0" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                        <Canvas x:Name="EnergyMapItemsCanvas"/>
                     </Canvas>
                 </Viewbox>
             </Grid>
