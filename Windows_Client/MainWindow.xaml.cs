@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Text.Json;
 using System.Windows;
@@ -12,6 +14,11 @@ public partial class MainWindow : Window
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _pollTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private bool _connected;
+    private bool _pollInProgress;
+    private bool _connectionFailureLogged;
+    private static readonly string ConnectionLogPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Solar_PV", "connection.log");
     private string _baseAddress = "";
     private string[]? _activePalette;
 
@@ -24,6 +31,7 @@ public partial class MainWindow : Window
         AddressBox.Text = ClientSettings.LoadControllerAddress() ?? AddressBox.Text;
         Loaded += (_, _) => ApplyTheme(ClientSettings.LoadTheme() ?? "Dark");
         _pollTimer.Tick += async (_, _) => await PollAsync();
+        Closed += (_, _) => WriteConnectionLog("Клиент Solar_PV закрыт.");
         ShowDemo();
     }
 
@@ -180,7 +188,9 @@ public partial class MainWindow : Window
     private void Demo_Click(object sender, RoutedEventArgs e)
     {
         _pollTimer.Stop();
+        if (_connected) WriteConnectionLog("Связь отключена: включён демонстрационный режим.");
         _connected = false;
+        _connectionFailureLogged = false;
         ShowDemo();
     }
 
@@ -210,12 +220,13 @@ public partial class MainWindow : Window
 
         _baseAddress = uri.ToString().TrimEnd('/');
         ClientSettings.SaveControllerAddress(_baseAddress);
+        WriteConnectionLog("Начата попытка подключения к " + _baseAddress);
         ConnectButton.IsEnabled = false;
         ConnectButton.Content = "Подключение…";
         try
         {
             await PollAsync();
-            if (_connected) _pollTimer.Start();
+            _pollTimer.Start();
         }
         finally
         {
@@ -226,6 +237,8 @@ public partial class MainWindow : Window
 
     private async Task PollAsync()
     {
+        if (_pollInProgress || string.IsNullOrWhiteSpace(_baseAddress)) return;
+        _pollInProgress = true;
         try
         {
             using var response = await Http.GetAsync(_baseAddress + "/api/config");
@@ -233,7 +246,12 @@ public partial class MainWindow : Window
             await using var stream = await response.Content.ReadAsStreamAsync();
             using var json = await JsonDocument.ParseAsync(stream);
             ApplyControllerData(json.RootElement);
+            if (!_connected)
+                WriteConnectionLog("Связь установлена с " + _baseAddress + ".");
+            else if (_connectionFailureLogged)
+                WriteConnectionLog("Связь восстановлена с " + _baseAddress + ".");
             _connected = true;
+            _connectionFailureLogged = false;
             DataModeText.Text = "  ·  данные контроллера";
             SystemStateText.Text = "Связь установлена";
             NetworkInfoText.Text = "Получены данные от " + _baseAddress;
@@ -242,12 +260,55 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            _pollTimer.Stop();
+            if (_connected)
+                WriteConnectionLog("Связь потеряна: " + ex.Message);
+            else if (!_connectionFailureLogged)
+                WriteConnectionLog("Контроллер пока недоступен: " + ex.Message);
             _connected = false;
+            _connectionFailureLogged = true;
             DataModeText.Text = "  ·  ожидание контроллера";
             SystemStateText.Text = "Контроллер недоступен";
-            NetworkInfoText.Text = "Не удалось получить /api/config: " + ex.Message;
-            PollInfoText.Text = "Опрос: остановлен";
+            NetworkInfoText.Text = "Нет ответа от /api/config: " + ex.Message + ". Повторная попытка через 3 сек.";
+            PollInfoText.Text = "Автоподключение";
+        }
+        finally
+        {
+            _pollInProgress = false;
+        }
+    }
+
+    private static void WriteConnectionLog(string message)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(ConnectionLogPath);
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+            File.AppendAllText(ConnectionLogPath,
+                "[" + DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss.fff zzz") + "] " + message + Environment.NewLine);
+        }
+        catch
+        {
+            // Журнал не должен мешать работе мониторинга.
+        }
+    }
+
+    private void OpenConnectionLog_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!File.Exists(ConnectionLogPath))
+                WriteConnectionLog("Журнал создан.");
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "notepad.exe",
+                Arguments = "\"" + ConnectionLogPath + "\"",
+                UseShellExecute = false
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Не удалось открыть журнал связи: " + ex.Message,
+                "Solar_PV", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
