@@ -484,6 +484,8 @@ public partial class MainWindow : Window
 
         var objects = new (string Id, string Name, double X, double Y, double Width, double Height, string? Path)[]
         {
+            ("title", "Заголовок схемы", 410, 12, 588, 68, null),
+            ("sun", "Солнце", 45, 22, 120, 120, null),
             ("house", "Дом", 4, 82, 410, 352, null),
             ("grid", "ЛЭП", 1131, 80, 278, 355, null),
             ("inverter", "Инвертор", 581, 115, 280, 336, null),
@@ -495,12 +497,19 @@ public partial class MainWindow : Window
             ("arrow-pv1", "Поток энергии: панель 1 — инвертор", 250, 454, 398, 396, "M250,850 H570 Q648,850 648,772 V454"),
             ("arrow-pv2", "Поток энергии: панель 2 — инвертор", 520, 454, 180, 336, "M520,790 H700 V705 V454"),
             ("arrow-battery-out", "Поток энергии: инвертор — аккумулятор", 813, 454, 212, 249, "M813,454 V660 Q813,703 857,703 H1025"),
-            ("arrow-battery-in", "Поток энергии: аккумулятор — инвертор", 779, 454, 246, 297, "M779,454 V735 Q779,751 822,751 H1025")
+            ("arrow-battery-in", "Поток энергии: аккумулятор — инвертор", 779, 454, 246, 297, "M779,454 V735 Q779,751 822,751 H1025"),
+            ("arrow-house", "Поток энергии: инвертор — дом", 411, 284, 132, 43, null),
+            ("arrow-grid", "Поток энергии: ЛЭП — инвертор", 944, 283, 130, 43, null),
+            ("arrow-pv1", "Поток энергии: панель 1 — инвертор", 520, 848, 112, 43, null),
+            ("arrow-pv2", "Поток энергии: панель 2 — инвертор", 520, 735, 112, 43, null),
+            ("arrow-battery-out", "Поток энергии: инвертор — аккумулятор", 833, 537, 122, 43, null),
+            ("arrow-battery-in", "Поток энергии: аккумулятор — инвертор", 833, 765, 122, 43, null)
         };
 
         foreach (var item in objects)
         {
-            _energyMapObjectBounds[item.Id] = new Rect(item.X, item.Y, item.Width, item.Height);
+            if (!_energyMapObjectBounds.ContainsKey(item.Id))
+                _energyMapObjectBounds[item.Id] = new Rect(item.X, item.Y, item.Width, item.Height);
             System.Windows.FrameworkElement target;
             if (item.Path is not null)
             {
