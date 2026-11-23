@@ -95,7 +95,7 @@
             </MenuItem>
             <MenuItem Header="Инструменты">
                 <MenuItem Header="Подключить ESP32" Click="Connect_Click"/>
-                <MenuItem Header="Администратор" Click="Admin_Click"/>
+                <MenuItem x:Name="AdminMenuItem" Header="Администратор" Click="Admin_Click"/>
             </MenuItem>
             <MenuItem Header="Справка">
                 <MenuItem Header="Проверить обновления…" Click="CheckUpdates_Click"/>
