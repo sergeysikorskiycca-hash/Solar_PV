@@ -583,10 +583,10 @@ public partial class MainWindow : Window
                 Background = isIndicator ? EnergyMapBrush(element.Background, Brushes.Transparent) : Brushes.Transparent,
                 BorderBrush = _energyMapEditMode
                     ? new SolidColorBrush(Color.FromRgb(245, 185, 66))
-                    : EnergyMapBrush(element.BorderColor, Brushes.Transparent),
+                    : Brushes.Transparent,
                 BorderThickness = _energyMapEditMode
                     ? new Thickness(Math.Max(1.5, element.BorderWidth))
-                    : new Thickness(isIndicator ? element.BorderWidth : 0),
+                    : new Thickness(0),
                 CornerRadius = new CornerRadius(element.CornerRadius),
                 Child = text,
                 Tag = element.Id,
@@ -661,10 +661,10 @@ public partial class MainWindow : Window
             var item = pair.Value;
             item.BorderBrush = _energyMapEditMode
                 ? new SolidColorBrush(Color.FromRgb(245, 185, 66))
-                : EnergyMapBrush(element?.BorderColor ?? "#00000000", Brushes.Transparent);
+                : Brushes.Transparent;
             item.BorderThickness = _energyMapEditMode
                 ? new Thickness(Math.Max(1.5, element?.BorderWidth ?? 0))
-                : new Thickness(element?.Kind == "Indicator" ? element.BorderWidth : 0);
+                : new Thickness(0);
             item.Cursor = _energyMapEditMode
                 ? System.Windows.Input.Cursors.SizeAll : System.Windows.Input.Cursors.Arrow;
             item.ToolTip = _energyMapEditMode
