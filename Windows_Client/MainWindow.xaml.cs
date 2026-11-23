@@ -93,6 +93,13 @@ public partial class MainWindow : Window
     private void SetAdminMode(bool enabled)
     {
         _isAdminMode = enabled;
+        if (!enabled && _energyMapEditMode)
+        {
+            _energyMapEditMode = false;
+            EnergyMapEditButton.Content = "Перемещать";
+            foreach (var item in _energyMapItems.Values) item.Cursor = System.Windows.Input.Cursors.Arrow;
+            SaveEnergyMapLayout();
+        }
         EnergyMapEditButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapElementsButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         Title = enabled ? "Solar_PV — Администратор" : "Solar_PV — Панель станции";
@@ -468,7 +475,7 @@ public partial class MainWindow : Window
         {
             var text = new System.Windows.Controls.TextBlock
             {
-                Text = GetEnergyMapDisplayText(element),
+                Text = "",
                 Foreground = EnergyMapBrush(element.Foreground, Brushes.White),
                 FontSize = element.FontSize,
                 FontWeight = element.Bold ? FontWeights.Bold : FontWeights.Normal,
@@ -478,6 +485,21 @@ public partial class MainWindow : Window
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
+
+            var displayText = GetEnergyMapDisplayText(element);
+            if (!string.IsNullOrEmpty(element.AccentText) && displayText.Contains(element.AccentText, StringComparison.Ordinal))
+            {
+                var accentIndex = displayText.IndexOf(element.AccentText, StringComparison.Ordinal);
+                if (accentIndex > 0) text.Inlines.Add(new System.Windows.Documents.Run(displayText[..accentIndex]));
+                text.Inlines.Add(new System.Windows.Documents.Run(element.AccentText)
+                {
+                    Foreground = EnergyMapBrush(element.AccentForeground, text.Foreground),
+                    FontWeight = FontWeights.Bold
+                });
+                var tail = displayText[(accentIndex + element.AccentText.Length)..];
+                if (tail.Length > 0) text.Inlines.Add(new System.Windows.Documents.Run(tail));
+            }
+            else text.Text = displayText;
 
             var isIndicator = element.Kind == "Indicator";
             var item = new System.Windows.Controls.Border
