@@ -201,7 +201,8 @@ public partial class MainWindow : Window
 
         var palette = _activePalette ?? new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" };
         DigitalDashboard.Visibility = design == "Digital" ? Visibility.Visible : Visibility.Collapsed;
-        LegacyDashboard.Visibility = design == "Digital" ? Visibility.Collapsed : Visibility.Visible;
+        AnalogDashboard.Visibility = design == "Analog" ? Visibility.Visible : Visibility.Collapsed;
+        LegacyDashboard.Visibility = design is "Digital" or "Analog" ? Visibility.Collapsed : Visibility.Visible;
         var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[4]));
         var borderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[6]));
 
@@ -324,6 +325,8 @@ public partial class MainWindow : Window
         SetString(2, "758 Вт", "182,1 В", "4,16 А", "5 631,4 кВт·ч", "ДЕМО");
         SetDigitalString(2, 758, 182.1, 4.16);
         DigitalInverterPower.Text = "1 842 Вт";
+        AnalogInverterPower.Text = "1 842 Вт";
+        AnalogInverterEnergy.Text = "12 846,0 кВт·ч";
         NetworkInfoText.Text = "Реальный контроллер не подключён. Нажмите «Подключить ESP32», чтобы начать чтение данных.";
         LastUpdateText.Text = "Обновлено: " + DateTime.Now.ToString("HH:mm:ss");
         PollInfoText.Text = "Опрос: выключен";
@@ -438,6 +441,7 @@ public partial class MainWindow : Window
     {
         if (root.TryGetProperty("totalEnergyWh", out var totalWh) && totalWh.TryGetDouble(out var wh))
             TotalEnergyText.Text = (wh / 1000.0).ToString("N1", CultureInfo.GetCultureInfo("ru-RU"));
+        AnalogInverterEnergy.Text = TotalEnergyText.Text + " кВт·ч";
 
         if (!root.TryGetProperty("stringTelemetry", out var telemetry) || telemetry.ValueKind != JsonValueKind.Array)
             return;
@@ -465,6 +469,7 @@ public partial class MainWindow : Window
         }
         TotalPowerText.Text = Format(totalPower, "N0");
         DigitalInverterPower.Text = Format(totalPower, "N0") + " Вт";
+        AnalogInverterPower.Text = Format(totalPower, "N0") + " Вт";
     }
 
 
@@ -477,6 +482,9 @@ public partial class MainWindow : Window
             DigitalPv1Power.Text = powerText;
             DigitalPv1Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
             DigitalPv1Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
+            AnalogPv1Power.Text = powerText;
+            AnalogPv1Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
+            AnalogPv1Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
             DigitalPv1LinePower.Text = lineText;
         }
         else
@@ -484,6 +492,9 @@ public partial class MainWindow : Window
             DigitalPv2Power.Text = powerText;
             DigitalPv2Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
             DigitalPv2Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
+            AnalogPv2Power.Text = powerText;
+            AnalogPv2Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
+            AnalogPv2Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
             DigitalPv2LinePower.Text = lineText;
         }
     }
@@ -500,11 +511,13 @@ public partial class MainWindow : Window
         {
             String1Power.Text = power; String1Voltage.Text = voltage;
             String1Current.Text = current; String1Energy.Text = energy; String1State.Text = state;
+            AnalogPv1Energy.Text = "Энергия: " + energy;
         }
         else
         {
             String2Power.Text = power; String2Voltage.Text = voltage;
             String2Current.Text = current; String2Energy.Text = energy; String2State.Text = state;
+            AnalogPv2Energy.Text = "Энергия: " + energy;
         }
     }
 }
