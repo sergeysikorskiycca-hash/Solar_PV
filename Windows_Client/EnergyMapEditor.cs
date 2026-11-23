@@ -293,6 +293,17 @@ internal sealed class EnergyMapEditorWindow : Window
         selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
         itemStyle.Triggers.Add(selected);
         combo.ItemContainerStyle = itemStyle;
+
+        var selectedText = new FrameworkElementFactory(typeof(TextBlock));
+        selectedText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding());
+        selectedText.SetValue(TextBlock.ForegroundProperty, Brushes.White);
+        selectedText.SetValue(TextBlock.BackgroundProperty, new SolidColorBrush(Color.FromRgb(36, 54, 74)));
+        combo.ItemTemplate = new DataTemplate { VisualTree = selectedText };
+        combo.Resources[SystemColors.WindowBrushKey] = new SolidColorBrush(Color.FromRgb(36, 54, 74));
+        combo.Resources[SystemColors.WindowTextBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.ControlTextBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
+        combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
     }
 
     private static Button MakeButton(string text) => new()
@@ -433,6 +444,17 @@ internal sealed class EnergyMapPropertiesDialog : Window
         selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
         itemStyle.Triggers.Add(selected);
         combo.ItemContainerStyle = itemStyle;
+
+        var selectedText = new FrameworkElementFactory(typeof(TextBlock));
+        selectedText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding());
+        selectedText.SetValue(TextBlock.ForegroundProperty, Brushes.White);
+        selectedText.SetValue(TextBlock.BackgroundProperty, new SolidColorBrush(Color.FromRgb(36, 54, 74)));
+        combo.ItemTemplate = new DataTemplate { VisualTree = selectedText };
+        combo.Resources[SystemColors.WindowBrushKey] = new SolidColorBrush(Color.FromRgb(36, 54, 74));
+        combo.Resources[SystemColors.WindowTextBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.ControlTextBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
+        combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
     }
 
     private readonly TextBox _widthBox;
