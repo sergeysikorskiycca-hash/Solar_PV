@@ -103,7 +103,14 @@
                 <MenuItem Header="О программе Solar_PV" Click="About_Click"/>
             </MenuItem>
             <MenuItem x:Name="CreateMenuItem" Header="Создать" Visibility="Collapsed">
-                <MenuItem Header="Кнопку"/>
+                <MenuItem Header="Кнопку">
+                    <MenuItem Header="Прямоугольник"/>
+                    <MenuItem Header="Скруглённый прямоугольник"/>
+                    <MenuItem Header="Квадрат"/>
+                    <MenuItem Header="Круг"/>
+                    <MenuItem Header="Овал"/>
+                    <MenuItem Header="Капсула"/>
+                </MenuItem>
                 <MenuItem Header="График"/>
                 <MenuItem Header="Текст"/>
             </MenuItem>
