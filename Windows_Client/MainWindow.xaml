@@ -23,9 +23,9 @@
                     <Setter Property="TextElement.Foreground" Value="#17202D"/>
                 </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="#FFFFFF"/>
-                    <Setter Property="Background" Value="#245A86"/>
-                    <Setter Property="TextElement.Foreground" Value="#FFFFFF"/>
+                    <Setter Property="Foreground" Value="#17202D"/>
+                    <Setter Property="Background" Value="#DCE6F2"/>
+                    <Setter Property="TextElement.Foreground" Value="#17202D"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Foreground" Value="#AAB4C0"/>
@@ -49,8 +49,8 @@
         </Style>
         <Style x:Key="CloseTitleBarButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource TitleBarButtonStyle}">
             <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#C42B1C"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
-                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#9E2116"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#C42B1C"/><Setter Property="Foreground" Value="#17202D"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#9E2116"/><Setter Property="Foreground" Value="#17202D"/></Trigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
