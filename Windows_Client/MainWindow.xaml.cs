@@ -29,7 +29,7 @@ public partial class MainWindow : Window
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"Solar_PV Desktop {version}";
         AddressBox.Text = ClientSettings.LoadControllerAddress() ?? AddressBox.Text;
-        Loaded += (_, _) => ApplyTheme(ClientSettings.LoadTheme() ?? "Dark");
+        Loaded += (_, _) => ApplyTheme(ClientSettings.LoadTheme() ?? "Digital");
         _pollTimer.Tick += async (_, _) => await PollAsync();
         Closed += (_, _) => WriteConnectionLog("Клиент Solar_PV закрыт.");
         ShowDemo();
@@ -81,11 +81,10 @@ public partial class MainWindow : Window
     {
         var palette = theme switch
         {
-            "Light" => new[] { "#F2F2F2", "#FFFFFF", "#252525", "#666666", "#555555", "#E8EEF7", "#D6D6D6", "#E5E5E5" },
-            "Office" => new[] { "#DCE6F1", "#F3F6FA", "#1F3864", "#526780", "#0078D4", "#E8EEF7", "#B4C7E7", "#C9D9EC" },
-            "Graphite" => new[] { "#202326", "#2B3035", "#F0F2F4", "#AAB2BC", "#E0A43A", "#E8EEF7", "#454D56", "#343B43" },
-            "Blue" => new[] { "#10243D", "#183451", "#F0F6FC", "#A9C0D8", "#49A6E9", "#E8EEF7", "#315675", "#214565" },
-            _ => new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" }
+            "Analog" => new[] { "#101B25", "#192D3B", "#EDF7FB", "#A3BBC9", "#5BD0F0", "#EDF7FB", "#426174", "#244253" },
+            "Flow" => new[] { "#071711", "#10271B", "#E9F7EC", "#94B69C", "#80E078", "#E9F7EC", "#376047", "#1B3A28" },
+            "Blueprint" => new[] { "#071827", "#0C2638", "#DDF6FF", "#83B2C5", "#36D8E8", "#DDF6FF", "#24617C", "#10344A" },
+            _ => new[] { "#080D12", "#121D26", "#EDF4F8", "#8EA3B1", "#FFB547", "#EDF4F8", "#354957", "#1B2A35" }
         };
         var map = new Dictionary<string, string>
         {
@@ -173,8 +172,15 @@ public partial class MainWindow : Window
             for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
             {
                 var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
-                if (child is System.Windows.Controls.Control control && control.Background is SolidColorBrush bg)
-                    control.Background = ConvertBrush(bg);
+                if (child is System.Windows.Controls.Control control)
+                {
+                    if (control.Background is SolidColorBrush bg)
+                        control.Background = ConvertBrush(bg);
+                    if (control.Foreground is SolidColorBrush fg)
+                        control.Foreground = ConvertBrush(fg);
+                }
+                if (child is System.Windows.Controls.TextBlock textBlock && textBlock.Foreground is SolidColorBrush textBrush)
+                    textBlock.Foreground = ConvertBrush(textBrush);
                 if (child is System.Windows.Controls.Border border && border.Background is SolidColorBrush borderBg)
                     border.Background = ConvertBrush(borderBg);
                 Visit(child);
@@ -182,16 +188,77 @@ public partial class MainWindow : Window
         }
         Visit(this);
 
-        // Set a theme-specific foreground for every caption, value and unit in the top metrics row.
-        // The XAML uses fixed light-theme text colors, so explicitly adapt them for all palettes.
-        var topMetricsTextColor = theme switch
+        // Four desktop design grammars share the same live telemetry and controls.
+        var cornerRadius = theme switch
         {
-            "Light" => "#333333",
-            "Office" => "#263B56",
-            "Graphite" => "#E6EBF0",
-            "Blue" => "#EAF3FB",
-            _ => "#E8EEF7"
+            "Analog" => new CornerRadius(16),
+            "Flow" => new CornerRadius(1),
+            "Blueprint" => new CornerRadius(0),
+            _ => new CornerRadius(4)
         };
+        var cardBorder = PaletteBrush(palette[6]);
+        var accent = PaletteBrush(palette[4]);
+
+        void StyleCards(DependencyObject parent)
+        {
+            for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is System.Windows.Controls.Border border)
+                {
+                    border.CornerRadius = cornerRadius;
+                    border.BorderBrush = theme == "Flow" ? accent : cardBorder;
+                    border.BorderThickness = theme == "Flow"
+                        ? new Thickness(3, 1, 1, 1)
+                        : new Thickness(theme == "Blueprint" ? 1.2 : 1);
+                }
+                StyleCards(child);
+            }
+        }
+        StyleCards(this);
+
+        if (theme == "Blueprint")
+        {
+            var gridLines = new GeometryGroup();
+            gridLines.Children.Add(new LineGeometry(new Point(0, 0), new Point(32, 0)));
+            gridLines.Children.Add(new LineGeometry(new Point(0, 0), new Point(0, 32)));
+            var drawing = new DrawingGroup();
+            drawing.Children.Add(new GeometryDrawing(PaletteBrush(palette[0]), null,
+                new RectangleGeometry(new Rect(0, 0, 32, 32))));
+            drawing.Children.Add(new GeometryDrawing(null, new Pen(PaletteBrush(palette[6]), 0.45), gridLines));
+            Background = new DrawingBrush(drawing)
+            {
+                TileMode = TileMode.Tile,
+                Viewport = new Rect(0, 0, 32, 32),
+                ViewportUnits = BrushMappingMode.Absolute,
+                Viewbox = new Rect(0, 0, 32, 32),
+                ViewboxUnits = BrushMappingMode.Absolute,
+                Stretch = Stretch.None
+            };
+        }
+
+        var valueFont = theme switch
+        {
+            "Analog" => new FontFamily("Georgia"),
+            "Blueprint" => new FontFamily("Consolas"),
+            _ => new FontFamily("Segoe UI")
+        };
+        TotalPowerText.FontFamily = valueFont;
+        TotalEnergyText.FontFamily = valueFont;
+        String1Power.FontFamily = valueFont;
+        String2Power.FontFamily = valueFont;
+        TotalPowerText.FontSize = theme == "Analog" ? 36 : 34;
+        TotalEnergyText.FontSize = theme == "Analog" ? 36 : 34;
+        String1Power.FontSize = theme == "Analog" ? 31 : 29;
+        String2Power.FontSize = theme == "Analog" ? 31 : 29;
+        if (theme == "Flow")
+        {
+            TotalPowerText.Foreground = accent;
+            String1Power.Foreground = accent;
+            String2Power.Foreground = accent;
+        }
+
+        var topMetricsTextColor = palette[2];
 
         void ApplyTopMetricsTextColor(DependencyObject parent)
         {
