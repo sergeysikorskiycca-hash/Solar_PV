@@ -21,10 +21,15 @@ public partial class MainWindow : Window
         "Solar_PV", "connection.log");
     private string _baseAddress = "";
     private string[]? _activePalette;
+    private readonly Dictionary<string, System.Windows.Controls.Border> _energyMapItems = new();
+    private bool _energyMapEditMode;
+    private System.Windows.Controls.Border? _draggedEnergyMapItem;
+    private System.Windows.Point _energyMapDragOffset;
 
     public MainWindow()
     {
         InitializeComponent();
+        BuildEnergyMapItems();
         UpdateWindowStateButton();
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"Solar_PV Desktop {version}";
@@ -196,13 +201,14 @@ public partial class MainWindow : Window
 
     private void ApplyDesign(string design)
     {
-        if (design is not ("Digital" or "Analog" or "Flow" or "Blueprint"))
+        if (design is not ("Digital" or "Analog" or "EnergyMap" or "Flow" or "Blueprint"))
             design = "Digital";
 
         var palette = _activePalette ?? new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" };
         DigitalDashboard.Visibility = design == "Digital" ? Visibility.Visible : Visibility.Collapsed;
         AnalogDashboard.Visibility = design == "Analog" ? Visibility.Visible : Visibility.Collapsed;
-        if (design == "Analog")
+        EnergyMapDashboard.Visibility = design == "EnergyMap" ? Visibility.Visible : Visibility.Collapsed;
+        if (design is "Analog" or "EnergyMap")
         {
             DashboardContentGrid.SetBinding(System.Windows.FrameworkElement.WidthProperty,
                 new System.Windows.Data.Binding(nameof(System.Windows.Controls.ScrollViewer.ViewportWidth)) { Source = DashboardScrollViewer });
@@ -214,7 +220,7 @@ public partial class MainWindow : Window
             DashboardContentGrid.ClearValue(System.Windows.FrameworkElement.WidthProperty);
             DashboardContentGrid.ClearValue(System.Windows.FrameworkElement.HeightProperty);
         }
-        LegacyDashboard.Visibility = design is "Digital" or "Analog" ? Visibility.Collapsed : Visibility.Visible;
+        LegacyDashboard.Visibility = design is "Digital" or "Analog" or "EnergyMap" ? Visibility.Collapsed : Visibility.Visible;
         var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[4]));
         var borderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[6]));
 
@@ -315,6 +321,140 @@ public partial class MainWindow : Window
         String2Power.Foreground = accent;
 
         ClientSettings.SaveDesign(design);
+    }
+
+    private void BuildEnergyMapItems()
+    {
+        var saved = ClientSettings.LoadEnergyMapPositions();
+        AddEnergyMapItem("Pv1Voltage", "PV1 · НАПРЯЖЕНИЕ", "— В", 75, 530);
+        AddEnergyMapItem("Pv1Current", "PV1 · ТОК", "— А", 75, 585);
+        AddEnergyMapItem("Pv1Power", "PV1 · МОЩНОСТЬ", "— Вт", 75, 640);
+        AddEnergyMapItem("Pv2Voltage", "PV2 · НАПРЯЖЕНИЕ", "— В", 330, 530);
+        AddEnergyMapItem("Pv2Current", "PV2 · ТОК", "— А", 330, 585);
+        AddEnergyMapItem("Pv2Power", "PV2 · МОЩНОСТЬ", "— Вт", 330, 640);
+        AddEnergyMapItem("HousePower", "ДОМ · МОЩНОСТЬ", "Нет данных", 1090, 670);
+        AddEnergyMapItem("GridPower", "ЛЭП · МОЩНОСТЬ", "Нет данных", 1090, 590);
+        AddEnergyMapItem("InverterPower", "ИНВЕРТОР · МОЩНОСТЬ", "Нет данных", 720, 410);
+        AddEnergyMapItem("BatteryVoltage", "АКБ · НАПРЯЖЕНИЕ", "Нет данных", 1090, 770);
+        AddEnergyMapItem("BatteryCharge", "АКБ · ЗАРЯД", "Нет данных", 1090, 825);
+        AddEnergyMapItem("BatteryPower", "АКБ · МОЩНОСТЬ", "Нет данных", 1090, 880);
+
+        foreach (var pair in saved)
+        {
+            if (!_energyMapItems.TryGetValue(pair.Key, out var item)) continue;
+            System.Windows.Controls.Canvas.SetLeft(item, Math.Clamp(pair.Value.X, 0, 1409 - item.Width));
+            System.Windows.Controls.Canvas.SetTop(item, Math.Clamp(pair.Value.Y, 0, 937 - item.Height));
+        }
+    }
+
+    private void AddEnergyMapItem(string id, string caption, string value, double x, double y)
+    {
+        var panel = new System.Windows.Controls.StackPanel();
+        panel.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = caption,
+            Foreground = new SolidColorBrush(Color.FromRgb(187, 220, 243)),
+            FontSize = 10,
+            FontWeight = FontWeights.SemiBold
+        });
+        panel.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = value,
+            Foreground = Brushes.White,
+            FontSize = 17,
+            FontWeight = FontWeights.Bold
+        });
+        var item = new System.Windows.Controls.Border
+        {
+            Width = 176,
+            MinHeight = 43,
+            Padding = new Thickness(8, 5, 8, 5),
+            Background = new SolidColorBrush(Color.FromArgb(238, 11, 43, 75)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(125, 187, 232)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(5),
+            Child = panel,
+            Tag = id,
+            Cursor = System.Windows.Input.Cursors.Arrow,
+            ToolTip = "Включите режим «Настроить», чтобы перемещать этот показатель"
+        };
+        item.MouseLeftButtonDown += EnergyMapItem_MouseLeftButtonDown;
+        item.MouseMove += EnergyMapItem_MouseMove;
+        item.MouseLeftButtonUp += EnergyMapItem_MouseLeftButtonUp;
+        _energyMapItems[id] = item;
+        EnergyMapItemsCanvas.Children.Add(item);
+        System.Windows.Controls.Canvas.SetLeft(item, x);
+        System.Windows.Controls.Canvas.SetTop(item, y);
+    }
+
+    private void EnergyMapEdit_Click(object sender, RoutedEventArgs e)
+    {
+        _energyMapEditMode = !_energyMapEditMode;
+        EnergyMapEditButton.Content = _energyMapEditMode ? "Завершить настройку" : "Настроить";
+        EnergyMapEditButton.Background = new SolidColorBrush(_energyMapEditMode
+            ? Color.FromRgb(99, 214, 162) : Color.FromRgb(245, 185, 66));
+        foreach (var item in _energyMapItems.Values)
+        {
+            item.BorderBrush = new SolidColorBrush(_energyMapEditMode
+                ? Color.FromRgb(245, 185, 66) : Color.FromRgb(125, 187, 232));
+            item.Cursor = _energyMapEditMode
+                ? System.Windows.Input.Cursors.SizeAll : System.Windows.Input.Cursors.Arrow;
+            item.ToolTip = _energyMapEditMode
+                ? "Перетащите показание мышью"
+                : "Включите режим «Настроить», чтобы перемещать этот показатель";
+        }
+        if (!_energyMapEditMode) SaveEnergyMapLayout();
+    }
+
+    private void EnergyMapItem_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (!_energyMapEditMode || sender is not System.Windows.Controls.Border item) return;
+        _draggedEnergyMapItem = item;
+        _energyMapDragOffset = e.GetPosition(item);
+        item.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void EnergyMapItem_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!_energyMapEditMode || _draggedEnergyMapItem is null ||
+            !_draggedEnergyMapItem.IsMouseCaptured || e.LeftButton != System.Windows.Input.MouseButtonState.Pressed)
+            return;
+        var position = e.GetPosition(EnergyMapItemsCanvas);
+        var x = Math.Clamp(position.X - _energyMapDragOffset.X, 0, 1409 - _draggedEnergyMapItem.Width);
+        var y = Math.Clamp(position.Y - _energyMapDragOffset.Y, 0, 937 - _draggedEnergyMapItem.ActualHeight);
+        System.Windows.Controls.Canvas.SetLeft(_draggedEnergyMapItem, x);
+        System.Windows.Controls.Canvas.SetTop(_draggedEnergyMapItem, y);
+    }
+
+    private void EnergyMapItem_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_draggedEnergyMapItem is null) return;
+        _draggedEnergyMapItem.ReleaseMouseCapture();
+        _draggedEnergyMapItem = null;
+        SaveEnergyMapLayout();
+    }
+
+    private void SaveEnergyMapLayout()
+    {
+        var positions = new Dictionary<string, EnergyMapPosition>();
+        foreach (var pair in _energyMapItems)
+            positions[pair.Key] = new EnergyMapPosition
+            {
+                X = System.Windows.Controls.Canvas.GetLeft(pair.Value),
+                Y = System.Windows.Controls.Canvas.GetTop(pair.Value)
+            };
+        ClientSettings.SaveEnergyMapPositions(positions);
+    }
+
+    private void SetEnergyMapValue(string id, string value)
+    {
+        if (!_energyMapItems.TryGetValue(id, out var item) ||
+            item.Child is not System.Windows.Controls.StackPanel panel ||
+            panel.Children.Count < 2 ||
+            panel.Children[1] is not System.Windows.Controls.TextBlock text)
+            return;
+        text.Text = value;
     }
 
     private void Demo_Click(object sender, RoutedEventArgs e)
@@ -497,6 +637,9 @@ public partial class MainWindow : Window
             AnalogPv1Power.Text = powerText;
             AnalogPv1Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
             AnalogPv1Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
+            SetEnergyMapValue("Pv1Power", powerText);
+            SetEnergyMapValue("Pv1Voltage", double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В");
+            SetEnergyMapValue("Pv1Current", double.IsNaN(current) ? "— А" : Format(current, "N2") + " А");
             DigitalPv1LinePower.Text = lineText;
         }
         else
@@ -507,6 +650,9 @@ public partial class MainWindow : Window
             AnalogPv2Power.Text = powerText;
             AnalogPv2Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
             AnalogPv2Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
+            SetEnergyMapValue("Pv2Power", powerText);
+            SetEnergyMapValue("Pv2Voltage", double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В");
+            SetEnergyMapValue("Pv2Current", double.IsNaN(current) ? "— А" : Format(current, "N2") + " А");
             DigitalPv2LinePower.Text = lineText;
         }
     }
