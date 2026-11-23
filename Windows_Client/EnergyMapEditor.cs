@@ -60,6 +60,7 @@ internal static class EnergyMapSvgDocument
             var weight = (string?)textNode.Attribute("font-weight") ?? "";
             var fontFamily = (string?)textNode.Attribute("font-family") ??
                 (string?)textNode.Ancestors().FirstOrDefault(node => node.Attribute("font-family") is not null)?.Attribute("font-family") ?? "Arial";
+            fontFamily = fontFamily.Split(',')[0].Trim().Trim('\'', '"');
             var x = ReadNumber(textNode.Attribute("x"), 0);
             var y = ReadNumber(textNode.Attribute("y"), 0);
 
