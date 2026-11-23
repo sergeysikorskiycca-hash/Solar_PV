@@ -77,11 +77,19 @@
                 <MenuItem Header="Выход" Click="Exit_Click"/>
             </MenuItem>
             <MenuItem Header="Вид">
-                <MenuItem Header="Варианты дизайна">
-                    <MenuItem Header="01 · Цифровой прибор" Tag="Digital" Click="Theme_Click"/>
-                    <MenuItem Header="02 · Аналоговая станция" Tag="Analog" Click="Theme_Click"/>
-                    <MenuItem Header="04 · Энергетический поток" Tag="Flow" Click="Theme_Click"/>
-                    <MenuItem Header="09 · Технический чертёж" Tag="Blueprint" Click="Theme_Click"/>
+                <MenuItem Header="Тема">
+                    <MenuItem Header="Светлая" Tag="Light" Click="Theme_Click"/>
+                    <MenuItem Header="Office" Tag="Office" Click="Theme_Click"/>
+                    <Separator/>
+                    <MenuItem Header="Тёмная" Tag="Dark" Click="Theme_Click"/>
+                    <MenuItem Header="Графитовая" Tag="Graphite" Click="Theme_Click"/>
+                    <MenuItem Header="Синяя" Tag="Blue" Click="Theme_Click"/>
+                </MenuItem>
+                <MenuItem Header="Дизайн">
+                    <MenuItem Header="01 · Цифровой прибор" Tag="Digital" Click="Design_Click"/>
+                    <MenuItem Header="02 · Аналоговая станция" Tag="Analog" Click="Design_Click"/>
+                    <MenuItem Header="04 · Энергетический поток" Tag="Flow" Click="Design_Click"/>
+                    <MenuItem Header="09 · Технический чертёж" Tag="Blueprint" Click="Design_Click"/>
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="Инструменты">
