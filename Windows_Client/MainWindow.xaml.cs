@@ -106,6 +106,7 @@ public partial class MainWindow : Window
         EnergyMapElementsButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapObjectHitCanvas.IsHitTestVisible = enabled && !_energyMapEditMode;
         UpdateEnergyMapHitTesting();
+        UpdateEnergyMapSelection();
         if (!enabled)
         {
             _selectedEnergyMapObjectId = null;
@@ -608,6 +609,7 @@ public partial class MainWindow : Window
             System.Windows.Controls.Canvas.SetTop(item, Math.Clamp(element.Y, 0, 905 - item.Height));
         }
         UpdateEnergyMapHitTesting();
+        UpdateEnergyMapSelection();
     }
 
     private static FontFamily EnergyMapFont(string value)
@@ -662,6 +664,7 @@ public partial class MainWindow : Window
             ? Color.FromRgb(99, 214, 162) : Color.FromRgb(245, 185, 66));
         EnergyMapObjectHitCanvas.IsHitTestVisible = _isAdminMode && !_energyMapEditMode;
         UpdateEnergyMapHitTesting();
+        UpdateEnergyMapSelection();
         foreach (var pair in _energyMapItems)
         {
             var element = _energyMapElements.FirstOrDefault(candidate => candidate.Id == pair.Key);
@@ -696,41 +699,65 @@ public partial class MainWindow : Window
         foreach (var pair in _energyMapItems)
         {
             var element = _energyMapElements.FirstOrDefault(candidate => candidate.Id == pair.Key);
-            pair.Value.IsHitTestVisible = _isAdminMode &&
-                (_energyMapEditMode || element?.Kind == "Text");
+            pair.Value.IsHitTestVisible = _isAdminMode && element is not null;
         }
     }
 
     private void EnergyMapItem_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (sender is not System.Windows.Controls.Border item) return;
+        if (!_isAdminMode || sender is not System.Windows.Controls.Border item ||
+            item.Tag is not string elementId)
+            return;
 
-        if (_isAdminMode && !_energyMapEditMode && e.ClickCount == 2 &&
-            item.Tag is string textId)
+        var element = _energyMapElements.FirstOrDefault(candidate => candidate.Id == elementId);
+        if (element is null) return;
+
+        if (!_energyMapEditMode)
         {
-            var textElement = _energyMapElements.FirstOrDefault(element =>
-                element.Id == textId && element.Kind == "Text");
-            if (textElement is not null)
+            if (e.ClickCount == 2)
             {
-                var dialog = new EnergyMapTextDialog(textElement.Text, this);
+                var dialog = new EnergyMapPropertiesDialog(element, this);
                 if (dialog.ShowDialog() == true)
                 {
-                    textElement.Text = dialog.EditedText;
-                    if (item.Child is System.Windows.Controls.TextBlock textBlock)
-                        SetEnergyMapText(textBlock, textElement);
-                    item.ToolTip = textElement.Text;
+                    element.Width = dialog.ElementWidth;
+                    element.Height = dialog.ElementHeight;
+                    element.Text = dialog.ElementText;
+                    element.DataSource = dialog.DataSource;
+                    RenderEnergyMapElements();
                     SaveEnergyMapLayout();
                 }
-                e.Handled = true;
-                return;
             }
+            else
+            {
+                _selectedEnergyMapObjectId = element.Id;
+                UpdateEnergyMapSelection();
+            }
+
+            e.Handled = true;
+            return;
         }
 
-        if (!_energyMapEditMode) return;
+        _selectedEnergyMapObjectId = element.Id;
+        UpdateEnergyMapSelection();
         _draggedEnergyMapItem = item;
         _energyMapDragOffset = e.GetPosition(item);
         item.CaptureMouse();
         e.Handled = true;
+    }
+
+    private void UpdateEnergyMapSelection()
+    {
+        foreach (var pair in _energyMapItems)
+        {
+            var selected = pair.Key == _selectedEnergyMapObjectId;
+            pair.Value.BorderBrush = selected || _energyMapEditMode
+                ? new SolidColorBrush(Color.FromRgb(245, 185, 66))
+                : Brushes.Transparent;
+            pair.Value.BorderThickness = selected || _energyMapEditMode
+                ? new Thickness(Math.Max(1.5,
+                    _energyMapElements.FirstOrDefault(element => element.Id == pair.Key)?.BorderWidth ?? 0))
+                : new Thickness(0);
+        }
     }
 
     private void EnergyMapItem_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
