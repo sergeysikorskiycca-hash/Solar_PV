@@ -119,6 +119,22 @@ public partial class MainWindow : Window
             }));
         menuItemStyle.Resources[typeof(System.Windows.Controls.TextBlock)] = menuTextStyle;
         MainMenu.Resources[typeof(System.Windows.Controls.TextBlock)] = menuTextStyle;
+
+        // WPF renders string menu headers through AccessText, not TextBlock.
+        // Bind that actual text element to its MenuItem so hover colors always follow the row.
+        var menuAccessTextStyle = new Style(typeof(System.Windows.Controls.AccessText));
+        menuAccessTextStyle.Setters.Add(new Setter(
+            System.Windows.Documents.TextElement.ForegroundProperty,
+            new System.Windows.Data.Binding(System.Windows.Controls.Control.ForegroundProperty.Name)
+            {
+                RelativeSource = new System.Windows.Data.RelativeSource(
+                    System.Windows.Data.RelativeSourceMode.FindAncestor,
+                    typeof(System.Windows.Controls.MenuItem),
+                    1)
+            }));
+        menuItemStyle.Resources[typeof(System.Windows.Controls.AccessText)] = menuAccessTextStyle;
+        MainMenu.Resources[typeof(System.Windows.Controls.AccessText)] = menuAccessTextStyle;
+        Application.Current.Resources[typeof(System.Windows.Controls.AccessText)] = menuAccessTextStyle;
         menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.PaddingProperty, new Thickness(10, 6, 10, 6)));
         var highlighted = new Trigger
         {
@@ -139,6 +155,7 @@ public partial class MainWindow : Window
         hovered.Setters.Add(new Setter(System.Windows.Documents.TextElement.ForegroundProperty, PaletteBrush("#17202D")));
         menuItemStyle.Triggers.Add(hovered);
         MainMenu.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
+        Application.Current.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
         MainMenu.ItemContainerStyle = menuItemStyle;
         void Visit(DependencyObject parent)
         {
