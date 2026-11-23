@@ -11,6 +11,7 @@ internal sealed class ClientSettings
     public string ControllerAddress { get; set; } = "http://192.168.4.1";
     public string Theme { get; set; } = "Dark";
     public string Design { get; set; } = "Digital";
+    public Dictionary<string, EnergyMapPosition> EnergyMapPositions { get; set; } = new();
 
     public static string? LoadControllerAddress()
     {
@@ -43,6 +44,34 @@ internal sealed class ClientSettings
             return string.IsNullOrWhiteSpace(settings?.Design) ? null : settings.Design;
         }
         catch { return null; }
+    }
+
+    public static Dictionary<string, EnergyMapPosition> LoadEnergyMapPositions()
+    {
+        try
+        {
+            if (!File.Exists(SettingsPath)) return new Dictionary<string, EnergyMapPosition>();
+            var settings = JsonSerializer.Deserialize<ClientSettings>(File.ReadAllText(SettingsPath));
+            return settings?.EnergyMapPositions ?? new Dictionary<string, EnergyMapPosition>();
+        }
+        catch { return new Dictionary<string, EnergyMapPosition>(); }
+    }
+
+    public static void SaveEnergyMapPositions(Dictionary<string, EnergyMapPosition> positions)
+    {
+        try
+        {
+            Directory.CreateDirectory(DataDirectory);
+            var current = File.Exists(SettingsPath)
+                ? JsonSerializer.Deserialize<ClientSettings>(File.ReadAllText(SettingsPath)) ?? new ClientSettings()
+                : new ClientSettings();
+            current.EnergyMapPositions = positions;
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(current, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch
+        {
+            // Layout settings must not interrupt monitoring.
+        }
     }
 
     public static void SaveDesign(string design)
@@ -95,4 +124,9 @@ internal sealed class ClientSettings
             // Settings failures must not interrupt monitoring.
         }
     }
+}
+internal sealed class EnergyMapPosition
+{
+    public double X { get; set; }
+    public double Y { get; set; }
 }
