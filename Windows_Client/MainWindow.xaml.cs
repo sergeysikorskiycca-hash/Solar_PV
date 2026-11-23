@@ -472,7 +472,7 @@ public partial class MainWindow : Window
                 Foreground = EnergyMapBrush(element.Foreground, Brushes.White),
                 FontSize = element.FontSize,
                 FontWeight = element.Bold ? FontWeights.Bold : FontWeights.Normal,
-                FontFamily = new FontFamily(string.IsNullOrWhiteSpace(element.FontFamily) ? "Arial" : element.FontFamily),
+                FontFamily = EnergyMapFont(element.FontFamily),
                 TextAlignment = TextAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -502,6 +502,12 @@ public partial class MainWindow : Window
             System.Windows.Controls.Canvas.SetLeft(item, Math.Clamp(element.X, 0, 1409 - item.Width));
             System.Windows.Controls.Canvas.SetTop(item, Math.Clamp(element.Y, 0, 905 - item.Height));
         }
+    }
+
+    private static FontFamily EnergyMapFont(string value)
+    {
+        try { return new FontFamily(string.IsNullOrWhiteSpace(value) ? "Arial" : value); }
+        catch { return new FontFamily("Arial"); }
     }
 
     private static Brush EnergyMapBrush(string value, Brush fallback)
