@@ -486,20 +486,7 @@ public partial class MainWindow : Window
                 HorizontalAlignment = HorizontalAlignment.Center
             };
 
-            var displayText = GetEnergyMapDisplayText(element);
-            if (!string.IsNullOrEmpty(element.AccentText) && displayText.Contains(element.AccentText, StringComparison.Ordinal))
-            {
-                var accentIndex = displayText.IndexOf(element.AccentText, StringComparison.Ordinal);
-                if (accentIndex > 0) text.Inlines.Add(new System.Windows.Documents.Run(displayText[..accentIndex]));
-                text.Inlines.Add(new System.Windows.Documents.Run(element.AccentText)
-                {
-                    Foreground = EnergyMapBrush(element.AccentForeground, text.Foreground),
-                    FontWeight = FontWeights.Bold
-                });
-                var tail = displayText[(accentIndex + element.AccentText.Length)..];
-                if (tail.Length > 0) text.Inlines.Add(new System.Windows.Documents.Run(tail));
-            }
-            else text.Text = displayText;
+            SetEnergyMapText(text, element);
 
             var isIndicator = element.Kind == "Indicator";
             var item = new System.Windows.Controls.Border
@@ -549,6 +536,25 @@ public partial class MainWindow : Window
         return element.Text.Contains("{value}", StringComparison.Ordinal)
             ? element.Text.Replace("{value}", element.CurrentValue, StringComparison.Ordinal)
             : element.CurrentValue;
+    }
+
+    private static void SetEnergyMapText(System.Windows.Controls.TextBlock text, EnergyMapElement element)
+    {
+        text.Inlines.Clear();
+        var displayText = GetEnergyMapDisplayText(element);
+        if (!string.IsNullOrEmpty(element.AccentText) && displayText.Contains(element.AccentText, StringComparison.Ordinal))
+        {
+            var accentIndex = displayText.IndexOf(element.AccentText, StringComparison.Ordinal);
+            if (accentIndex > 0) text.Inlines.Add(new System.Windows.Documents.Run(displayText[..accentIndex]));
+            text.Inlines.Add(new System.Windows.Documents.Run(element.AccentText)
+            {
+                Foreground = EnergyMapBrush(element.AccentForeground, text.Foreground),
+                FontWeight = FontWeights.Bold
+            });
+            var tail = displayText[(accentIndex + element.AccentText.Length)..];
+            if (tail.Length > 0) text.Inlines.Add(new System.Windows.Documents.Run(tail));
+        }
+        else text.Text = displayText;
     }
 
     private void EnergyMapEdit_Click(object sender, RoutedEventArgs e)
@@ -625,7 +631,7 @@ public partial class MainWindow : Window
             element.CurrentValue = value;
             if (_energyMapItems.TryGetValue(element.Id, out var item) &&
                 item.Child is System.Windows.Controls.TextBlock text)
-                text.Text = GetEnergyMapDisplayText(element);
+                SetEnergyMapText(text, element);
         }
     }
 
