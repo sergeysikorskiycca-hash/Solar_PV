@@ -185,7 +185,7 @@
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <TextBlock Text="ЭНЕРГОСХЕМА" Foreground="White" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                 <Button x:Name="EnergyMapEditButton" Content="Перемещать" Click="EnergyMapEdit_Click" Padding="10,4" Background="#F5B942" Foreground="#17202D" BorderThickness="0" FontWeight="SemiBold" Margin="0,0,8,0"/>
-                                <Button Content="Элементы" Click="EnergyMapElements_Click" Padding="10,4" Background="#63D6A2" Foreground="#17202D" BorderThickness="0" FontWeight="SemiBold"/>
+                                <Button x:Name="EnergyMapElementsButton" Content="Элементы" Click="EnergyMapElements_Click" Padding="10,4" Background="#63D6A2" Foreground="#17202D" BorderThickness="0" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>
                         <Canvas x:Name="EnergyMapItemsCanvas" Width="1409" Height="905"/>
