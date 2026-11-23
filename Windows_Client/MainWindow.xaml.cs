@@ -367,7 +367,7 @@ public partial class MainWindow : Window
         var item = new System.Windows.Controls.Border
         {
             Width = 176,
-            MinHeight = 43,
+            Height = 52,
             Padding = new Thickness(8, 5, 8, 5),
             Background = new SolidColorBrush(Color.FromArgb(238, 11, 43, 75)),
             BorderBrush = new SolidColorBrush(Color.FromRgb(125, 187, 232)),
