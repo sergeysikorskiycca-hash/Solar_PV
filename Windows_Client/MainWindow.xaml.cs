@@ -94,6 +94,7 @@ public partial class MainWindow : Window
         Title = enabled ? "Solar_PV — Администратор" : "Solar_PV — Панель станции";
         WindowModeText.Text = enabled ? "Solar_PV · АДМИНИСТРАТОР" : "Solar_PV";
         AdminMenuItem.Header = enabled ? "Назад" : "Администратор";
+        CreateMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private bool ShowAdminLoginDialog()
