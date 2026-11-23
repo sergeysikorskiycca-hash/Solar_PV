@@ -194,7 +194,12 @@
                             <TextBlock Text="ПОДКЛЮЧЕНИЕ К КОНТРОЛЛЕРУ" FontWeight="Bold" FontSize="11" Foreground="#8FA2BA"/>
                             <TextBlock x:Name="NetworkInfoText" Text="Пока отображаются локальные демонстрационные значения." Margin="0,7,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <TextBlock x:Name="PollInfoText" Grid.Column="1" Text="Опрос: выключен" Foreground="#8FA2BA" VerticalAlignment="Center" Margin="16,0,0,0"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                            <TextBlock x:Name="PollInfoText" Text="Опрос: выключен" Foreground="#8FA2BA" VerticalAlignment="Center"/>
+                            <Button Content="Журнал связи" Click="OpenConnectionLog_Click" Margin="14,0,0,0"
+                                    Padding="11,6" Background="#26384D" Foreground="#E8EEF7" BorderThickness="0"
+                                    ToolTip="Открыть журнал подключений и ошибок"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
             </StackPanel>
