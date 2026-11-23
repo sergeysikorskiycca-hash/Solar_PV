@@ -22,7 +22,7 @@ public partial class MainWindow : Window
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"Solar_PV Desktop {version}";
         AddressBox.Text = ClientSettings.LoadControllerAddress() ?? AddressBox.Text;
-        ApplyTheme(ClientSettings.LoadTheme() ?? "Dark");
+        Loaded += (_, _) => ApplyTheme(ClientSettings.LoadTheme() ?? "Dark");
         _pollTimer.Tick += async (_, _) => await PollAsync();
         ShowDemo();
     }
