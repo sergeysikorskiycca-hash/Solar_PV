@@ -158,6 +158,7 @@ internal sealed class EnergyMapEditorWindow : Window
     private readonly ListBox _list = new() { Width = 245, Margin = new Thickness(0, 0, 14, 0) };
     private readonly Dictionary<string, TextBox> _fields = new();
     private readonly ComboBox _dataSource = new() { MinWidth = 220, Height = 28 };
+    private EnergyMapElement? _editingItem;
     private readonly CheckBox _bold = new() { Content = "Жирный шрифт", Foreground = Brushes.White, Margin = new Thickness(0, 8, 0, 0) };
 
     public List<EnergyMapElement> Elements => _elements;
@@ -218,7 +219,11 @@ internal sealed class EnergyMapEditorWindow : Window
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(260) });
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         _list.DisplayMemberPath = "Text";
-        _list.SelectionChanged += (_, _) => LoadFields();
+        _list.SelectionChanged += (_, _) =>
+        {
+            ApplyFields();
+            LoadFields();
+        };
         Grid.SetColumn(_list, 0);
         body.Children.Add(_list);
 
@@ -313,7 +318,12 @@ internal sealed class EnergyMapEditorWindow : Window
 
     private void LoadFields()
     {
-        if (_list.SelectedItem is not EnergyMapElement item) return;
+        if (_list.SelectedItem is not EnergyMapElement item)
+        {
+            _editingItem = null;
+            return;
+        }
+        _editingItem = item;
         _fields["Text"].Text = item.Text;
         _fields["X"].Text = F(item.X);
         _fields["Y"].Text = F(item.Y);
@@ -334,7 +344,7 @@ internal sealed class EnergyMapEditorWindow : Window
 
     private void ApplyFields()
     {
-        if (_list.SelectedItem is not EnergyMapElement item) return;
+        if (_editingItem is not EnergyMapElement item) return;
         item.Text = _fields["Text"].Text;
         item.X = N(_fields["X"].Text, item.X);
         item.Y = N(_fields["Y"].Text, item.Y);
