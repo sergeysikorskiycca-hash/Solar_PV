@@ -398,6 +398,165 @@ internal sealed class EnergyMapEditorWindow : Window
             ? number : fallback;
 }
 
+internal sealed class EnergyMapPropertiesDialog : Window
+{
+    private readonly TextBox _widthBox;
+    private readonly TextBox _heightBox;
+    private readonly TextBox? _textBox;
+    private readonly ComboBox _dataSourceBox;
+
+    public double ElementWidth { get; private set; }
+    public double ElementHeight { get; private set; }
+    public string ElementText { get; private set; } = "";
+    public string DataSource { get; private set; } = "";
+
+    public EnergyMapPropertiesDialog(EnergyMapElement element, Window owner)
+    {
+        Owner = owner;
+        Title = element.Kind == "Text" ? "Свойства текстового объекта" : "Свойства объекта";
+        Width = 440;
+        Height = element.Kind == "Text" ? 430 : 350;
+        MinWidth = 380;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        ResizeMode = ResizeMode.CanResize;
+        Background = new SolidColorBrush(Color.FromRgb(18, 30, 48));
+        Foreground = Brushes.White;
+
+        var root = new DockPanel { Margin = new Thickness(18) };
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 14, 0, 0)
+        };
+        DockPanel.SetDock(buttons, Dock.Bottom);
+
+        var cancel = new Button
+        {
+            Content = "Отмена",
+            Padding = new Thickness(14, 7, 14, 7),
+            Margin = new Thickness(0, 0, 8, 0),
+            Background = new SolidColorBrush(Color.FromRgb(38, 56, 77)),
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(0),
+            IsCancel = true
+        };
+        var save = new Button
+        {
+            Content = "Сохранить",
+            Padding = new Thickness(14, 7, 14, 7),
+            Background = new SolidColorBrush(Color.FromRgb(245, 185, 66)),
+            Foreground = new SolidColorBrush(Color.FromRgb(23, 32, 45)),
+            BorderThickness = new Thickness(0),
+            FontWeight = FontWeights.Bold,
+            IsDefault = true
+        };
+        save.Click += (_, _) =>
+        {
+            if (!double.TryParse(_widthBox.Text.Replace(',', '.'), NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out var width) || width < 12 ||
+                !double.TryParse(_heightBox.Text.Replace(',', '.'), NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out var height) || height < 12)
+            {
+                MessageBox.Show(this, "Ширина и высота должны быть числами не меньше 12.",
+                    "Свойства объекта", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            ElementWidth = width;
+            ElementHeight = height;
+            ElementText = _textBox?.Text ?? element.Text;
+            DataSource = _dataSourceBox.SelectedItem as string ?? "";
+            DialogResult = true;
+        };
+        buttons.Children.Add(cancel);
+        buttons.Children.Add(save);
+        root.Children.Add(buttons);
+
+        var fields = new StackPanel();
+        AddField(fields, "Ширина", out _widthBox, element.Width);
+        AddField(fields, "Высота", out _heightBox, element.Height);
+
+        if (element.Kind == "Text")
+        {
+            fields.Children.Add(new TextBlock
+            {
+                Text = "Текст",
+                Margin = new Thickness(0, 12, 0, 4),
+                Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228))
+            });
+            _textBox = new TextBox
+            {
+                Text = element.Text,
+                Height = 76,
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Padding = new Thickness(7),
+                Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
+                Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124)),
+                CaretBrush = Brushes.White
+            };
+            fields.Children.Add(_textBox);
+        }
+
+        fields.Children.Add(new TextBlock
+        {
+            Text = "Источник данных",
+            Margin = new Thickness(0, 12, 0, 4),
+            Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228))
+        });
+        _dataSourceBox = new ComboBox
+        {
+            Height = 30,
+            Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
+            Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124))
+        };
+        foreach (var source in new[]
+        {
+            "", "Pv1Power", "Pv1Voltage", "Pv1Current",
+            "Pv2Power", "Pv2Voltage", "Pv2Current", "InverterPower"
+        })
+            _dataSourceBox.Items.Add(source);
+        _dataSourceBox.SelectedItem = element.DataSource;
+        fields.Children.Add(_dataSourceBox);
+
+        fields.Children.Add(new TextBlock
+        {
+            Text = "Привязки к функциям и дополнительным датчикам будут добавлены в этом окне на следующем этапе.",
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 14, 0, 0),
+            Foreground = new SolidColorBrush(Color.FromRgb(150, 174, 197))
+        });
+
+        root.Children.Add(fields);
+        Content = root;
+    }
+
+    private static void AddField(Panel parent, string label, out TextBox box, double value)
+    {
+        parent.Children.Add(new TextBlock
+        {
+            Text = label,
+            Margin = new Thickness(0, 8, 0, 4),
+            Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228))
+        });
+        box = new TextBox
+        {
+            Text = value.ToString("0.##", CultureInfo.InvariantCulture),
+            Height = 30,
+            Padding = new Thickness(7, 4, 7, 4),
+            Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
+            Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124)),
+            CaretBrush = Brushes.White
+        };
+        parent.Children.Add(box);
+    }
+}
+
 internal sealed class EnergyMapTextDialog : Window
 {
     private readonly TextBox _textBox;
