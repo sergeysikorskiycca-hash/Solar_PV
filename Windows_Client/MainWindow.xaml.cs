@@ -29,8 +29,13 @@ public partial class MainWindow : Window
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"Solar_PV Desktop {version}";
         AddressBox.Text = ClientSettings.LoadControllerAddress() ?? AddressBox.Text;
-        var savedDesign = ClientSettings.LoadTheme();
-        Loaded += (_, _) => ApplyTheme(savedDesign is "Analog" or "Flow" or "Blueprint" ? savedDesign : "Digital");
+        var savedTheme = ClientSettings.LoadTheme() ?? "Dark";
+        var savedDesign = ClientSettings.LoadDesign() ?? "Digital";
+        Loaded += (_, _) =>
+        {
+            ApplyTheme(savedTheme);
+            ApplyDesign(savedDesign);
+        };
         _pollTimer.Tick += async (_, _) => await PollAsync();
         Closed += (_, _) => WriteConnectionLog("Клиент Solar_PV закрыт.");
         ShowDemo();
@@ -75,18 +80,25 @@ public partial class MainWindow : Window
     {
         if (sender is not System.Windows.Controls.MenuItem item || item.Tag is not string theme) return;
         ApplyTheme(theme);
-        ClientSettings.SaveTheme(theme);
+    }
+
+    private void Design_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.MenuItem item || item.Tag is not string design) return;
+        ApplyDesign(design);
     }
 
     private void ApplyTheme(string theme)
     {
         var palette = theme switch
         {
-            "Analog" => new[] { "#101B25", "#192D3B", "#EDF7FB", "#A3BBC9", "#5BD0F0", "#EDF7FB", "#426174", "#244253" },
-            "Flow" => new[] { "#071711", "#10271B", "#E9F7EC", "#94B69C", "#80E078", "#E9F7EC", "#376047", "#1B3A28" },
-            "Blueprint" => new[] { "#071827", "#0C2638", "#DDF6FF", "#83B2C5", "#36D8E8", "#DDF6FF", "#24617C", "#10344A" },
-            _ => new[] { "#080D12", "#121D26", "#EDF4F8", "#8EA3B1", "#FFB547", "#EDF4F8", "#354957", "#1B2A35" }
+            "Light" => new[] { "#F2F2F2", "#FFFFFF", "#252525", "#666666", "#555555", "#E8EEF7", "#D6D6D6", "#E5E5E5" },
+            "Office" => new[] { "#DCE6F1", "#F3F6FA", "#1F3864", "#526780", "#0078D4", "#E8EEF7", "#B4C7E7", "#C9D9EC" },
+            "Graphite" => new[] { "#202326", "#2B3035", "#F0F2F4", "#AAB2BC", "#E0A43A", "#E8EEF7", "#454D56", "#343B43" },
+            "Blue" => new[] { "#10243D", "#183451", "#F0F6FC", "#A9C0D8", "#49A6E9", "#E8EEF7", "#315675", "#214565" },
+            _ => new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" }
         };
+
         var map = new Dictionary<string, string>
         {
             ["#FF0B1220"] = palette[0], ["#FF121E30"] = palette[1],
@@ -97,53 +109,39 @@ public partial class MainWindow : Window
             ["#FF1A2B3E"] = palette[1]
         };
 
-        // Re-map colors from the currently active theme as well as the original XAML colors.
-        // Without this, a second theme switch cannot recognize brushes changed by the first one.
         if (_activePalette is not null)
         {
             int[] paletteSlots = { 0, 1, 2, 3, 4, 6, 7 };
             foreach (var slot in paletteSlots)
-            {
-                var oldColor = "#FF" + _activePalette[slot].TrimStart('#');
-                map[oldColor] = palette[slot];
-            }
+                map["#FF" + _activePalette[slot].TrimStart('#')] = palette[slot];
         }
+
         Brush ConvertBrush(Brush brush)
         {
-            if (brush is SolidColorBrush solid)
-            {
-                var key = solid.Color.ToString();
-                if (map.TryGetValue(key, out var replacement))
-                    return new SolidColorBrush((Color)ColorConverter.ConvertFromString(replacement));
-            }
+            if (brush is SolidColorBrush solid && map.TryGetValue(solid.Color.ToString(), out var replacementColor))
+                return new SolidColorBrush((Color)ColorConverter.ConvertFromString(replacementColor));
             return brush;
         }
+
         SolidColorBrush PaletteBrush(string value) =>
             new((Color)ColorConverter.ConvertFromString(value));
+
         Background = PaletteBrush(palette[0]);
         Foreground = PaletteBrush(palette[2]);
         MainMenu.Background = PaletteBrush(palette[7]);
         MainMenu.Foreground = PaletteBrush(palette[2]);
+
         var menuItemStyle = new Style(typeof(System.Windows.Controls.MenuItem));
         menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(palette[7])));
         menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(palette[2])));
-        menuItemStyle.Setters.Add(new Setter(
-            System.Windows.Controls.MenuItem.HeaderTemplateProperty,
+        menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.MenuItem.HeaderTemplateProperty,
             (DataTemplate)FindResource("MenuItemHeaderTemplate")));
         menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.PaddingProperty, new Thickness(10, 6, 10, 6)));
-        var highlighted = new Trigger
-        {
-            Property = System.Windows.Controls.MenuItem.IsHighlightedProperty,
-            Value = true
-        };
+        var highlighted = new Trigger { Property = System.Windows.Controls.MenuItem.IsHighlightedProperty, Value = true };
         highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush("#DCE6F2")));
         highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush("#17202D")));
         menuItemStyle.Triggers.Add(highlighted);
-        var hovered = new Trigger
-        {
-            Property = System.Windows.UIElement.IsMouseOverProperty,
-            Value = true
-        };
+        var hovered = new Trigger { Property = System.Windows.UIElement.IsMouseOverProperty, Value = true };
         hovered.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush("#DCE6F2")));
         hovered.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush("#17202D")));
         menuItemStyle.Triggers.Add(hovered);
@@ -151,22 +149,16 @@ public partial class MainWindow : Window
         Application.Current.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
         MainMenu.ItemContainerStyle = menuItemStyle;
 
-        // Explicitly refresh already-created menu containers when the theme changes.
-        // ItemContainerStyle alone does not reliably replace styles on existing XAML items.
         void ApplyMenuItemStyle(System.Windows.Controls.MenuItem item)
         {
             item.Style = menuItemStyle;
             foreach (var child in item.Items)
-            {
                 if (child is System.Windows.Controls.MenuItem childMenuItem)
                     ApplyMenuItemStyle(childMenuItem);
-            }
         }
         foreach (var menuEntry in MainMenu.Items)
-        {
             if (menuEntry is System.Windows.Controls.MenuItem menuItem)
                 ApplyMenuItemStyle(menuItem);
-        }
 
         void Visit(DependencyObject parent)
         {
@@ -175,10 +167,8 @@ public partial class MainWindow : Window
                 var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
                 if (child is System.Windows.Controls.Control control)
                 {
-                    if (control.Background is SolidColorBrush bg)
-                        control.Background = ConvertBrush(bg);
-                    if (control.Foreground is SolidColorBrush fg)
-                        control.Foreground = ConvertBrush(fg);
+                    if (control.Background is SolidColorBrush bg) control.Background = ConvertBrush(bg);
+                    if (control.Foreground is SolidColorBrush fg) control.Foreground = ConvertBrush(fg);
                 }
                 if (child is System.Windows.Controls.TextBlock textBlock && textBlock.Foreground is SolidColorBrush textBrush)
                     textBlock.Foreground = ConvertBrush(textBrush);
@@ -189,16 +179,37 @@ public partial class MainWindow : Window
         }
         Visit(this);
 
-        // Four desktop design grammars share the same live telemetry and controls.
-        var cornerRadius = theme switch
+        var topMetricsTextColor = palette[2];
+        void ApplyTopMetricsTextColor(DependencyObject parent)
+        {
+            if (parent is System.Windows.Controls.TextBlock textBlock)
+                textBlock.Foreground = PaletteBrush(topMetricsTextColor);
+            for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+                ApplyTopMetricsTextColor(System.Windows.Media.VisualTreeHelper.GetChild(parent, i));
+        }
+        ApplyTopMetricsTextColor(TopMetricsGrid);
+
+        _activePalette = palette;
+        ClientSettings.SaveTheme(theme);
+        ApplyDesign(ClientSettings.LoadDesign() ?? "Digital");
+    }
+
+    private void ApplyDesign(string design)
+    {
+        if (design is not ("Digital" or "Analog" or "Flow" or "Blueprint"))
+            design = "Digital";
+
+        var palette = _activePalette ?? new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" };
+        var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[4]));
+        var borderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[6]));
+
+        var cornerRadius = design switch
         {
             "Analog" => new CornerRadius(16),
             "Flow" => new CornerRadius(1),
             "Blueprint" => new CornerRadius(0),
             _ => new CornerRadius(4)
         };
-        var cardBorder = PaletteBrush(palette[6]);
-        var accent = PaletteBrush(palette[4]);
 
         void StyleCards(DependencyObject parent)
         {
@@ -208,10 +219,9 @@ public partial class MainWindow : Window
                 if (child is System.Windows.Controls.Border border)
                 {
                     border.CornerRadius = cornerRadius;
-                    border.BorderBrush = theme == "Flow" ? accent : cardBorder;
-                    border.BorderThickness = theme == "Flow"
-                        ? new Thickness(3, 1, 1, 1)
-                        : new Thickness(theme == "Blueprint" ? 1.2 : 1);
+                    border.BorderBrush = design == "Flow" ? accent : borderBrush;
+                    border.BorderThickness = design == "Flow" ? new Thickness(3, 1, 1, 1)
+                        : new Thickness(design == "Blueprint" ? 1.2 : 1);
                 }
                 StyleCards(child);
             }
@@ -221,11 +231,11 @@ public partial class MainWindow : Window
         var stringCards = StringCardsGrid.Children.OfType<System.Windows.Controls.Border>().ToArray();
         StringCardsGrid.ColumnDefinitions.Clear();
         StringCardsGrid.RowDefinitions.Clear();
-        if (theme == "Flow")
+        if (design == "Flow")
         {
             StringCardsGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
-            StringCardsGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
-            StringCardsGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+            for (var i = 0; i < stringCards.Length; i++)
+                StringCardsGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
             for (var i = 0; i < stringCards.Length; i++)
             {
                 System.Windows.Controls.Grid.SetColumn(stringCards[i], 0);
@@ -244,15 +254,13 @@ public partial class MainWindow : Window
             }
         }
 
-        if (theme == "Blueprint")
+        if (design == "Blueprint")
         {
-            var gridLines = new GeometryGroup();
-            gridLines.Children.Add(new LineGeometry(new Point(0, 0), new Point(32, 0)));
-            gridLines.Children.Add(new LineGeometry(new Point(0, 0), new Point(0, 32)));
+            var lines = new GeometryGroup();
+            lines.Children.Add(new LineGeometry(new Point(0, 0), new Point(32, 0)));
+            lines.Children.Add(new LineGeometry(new Point(0, 0), new Point(0, 32)));
             var drawing = new DrawingGroup();
-            drawing.Children.Add(new GeometryDrawing(PaletteBrush(palette[0]), null,
-                new RectangleGeometry(new Rect(0, 0, 32, 32))));
-            drawing.Children.Add(new GeometryDrawing(null, new Pen(PaletteBrush(palette[6]), 0.45), gridLines));
+            drawing.Children.Add(new GeometryDrawing(null, new Pen(borderBrush, 0.45), lines));
             Background = new DrawingBrush(drawing)
             {
                 TileMode = TileMode.Tile,
@@ -263,8 +271,12 @@ public partial class MainWindow : Window
                 Stretch = Stretch.None
             };
         }
+        else
+        {
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[0]));
+        }
 
-        var valueFont = theme switch
+        var valueFont = design switch
         {
             "Analog" => new FontFamily("Georgia"),
             "Blueprint" => new FontFamily("Consolas"),
@@ -274,38 +286,16 @@ public partial class MainWindow : Window
         TotalEnergyText.FontFamily = valueFont;
         String1Power.FontFamily = valueFont;
         String2Power.FontFamily = valueFont;
-        TotalPowerText.FontSize = theme == "Analog" ? 36 : 34;
-        TotalEnergyText.FontSize = theme == "Analog" ? 36 : 34;
-        String1Power.FontSize = theme == "Analog" ? 31 : 29;
-        String2Power.FontSize = theme == "Analog" ? 31 : 29;
-        if (theme == "Flow")
-        {
-            TotalPowerText.Foreground = accent;
-            String1Power.Foreground = accent;
-            String2Power.Foreground = accent;
-        }
+        TotalPowerText.FontSize = design == "Analog" ? 36 : 34;
+        TotalEnergyText.FontSize = design == "Analog" ? 36 : 34;
+        String1Power.FontSize = design == "Analog" ? 31 : 29;
+        String2Power.FontSize = design == "Analog" ? 31 : 29;
 
-        var topMetricsTextColor = palette[2];
+        TotalPowerText.Foreground = accent;
+        String1Power.Foreground = accent;
+        String2Power.Foreground = accent;
 
-        void ApplyTopMetricsTextColor(DependencyObject parent)
-        {
-            if (parent is System.Windows.Controls.TextBlock textBlock)
-                textBlock.Foreground = PaletteBrush(topMetricsTextColor);
-
-            for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
-                ApplyTopMetricsTextColor(System.Windows.Media.VisualTreeHelper.GetChild(parent, i));
-        }
-
-        ApplyTopMetricsTextColor(TopMetricsGrid);
-        if (theme == "Flow")
-        {
-            TotalPowerText.Foreground = accent;
-            String1Power.Foreground = accent;
-            String2Power.Foreground = accent;
-        }
-
-        _activePalette = palette;
-        ClientSettings.SaveTheme(theme);
+        ClientSettings.SaveDesign(design);
     }
 
     private void Demo_Click(object sender, RoutedEventArgs e)
