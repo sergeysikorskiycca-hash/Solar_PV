@@ -128,8 +128,12 @@ public partial class MainWindow
             "$backupReady = $false",
             "$newProcess = $null",
             "$rollbackSucceeded = $false",
+            "$step = 'Ожидание завершения программы'",
             "try {",
+            "  Add-Content -LiteralPath $log -Value ('[' + (Get-Date -Format s) + '] Запуск обновления. Каталог: ' + $destination)",
             "  while (Get-Process -Id $targetProcessId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 300 }",
+            "  $step = 'Распаковка пакета'",
+            "  Add-Content -LiteralPath $log -Value ('[' + (Get-Date -Format s) + '] ' + $step)",
             "  Expand-Archive -LiteralPath $archive -DestinationPath $stage -Force",
             "  $newExe = Join-Path $stage 'Solar_PV.exe'",
             "  $stagedVersionFile = Join-Path $stage 'version.txt'",
@@ -140,25 +144,42 @@ public partial class MainWindow
             "  if (-not [version]::TryParse($stagedVersionText, [ref]$parsedStagedVersion) -or $parsedStagedVersion -ne $expected) { throw 'Версия в version.txt не совпадает с версией выпуска.' }",
             "  if ((Get-Item -LiteralPath $newExe).Length -lt 1000000) { throw 'Размер EXE в архиве меньше ожидаемого.' }",
             "  if (-not (Test-Path -LiteralPath $app -PathType Leaf)) { throw 'Не найден установленный Solar_PV.exe.' }",
+            "  $step = 'Создание резервной копии'",
+            "  Add-Content -LiteralPath $log -Value ('[' + (Get-Date -Format s) + '] ' + $step)",
             "  New-Item -ItemType Directory -Path $backup -Force | Out-Null",
             "  Copy-Item -Path (Join-Path $destination '*') -Destination $backup -Recurse -Force",
             "  if (-not (Test-Path -LiteralPath (Join-Path $backup 'Solar_PV.exe') -PathType Leaf)) { throw 'Не удалось создать резервную копию программы.' }",
             "  $backupReady = $true",
+            "  $step = 'Копирование новой версии'",
+            "  Add-Content -LiteralPath $log -Value ('[' + (Get-Date -Format s) + '] ' + $step)",
             "  Copy-Item -Path (Join-Path $stage '*') -Destination $destination -Recurse -Force",
             "  $installed = Join-Path $destination 'Solar_PV.exe'",
             "  $installedVersionFile = Join-Path $destination 'version.txt'",
             "  if (-not (Test-Path -LiteralPath $installed -PathType Leaf) -or (Get-Item -LiteralPath $installed).Length -ne (Get-Item -LiteralPath $newExe).Length) { throw 'Проверка установленного EXE не пройдена.' }",
             "  if ((Get-Content -LiteralPath $installedVersionFile -Raw).Trim() -ne $expected.ToString()) { throw 'Проверка установленной версии не пройдена.' }",
-            "  $newProcess = Start-Process -FilePath $installed -PassThru",
-            "  Start-Sleep -Seconds 5",
-            "  $newProcess.Refresh()",
-            "  if ($newProcess.HasExited) { throw 'Новая версия завершилась сразу после запуска. Выполняется откат.' }",
+            "  $step = 'Запуск и проверка новой версии'",
+            "  Add-Content -LiteralPath $log -Value ('[' + (Get-Date -Format s) + '] ' + $step)",
+            "  $identity = [Security.Principal.WindowsIdentity]::GetCurrent()",
+            "  $principal = New-Object Security.Principal.WindowsPrincipal($identity)",
+            "  if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {",
+            "    $shell = New-Object -ComObject Shell.Application",
+            "    $shell.ShellExecute($installed)",
+            "    Start-Sleep -Seconds 5",
+            "    $newProcess = Get-Process -Name 'Solar_PV' -ErrorAction SilentlyContinue | Select-Object -First 1",
+            "    if (-not $newProcess) { throw 'Не удалось запустить программу после обновления.' }",
+            "  } else {",
+            "    $newProcess = Start-Process -FilePath $installed -PassThru",
+            "    Start-Sleep -Seconds 5",
+            "    $newProcess.Refresh()",
+            "    if ($newProcess.HasExited) { throw 'Новая версия завершилась сразу после запуска. Выполняется откат.' }",
+            "  }",
             "  Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue",
             "  Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue",
             "  Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue",
             "  Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue",
             "} catch {",
-            "  $_ | Out-String | Set-Content -LiteralPath $log -Encoding UTF8",
+            "  ('[' + (Get-Date -Format s) + '] Ошибка на этапе: ' + $step) | Add-Content -LiteralPath $log",
+            "  $_ | Out-String | Add-Content -LiteralPath $log",
             "  if ($newProcess -and -not $newProcess.HasExited) { Stop-Process -Id $newProcess.Id -Force -ErrorAction SilentlyContinue }",
             "  if ($backupReady) {",
             "    try {",
@@ -178,13 +199,42 @@ public partial class MainWindow
         };
         await File.WriteAllTextAsync(scriptPath, string.Join(Environment.NewLine, lines), new UTF8Encoding(false));
 
-        var updater = Process.Start(new ProcessStartInfo
+        var needsElevation = false;
+        var permissionProbe = Path.Combine(AppContext.BaseDirectory, ".solar-pv-write-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            await File.WriteAllTextAsync(permissionProbe, "test");
+            File.Delete(permissionProbe);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            needsElevation = true;
+        }
+        finally
+        {
+            if (File.Exists(permissionProbe))
+                File.Delete(permissionProbe);
+        }
+
+        var startInfo = new ProcessStartInfo
         {
             FileName = "powershell.exe",
             Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"" + scriptPath + "\"",
             UseShellExecute = true,
             WindowStyle = ProcessWindowStyle.Hidden
-        });
+        };
+        if (needsElevation)
+            startInfo.Verb = "runas";
+
+        Process? updater;
+        try
+        {
+            updater = Process.Start(startInfo);
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            throw new OperationCanceledException("Запуск обновления с правами администратора отменён. Программа не закрыта.", ex);
+        }
         if (updater is null) throw new InvalidOperationException("Windows не запустила процесс обновления.");
         Application.Current.Shutdown();
     }
