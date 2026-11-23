@@ -218,6 +218,9 @@ public partial class MainWindow : Window
                 var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
                 if (child is System.Windows.Controls.Border border)
                 {
+                    border.Background = child == StringSectionHeader
+                        ? Brushes.Transparent
+                        : new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[1]));
                     border.CornerRadius = cornerRadius;
                     border.BorderBrush = design == "Flow" ? accent : borderBrush;
                     border.BorderThickness = design == "Flow" ? new Thickness(3, 1, 1, 1)
@@ -373,13 +376,10 @@ public partial class MainWindow : Window
                 }
             }
 
-            foreach (var button in new[] { ConnectButton })
-            {
-                button.Background = Brushes.White;
-                button.Foreground = dashboardBlue;
-                button.BorderBrush = Brushes.White;
-                button.BorderThickness = new Thickness(1);
-            }
+            ConnectButton.Background = Brushes.White;
+            ConnectButton.Foreground = dashboardBlue;
+            ConnectButton.BorderBrush = Brushes.White;
+            ConnectButton.BorderThickness = new Thickness(1);
             AddressBox.Background = Brushes.White;
             AddressBox.Foreground = new SolidColorBrush(Color.FromRgb(45, 55, 65));
             AddressBox.BorderBrush = new SolidColorBrush(Color.FromRgb(210, 220, 228));
