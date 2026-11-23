@@ -220,6 +220,21 @@ internal sealed class EnergyMapEditorWindow : Window
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(260) });
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         _list.DisplayMemberPath = "Text";
+        _list.Background = new SolidColorBrush(Color.FromRgb(23, 38, 58));
+        _list.Foreground = new SolidColorBrush(Color.FromRgb(240, 245, 250));
+        _list.BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124));
+        var listItemStyle = new Style(typeof(ListBoxItem));
+        listItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.Transparent));
+        listItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        listItemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
+        var listHover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+        listHover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(41, 63, 88))));
+        listItemStyle.Triggers.Add(listHover);
+        var listSelected = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
+        listSelected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
+        listSelected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        listItemStyle.Triggers.Add(listSelected);
+        _list.ItemContainerStyle = listItemStyle;
         _list.SelectionChanged += (_, _) =>
         {
             ApplyFields();
@@ -245,9 +260,12 @@ internal sealed class EnergyMapEditorWindow : Window
         AddField(editor, "Цвет рамки", "BorderColor");
         AddField(editor, "Толщина рамки", "BorderWidth");
         AddField(editor, "Скругление", "CornerRadius");
-        editor.Children.Add(new TextBlock { Text = "Источник данных", Margin = new Thickness(0, 8, 0, 4), Foreground = Brushes.LightGray });
+        editor.Children.Add(new TextBlock { Text = "Источник данных", Margin = new Thickness(0, 8, 0, 4), Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228)) });
         foreach (var item in new[] { "", "Pv1Power", "Pv1Voltage", "Pv1Current", "Pv2Power", "Pv2Voltage", "Pv2Current", "InverterPower" })
             _dataSource.Items.Add(item);
+        _dataSource.Background = new SolidColorBrush(Color.FromRgb(36, 54, 74));
+        _dataSource.Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251));
+        _dataSource.BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124));
         editor.Children.Add(_dataSource);
         editorScroll.Content = editor;
         Grid.SetColumn(editorScroll, 1);
@@ -271,8 +289,17 @@ internal sealed class EnergyMapEditorWindow : Window
 
     private void AddField(Panel parent, string label, string key)
     {
-        parent.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 8, 0, 4), Foreground = Brushes.LightGray });
-        var box = new TextBox { Height = 28, Padding = new Thickness(6, 3, 6, 3) };
+        parent.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 8, 0, 4), Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228)) });
+        var box = new TextBox
+        {
+            Height = 30,
+            Padding = new Thickness(7, 4, 7, 4),
+            Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
+            Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124)),
+            CaretBrush = Brushes.White,
+            SelectionBrush = new SolidColorBrush(Color.FromRgb(65, 112, 158))
+        };
         _fields[key] = box;
         parent.Children.Add(box);
     }
@@ -369,4 +396,80 @@ internal sealed class EnergyMapEditorWindow : Window
     private static double N(string value, double fallback) =>
         double.TryParse(value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
             ? number : fallback;
+}
+
+internal sealed class EnergyMapTextDialog : Window
+{
+    private readonly TextBox _textBox;
+
+    public string EditedText => _textBox.Text;
+
+    public EnergyMapTextDialog(string text, Window owner)
+    {
+        Owner = owner;
+        Title = "Редактирование текста";
+        Width = 500;
+        Height = 270;
+        MinWidth = 380;
+        MinHeight = 220;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        ResizeMode = ResizeMode.CanResize;
+        Background = new SolidColorBrush(Color.FromRgb(18, 30, 48));
+        Foreground = Brushes.White;
+
+        var root = new DockPanel { Margin = new Thickness(16) };
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+        DockPanel.SetDock(buttons, Dock.Bottom);
+
+        var cancel = new Button
+        {
+            Content = "Отмена",
+            Padding = new Thickness(14, 7, 14, 7),
+            Margin = new Thickness(0, 0, 8, 0),
+            Background = new SolidColorBrush(Color.FromRgb(38, 56, 77)),
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(0),
+            IsCancel = true
+        };
+        var save = new Button
+        {
+            Content = "Сохранить",
+            Padding = new Thickness(14, 7, 14, 7),
+            Background = new SolidColorBrush(Color.FromRgb(245, 185, 66)),
+            Foreground = new SolidColorBrush(Color.FromRgb(23, 32, 45)),
+            BorderThickness = new Thickness(0),
+            FontWeight = FontWeights.Bold,
+            IsDefault = true
+        };
+        save.Click += (_, _) => DialogResult = true;
+        buttons.Children.Add(cancel);
+        buttons.Children.Add(save);
+        root.Children.Add(buttons);
+
+        _textBox = new TextBox
+        {
+            Text = text,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Padding = new Thickness(9),
+            Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
+            Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124)),
+            CaretBrush = Brushes.White,
+            SelectionBrush = new SolidColorBrush(Color.FromRgb(65, 112, 158))
+        };
+        root.Children.Add(_textBox);
+        Content = root;
+        Loaded += (_, _) =>
+        {
+            _textBox.Focus();
+            _textBox.SelectAll();
+        };
+    }
 }
