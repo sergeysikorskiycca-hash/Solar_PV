@@ -73,8 +73,8 @@ public partial class MainWindow : Window
     {
         var palette = theme switch
         {
-            "Light" => new[] { "#F3F4F6", "#FFFFFF", "#20242A", "#667085", "#2563EB", "#E8EEF7", "#D0D5DD", "#E9EEF5" },
-            "Office" => new[] { "#F5F7FA", "#FFFFFF", "#243247", "#68778C", "#4472C4", "#E8EEF7", "#D8E0EA", "#EDF2F8" },
+            "Light" => new[] { "#F2F2F2", "#FFFFFF", "#252525", "#666666", "#555555", "#E8EEF7", "#D6D6D6", "#E5E5E5" },
+            "Office" => new[] { "#DCE6F1", "#F3F6FA", "#1F3864", "#526780", "#0078D4", "#E8EEF7", "#B4C7E7", "#C9D9EC" },
             "Graphite" => new[] { "#202326", "#2B3035", "#F0F2F4", "#AAB2BC", "#E0A43A", "#E8EEF7", "#454D56", "#343B43" },
             "Blue" => new[] { "#10243D", "#183451", "#F0F6FC", "#A9C0D8", "#49A6E9", "#E8EEF7", "#315675", "#214565" },
             _ => new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" }
