@@ -129,6 +129,24 @@ public partial class MainWindow : Window
         MainMenu.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
         Application.Current.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
         MainMenu.ItemContainerStyle = menuItemStyle;
+
+        // Explicitly refresh already-created menu containers when the theme changes.
+        // ItemContainerStyle alone does not reliably replace styles on existing XAML items.
+        void ApplyMenuItemStyle(System.Windows.Controls.MenuItem item)
+        {
+            item.Style = menuItemStyle;
+            foreach (var child in item.Items)
+            {
+                if (child is System.Windows.Controls.MenuItem childMenuItem)
+                    ApplyMenuItemStyle(childMenuItem);
+            }
+        }
+        foreach (var menuEntry in MainMenu.Items)
+        {
+            if (menuEntry is System.Windows.Controls.MenuItem menuItem)
+                ApplyMenuItemStyle(menuItem);
+        }
+
         void Visit(DependencyObject parent)
         {
             for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
