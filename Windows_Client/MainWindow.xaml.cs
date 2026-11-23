@@ -107,8 +107,6 @@ public partial class MainWindow : Window
         if (!enabled)
         {
             _selectedEnergyMapObjectId = null;
-            if (_energyMapObjectSelection is not null)
-                EnergyMapObjectHitCanvas.Children.Remove(_energyMapObjectSelection);
         }
         Title = enabled ? "Solar_PV — Администратор" : "Solar_PV — Панель станции";
         WindowModeText.Text = enabled ? "Solar_PV · АДМИНИСТРАТОР" : "Solar_PV";
