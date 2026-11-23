@@ -4,6 +4,8 @@ Windows x64 desktop client for the Solar_PV station.
 
 ## Features
 - Russian-language dashboard for two PV strings.
+- Four switchable desktop designs: Digital Instrument, Analog Station, Energy Flow, and Technical Blueprint.
+- Selected design is saved locally and restored on the next launch.
 - Local demo values, available without a controller.
 - Read-only connection to the ESP32 endpoint \`GET /api/config\`.
 - Automatic telemetry refresh every 3 seconds after a successful connection.
