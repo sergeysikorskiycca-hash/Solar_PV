@@ -26,9 +26,17 @@ public partial class MainWindow : Window
     private System.Windows.Controls.Border? _draggedEnergyMapItem;
     private System.Windows.Point _energyMapDragOffset;
 
-    public MainWindow()
+    private readonly bool _isAdminMode;
+
+    public MainWindow(bool isAdminMode = false)
     {
+        _isAdminMode = isAdminMode;
         InitializeComponent();
+        if (_isAdminMode)
+        {
+            Title = "Solar_PV — Администратор";
+            WindowModeText.Text = "Solar_PV · АДМИНИСТРАТОР";
+        }
         BuildEnergyMapItems();
         UpdateWindowStateButton();
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
@@ -73,6 +81,92 @@ public partial class MainWindow : Window
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void Admin_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ShowAdminLoginDialog()) return;
+
+        var adminWindow = new MainWindow(isAdminMode: true)
+        {
+            Owner = this
+        };
+        adminWindow.Show();
+    }
+
+    private bool ShowAdminLoginDialog()
+    {
+        var loginWindow = new Window
+        {
+            Title = "Вход администратора",
+            Width = 390,
+            Height = 250,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ResizeMode = ResizeMode.NoResize,
+            Owner = this,
+            Background = new SolidColorBrush(Color.FromRgb(18, 30, 48)),
+            Foreground = Brushes.White
+        };
+
+        var panel = new System.Windows.Controls.StackPanel { Margin = new Thickness(22) };
+        panel.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "РЕЖИМ АДМИНИСТРАТОРА",
+            FontSize = 16,
+            FontWeight = FontWeights.Bold,
+            Margin = new Thickness(0, 0, 0, 16),
+            Foreground = new SolidColorBrush(Color.FromRgb(245, 185, 66))
+        });
+
+        panel.Children.Add(new System.Windows.Controls.TextBlock { Text = "Логин", Margin = new Thickness(0, 0, 0, 4) });
+        var loginBox = new System.Windows.Controls.TextBox
+        {
+            Height = 30,
+            Margin = new Thickness(0, 0, 0, 10),
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
+        panel.Children.Add(loginBox);
+
+        panel.Children.Add(new System.Windows.Controls.TextBlock { Text = "Пароль", Margin = new Thickness(0, 0, 0, 4) });
+        var passwordBox = new System.Windows.Controls.PasswordBox
+        {
+            Height = 30,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+        panel.Children.Add(passwordBox);
+
+        var buttons = new System.Windows.Controls.StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        var cancelButton = new System.Windows.Controls.Button
+        {
+            Content = "Отмена",
+            Width = 90,
+            Height = 32,
+            Margin = new Thickness(0, 0, 8, 0)
+        };
+        cancelButton.Click += (_, _) => loginWindow.DialogResult = false;
+
+        var enterButton = new System.Windows.Controls.Button
+        {
+            Content = "Войти",
+            Width = 90,
+            Height = 32,
+            Background = new SolidColorBrush(Color.FromRgb(245, 185, 66)),
+            Foreground = new SolidColorBrush(Color.FromRgb(23, 32, 45)),
+            FontWeight = FontWeights.SemiBold,
+            IsDefault = true
+        };
+        enterButton.Click += (_, _) => loginWindow.DialogResult = true;
+
+        buttons.Children.Add(cancelButton);
+        buttons.Children.Add(enterButton);
+        panel.Children.Add(buttons);
+        loginWindow.Content = panel;
+
+        return loginWindow.ShowDialog() == true;
+    }
 
     private void About_Click(object sender, RoutedEventArgs e)
     {
