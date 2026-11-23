@@ -495,8 +495,12 @@ public partial class MainWindow : Window
                 Height = Math.Max(12, element.Height),
                 Padding = isIndicator ? new Thickness(5, 2, 5, 2) : new Thickness(0),
                 Background = isIndicator ? EnergyMapBrush(element.Background, Brushes.Transparent) : Brushes.Transparent,
-                BorderBrush = EnergyMapBrush(element.BorderColor, Brushes.Transparent),
-                BorderThickness = new Thickness(isIndicator ? element.BorderWidth : 0),
+                BorderBrush = _energyMapEditMode
+                    ? new SolidColorBrush(Color.FromRgb(245, 185, 66))
+                    : EnergyMapBrush(element.BorderColor, Brushes.Transparent),
+                BorderThickness = _energyMapEditMode
+                    ? new Thickness(Math.Max(1.5, element.BorderWidth))
+                    : new Thickness(isIndicator ? element.BorderWidth : 0),
                 CornerRadius = new CornerRadius(element.CornerRadius),
                 Child = text,
                 Tag = element.Id,
