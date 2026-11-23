@@ -349,6 +349,10 @@ public partial class MainWindow : Window
 
         void StyleCards(DependencyObject parent)
         {
+            if (ReferenceEquals(parent, EnergyMapObjectHitCanvas) ||
+                ReferenceEquals(parent, EnergyMapItemsCanvas))
+                return;
+
             for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
             {
                 var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
