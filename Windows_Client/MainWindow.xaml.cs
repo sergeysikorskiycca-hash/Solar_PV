@@ -561,7 +561,7 @@ public partial class MainWindow : Window
         _energyMapObjectSelection.Height = bounds.Height;
         System.Windows.Controls.Canvas.SetLeft(_energyMapObjectSelection, bounds.X);
         System.Windows.Controls.Canvas.SetTop(_energyMapObjectSelection, bounds.Y);
-        Panel.SetZIndex(_energyMapObjectSelection, 1000);
+        System.Windows.Controls.Panel.SetZIndex(_energyMapObjectSelection, 1000);
         e.Handled = true;
     }
 
