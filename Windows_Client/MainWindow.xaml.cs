@@ -182,21 +182,27 @@ public partial class MainWindow : Window
         }
         Visit(this);
 
-        // In the Office theme, darken every caption, value and unit in the top metrics row.
-        // These labels use fixed light-theme colors in XAML and otherwise remain too pale.
-        if (theme == "Office")
+        // Set a theme-specific foreground for every caption, value and unit in the top metrics row.
+        // The XAML uses fixed light-theme text colors, so explicitly adapt them for all palettes.
+        var topMetricsTextColor = theme switch
         {
-            void DarkenTopMetricText(DependencyObject parent)
-            {
-                if (parent is System.Windows.Controls.TextBlock textBlock)
-                    textBlock.Foreground = PaletteBrush("#263B56");
+            "Light" => "#333333",
+            "Office" => "#263B56",
+            "Graphite" => "#E6EBF0",
+            "Blue" => "#EAF3FB",
+            _ => "#E8EEF7"
+        };
 
-                for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
-                    DarkenTopMetricText(System.Windows.Media.VisualTreeHelper.GetChild(parent, i));
-            }
+        void ApplyTopMetricsTextColor(DependencyObject parent)
+        {
+            if (parent is System.Windows.Controls.TextBlock textBlock)
+                textBlock.Foreground = PaletteBrush(topMetricsTextColor);
 
-            DarkenTopMetricText(TopMetricsGrid);
+            for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+                ApplyTopMetricsTextColor(System.Windows.Media.VisualTreeHelper.GetChild(parent, i));
         }
+
+        ApplyTopMetricsTextColor(TopMetricsGrid);
 
         _activePalette = palette;
         ClientSettings.SaveTheme(theme);
