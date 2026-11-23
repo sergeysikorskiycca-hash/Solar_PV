@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     private string _baseAddress = "";
     private string[]? _activePalette;
     private readonly Dictionary<string, System.Windows.Controls.Border> _energyMapItems = new();
+    private Dictionary<string, string> _energyMapObjectBindings = ClientSettings.LoadEnergyMapObjectBindings();
     private List<EnergyMapElement> _energyMapElements = new();
     private bool _energyMapEditMode;
     private System.Windows.Controls.Border? _draggedEnergyMapItem;
@@ -556,6 +557,17 @@ public partial class MainWindow : Window
             return;
 
         _selectedEnergyMapObjectId = id;
+        if (e.ClickCount == 2)
+        {
+            var objectName = target.ToolTip?.ToString() ?? id;
+            var currentBinding = _energyMapObjectBindings.TryGetValue(id, out var value) ? value : "";
+            var dialog = new EnergyMapObjectPropertiesDialog(objectName, currentBinding, this);
+            if (dialog.ShowDialog() == true)
+            {
+                _energyMapObjectBindings[id] = dialog.BindingKey;
+                ClientSettings.SaveEnergyMapObjectBindings(_energyMapObjectBindings);
+            }
+        }
         e.Handled = true;
     }
 
