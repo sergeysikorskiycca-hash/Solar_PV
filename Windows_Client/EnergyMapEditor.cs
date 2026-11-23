@@ -27,7 +27,7 @@ internal sealed class EnergyMapElement
     public string DataSource { get; set; } = "";
     public string CurrentValue { get; set; } = "";
     public string AccentText { get; set; } = "";
-    public string AccentForeground { get; set; } = "#FFFFFF00";
+    public string AccentForeground { get; set; } = "#FFFFFFFF";
 
     public EnergyMapElement Copy() => (EnergyMapElement)MemberwiseClone();
 }
