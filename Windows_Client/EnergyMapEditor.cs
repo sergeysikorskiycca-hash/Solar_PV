@@ -418,6 +418,23 @@ internal sealed class EnergyMapEditorWindow : Window
 
 internal sealed class EnergyMapPropertiesDialog : Window
 {
+    private static void ApplyDarkComboBoxItems(ComboBox combo)
+    {
+        var itemStyle = new Style(typeof(ComboBoxItem));
+        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(36, 54, 74))));
+        itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
+        var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+        hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(65, 91, 120))));
+        itemStyle.Triggers.Add(hover);
+        var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
+        selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
+        itemStyle.Triggers.Add(selected);
+        combo.ItemContainerStyle = itemStyle;
+    }
+
     private readonly TextBox _widthBox;
     private readonly TextBox _heightBox;
     private readonly TextBox? _textBox;
