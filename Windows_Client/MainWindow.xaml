@@ -134,6 +134,8 @@
                 <Viewbox Stretch="Uniform" HorizontalAlignment="Stretch" MaxHeight="650">
                     <Canvas Width="1409" Height="937">
                         <Image Source="pack://application:,,,/Screenshot_1.jpg" Width="1409" Height="937" Stretch="Fill"/>
+                        <TextBlock x:Name="AnalogInverterPower" Visibility="Collapsed"/>
+                        <TextBlock x:Name="AnalogInverterEnergy" Visibility="Collapsed"/>
                         <Border Canvas.Left="1000" Canvas.Top="16" Width="390" Height="42" Background="#E6103155" BorderBrush="#8BC9F5" BorderThickness="1" CornerRadius="9" Padding="9,5">
                             <TextBlock Text="Схема иллюстративная · показания на рисунке условные" Foreground="White" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" TextAlignment="Center"/>
                         </Border>
