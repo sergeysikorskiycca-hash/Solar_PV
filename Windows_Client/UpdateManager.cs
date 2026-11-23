@@ -267,9 +267,9 @@ public partial class MainWindow
         var startInfo = new ProcessStartInfo
         {
             FileName = "powershell.exe",
-            Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"" + scriptPath + "\"",
+            Arguments = "-NoProfile -ExecutionPolicy Bypass -NoExit -File \"" + scriptPath + "\"",
             UseShellExecute = true,
-            WindowStyle = ProcessWindowStyle.Hidden
+            WindowStyle = ProcessWindowStyle.Normal
         };
         if (needsElevation)
             startInfo.Verb = "runas";
