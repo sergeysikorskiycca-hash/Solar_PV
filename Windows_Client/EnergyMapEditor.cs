@@ -26,6 +26,8 @@ internal sealed class EnergyMapElement
     public bool Bold { get; set; }
     public string DataSource { get; set; } = "";
     public string CurrentValue { get; set; } = "";
+    public string AccentText { get; set; } = "";
+    public string AccentForeground { get; set; } = "#FFFFFF00";
 
     public EnergyMapElement Copy() => (EnergyMapElement)MemberwiseClone();
 }
@@ -57,6 +59,9 @@ internal static class EnergyMapSvgDocument
 
             var fontSize = ReadNumber(textNode.Attribute("font-size"), 22);
             var fill = (string?)textNode.Attribute("fill") ?? "#FFFFFF";
+            var accentNode = textNode.Descendants(SvgNs + "tspan").FirstOrDefault();
+            var accentText = accentNode?.Value.Trim() ?? "";
+            var accentFill = (string?)accentNode?.Attribute("fill") ?? fill;
             var weight = (string?)textNode.Attribute("font-weight") ?? "";
             var fontFamily = (string?)textNode.Attribute("font-family") ??
                 (string?)textNode.Ancestors().FirstOrDefault(node => node.Attribute("font-family") is not null)?.Attribute("font-family") ?? "Arial";
@@ -118,6 +123,8 @@ internal static class EnergyMapSvgDocument
                     FontSize = fontSize,
                     FontFamily = fontFamily,
                     Foreground = NormalizeColor(fill),
+                    AccentText = accentText,
+                    AccentForeground = NormalizeColor(accentFill),
                     Bold = weight == "700" || weight.Equals("bold", StringComparison.OrdinalIgnoreCase)
                 });
                 textNode.Remove();
@@ -226,6 +233,8 @@ internal sealed class EnergyMapEditorWindow : Window
         AddField(editor, "Шрифт", "FontFamily");
         editor.Children.Add(_bold);
         AddField(editor, "Цвет текста", "Foreground");
+        AddField(editor, "Акцентный фрагмент", "AccentText");
+        AddField(editor, "Цвет акцента", "AccentForeground");
         AddField(editor, "Цвет фона", "Background");
         AddField(editor, "Цвет рамки", "BorderColor");
         AddField(editor, "Толщина рамки", "BorderWidth");
@@ -314,6 +323,8 @@ internal sealed class EnergyMapEditorWindow : Window
         _fields["FontFamily"].Text = item.FontFamily;
         _bold.IsChecked = item.Bold;
         _fields["Foreground"].Text = item.Foreground;
+        _fields["AccentText"].Text = item.AccentText;
+        _fields["AccentForeground"].Text = item.AccentForeground;
         _fields["Background"].Text = item.Background;
         _fields["BorderColor"].Text = item.BorderColor;
         _fields["BorderWidth"].Text = F(item.BorderWidth);
@@ -333,6 +344,8 @@ internal sealed class EnergyMapEditorWindow : Window
         item.FontFamily = _fields["FontFamily"].Text;
         item.Bold = _bold.IsChecked == true;
         item.Foreground = _fields["Foreground"].Text;
+        item.AccentText = _fields["AccentText"].Text;
+        item.AccentForeground = _fields["AccentForeground"].Text;
         item.Background = _fields["Background"].Text;
         item.BorderColor = _fields["BorderColor"].Text;
         item.BorderWidth = Math.Max(0, N(_fields["BorderWidth"].Text, item.BorderWidth));
