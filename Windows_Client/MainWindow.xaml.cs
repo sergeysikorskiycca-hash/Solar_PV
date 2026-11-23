@@ -27,6 +27,8 @@ public partial class MainWindow : Window
     private bool _energyMapEditMode;
     private System.Windows.Controls.Border? _draggedEnergyMapItem;
     private System.Windows.Point _energyMapDragOffset;
+    private string? _selectedEnergyMapObjectId;
+    private System.Windows.Controls.Border? _energyMapObjectSelection;
 
     private bool _isAdminMode;
 
@@ -102,6 +104,13 @@ public partial class MainWindow : Window
         }
         EnergyMapEditButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapElementsButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        EnergyMapObjectHitCanvas.IsHitTestVisible = enabled && !_energyMapEditMode;
+        if (!enabled)
+        {
+            _selectedEnergyMapObjectId = null;
+            if (_energyMapObjectSelection is not null)
+                EnergyMapObjectHitCanvas.Children.Remove(_energyMapObjectSelection);
+        }
         Title = enabled ? "Solar_PV — Администратор" : "Solar_PV — Панель станции";
         WindowModeText.Text = enabled ? "Solar_PV · АДМИНИСТРАТОР" : "Solar_PV";
         AdminMenuItem.Header = enabled ? "Назад" : "Администратор";
@@ -463,7 +472,97 @@ public partial class MainWindow : Window
         svg.Load(backgroundSvg, false);
         EnergyMapSvgHost.Children.Clear();
         EnergyMapSvgHost.Children.Add(svg);
+        BuildEnergyMapObjectTargets();
         RenderEnergyMapElements();
+    }
+
+    private void BuildEnergyMapObjectTargets()
+    {
+        EnergyMapObjectHitCanvas.Children.Clear();
+
+        var objects = new (string Id, string Name, double X, double Y, double Width, double Height, string? Path)[]
+        {
+            ("house", "Дом", 4, 82, 410, 352, null),
+            ("grid", "ЛЭП", 1131, 80, 278, 355, null),
+            ("inverter", "Инвертор", 581, 115, 280, 336, null),
+            ("pv1", "Солнечная панель 1", 14, 513, 260, 335, null),
+            ("pv2", "Солнечная панель 2", 275, 513, 260, 335, null),
+            ("battery", "Аккумулятор", 1030, 530, 323, 320, null),
+            ("arrow-house", "Поток энергии: инвертор — дом", 373, 284, 207, 53, "M580,331 L373,331"),
+            ("arrow-grid", "Поток энергии: ЛЭП — инвертор", 865, 284, 265, 53, "M1130,331 L865,331"),
+            ("arrow-pv1", "Поток энергии: панель 1 — инвертор", 250, 454, 398, 396, "M250,850 H570 Q648,850 648,772 V454"),
+            ("arrow-pv2", "Поток энергии: панель 2 — инвертор", 520, 454, 180, 336, "M520,790 H700 V705 V454"),
+            ("arrow-battery-out", "Поток энергии: инвертор — аккумулятор", 813, 454, 212, 249, "M813,454 V660 Q813,703 857,703 H1025"),
+            ("arrow-battery-in", "Поток энергии: аккумулятор — инвертор", 779, 454, 246, 297, "M779,454 V735 Q779,751 822,751 H1025")
+        };
+
+        foreach (var item in objects)
+        {
+            System.Windows.FrameworkElement target;
+            if (item.Path is not null)
+            {
+                target = new System.Windows.Shapes.Path
+                {
+                    Data = System.Windows.Media.Geometry.Parse(item.Path),
+                    Stroke = Brushes.Transparent,
+                    StrokeThickness = 28,
+                    Fill = Brushes.Transparent,
+                    ToolTip = item.Name,
+                    Tag = item.Id,
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+            }
+            else
+            {
+                target = new System.Windows.Controls.Border
+                {
+                    Width = item.Width,
+                    Height = item.Height,
+                    Background = Brushes.Transparent,
+                    ToolTip = item.Name,
+                    Tag = item.Id,
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+                System.Windows.Controls.Canvas.SetLeft(target, item.X);
+                System.Windows.Controls.Canvas.SetTop(target, item.Y);
+            }
+
+            target.MouseLeftButtonDown += EnergyMapObject_MouseLeftButtonDown;
+            EnergyMapObjectHitCanvas.Children.Add(target);
+        }
+    }
+
+    private void EnergyMapObject_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (!_isAdminMode || _energyMapEditMode || sender is not System.Windows.FrameworkElement target ||
+            target.Tag is not string id)
+            return;
+
+        _selectedEnergyMapObjectId = id;
+        var bounds = target is System.Windows.Shapes.Path path
+            ? path.Data.Bounds
+            : new Rect(
+                System.Windows.Controls.Canvas.GetLeft(target),
+                System.Windows.Controls.Canvas.GetTop(target),
+                target.ActualWidth,
+                target.ActualHeight);
+
+        _energyMapObjectSelection ??= new System.Windows.Controls.Border
+        {
+            BorderBrush = new SolidColorBrush(Color.FromRgb(255, 211, 66)),
+            BorderThickness = new Thickness(3),
+            Background = Brushes.Transparent,
+            IsHitTestVisible = false
+        };
+        if (!EnergyMapObjectHitCanvas.Children.Contains(_energyMapObjectSelection))
+            EnergyMapObjectHitCanvas.Children.Add(_energyMapObjectSelection);
+
+        _energyMapObjectSelection.Width = bounds.Width;
+        _energyMapObjectSelection.Height = bounds.Height;
+        System.Windows.Controls.Canvas.SetLeft(_energyMapObjectSelection, bounds.X);
+        System.Windows.Controls.Canvas.SetTop(_energyMapObjectSelection, bounds.Y);
+        Panel.SetZIndex(_energyMapObjectSelection, 1000);
+        e.Handled = true;
     }
 
     private void RenderEnergyMapElements()
@@ -567,6 +666,8 @@ public partial class MainWindow : Window
         EnergyMapEditButton.Content = _energyMapEditMode ? "Завершить перенос" : "Перемещать";
         EnergyMapEditButton.Background = new SolidColorBrush(_energyMapEditMode
             ? Color.FromRgb(99, 214, 162) : Color.FromRgb(245, 185, 66));
+        EnergyMapObjectHitCanvas.IsHitTestVisible = _isAdminMode && !_energyMapEditMode;
+        EnergyMapItemsCanvas.IsHitTestVisible = _energyMapEditMode;
         foreach (var pair in _energyMapItems)
         {
             var element = _energyMapElements.FirstOrDefault(candidate => candidate.Id == pair.Key);
