@@ -731,10 +731,19 @@ public partial class MainWindow : Window
                 var dialog = new EnergyMapPropertiesDialog(element, this);
                 if (dialog.ShowDialog() == true)
                 {
-                    element.Width = dialog.ElementWidth;
-                    element.Height = dialog.ElementHeight;
-                    element.Text = dialog.ElementText;
-                    element.DataSource = dialog.DataSource;
+                    if (dialog.DeleteRequested)
+                    {
+                        _energyMapElements.Remove(element);
+                        _selectedEnergyMapObjectId = null;
+                    }
+                    else
+                    {
+                        element.Width = dialog.ElementWidth;
+                        element.Height = dialog.ElementHeight;
+                        element.Text = dialog.ElementText;
+                        element.DataSource = dialog.DataSource;
+                    }
+
                     RenderEnergyMapElements();
                     SaveEnergyMapLayout();
                 }
