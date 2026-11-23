@@ -12,6 +12,7 @@ internal sealed class ClientSettings
     public string Theme { get; set; } = "Dark";
     public string Design { get; set; } = "Digital";
     public Dictionary<string, EnergyMapPosition> EnergyMapPositions { get; set; } = new();
+    public List<EnergyMapElement> EnergyMapElements { get; set; } = new();
 
     public static string? LoadControllerAddress()
     {
@@ -55,6 +56,35 @@ internal sealed class ClientSettings
             return settings?.EnergyMapPositions ?? new Dictionary<string, EnergyMapPosition>();
         }
         catch { return new Dictionary<string, EnergyMapPosition>(); }
+    }
+
+
+    public static List<EnergyMapElement> LoadEnergyMapElements()
+    {
+        try
+        {
+            if (!File.Exists(SettingsPath)) return new List<EnergyMapElement>();
+            var settings = JsonSerializer.Deserialize<ClientSettings>(File.ReadAllText(SettingsPath));
+            return settings?.EnergyMapElements ?? new List<EnergyMapElement>();
+        }
+        catch { return new List<EnergyMapElement>(); }
+    }
+
+    public static void SaveEnergyMapElements(List<EnergyMapElement> elements)
+    {
+        try
+        {
+            Directory.CreateDirectory(DataDirectory);
+            var current = File.Exists(SettingsPath)
+                ? JsonSerializer.Deserialize<ClientSettings>(File.ReadAllText(SettingsPath)) ?? new ClientSettings()
+                : new ClientSettings();
+            current.EnergyMapElements = elements;
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(current, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch
+        {
+            // Energy map settings must not interrupt monitoring.
+        }
     }
 
     public static void SaveEnergyMapPositions(Dictionary<string, EnergyMapPosition> positions)
