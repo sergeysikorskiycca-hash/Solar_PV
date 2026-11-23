@@ -102,6 +102,11 @@
                 <Separator/>
                 <MenuItem Header="О программе Solar_PV" Click="About_Click"/>
             </MenuItem>
+            <MenuItem x:Name="CreateMenuItem" Header="Создать" Visibility="Collapsed">
+                <MenuItem Header="Кнопку"/>
+                <MenuItem Header="График"/>
+                <MenuItem Header="Текст"/>
+            </MenuItem>
         </Menu>
 
         <Grid Grid.Row="2" Margin="26,18,26,18">
