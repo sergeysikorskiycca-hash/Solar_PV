@@ -28,8 +28,6 @@ public partial class MainWindow : Window
     private System.Windows.Controls.Border? _draggedEnergyMapItem;
     private System.Windows.Point _energyMapDragOffset;
     private string? _selectedEnergyMapObjectId;
-    private System.Windows.Controls.Border? _energyMapObjectSelection;
-    private readonly Dictionary<string, Rect> _energyMapObjectBounds = new();
 
     private bool _isAdminMode;
 
@@ -480,7 +478,6 @@ public partial class MainWindow : Window
     private void BuildEnergyMapObjectTargets()
     {
         EnergyMapObjectHitCanvas.Children.Clear();
-        _energyMapObjectBounds.Clear();
 
         var objects = new (string Id, string Name, double X, double Y, double Width, double Height, string? Path)[]
         {
@@ -508,8 +505,6 @@ public partial class MainWindow : Window
 
         foreach (var item in objects)
         {
-            if (!_energyMapObjectBounds.ContainsKey(item.Id))
-                _energyMapObjectBounds[item.Id] = new Rect(item.X, item.Y, item.Width, item.Height);
             System.Windows.FrameworkElement target;
             if (item.Path is not null)
             {
@@ -554,23 +549,6 @@ public partial class MainWindow : Window
             return;
 
         _selectedEnergyMapObjectId = id;
-        if (!_energyMapObjectBounds.TryGetValue(id, out var bounds)) return;
-
-        _energyMapObjectSelection ??= new System.Windows.Controls.Border
-        {
-            BorderBrush = new SolidColorBrush(Color.FromRgb(255, 211, 66)),
-            BorderThickness = new Thickness(3),
-            Background = Brushes.Transparent,
-            IsHitTestVisible = false
-        };
-        if (!EnergyMapObjectHitCanvas.Children.Contains(_energyMapObjectSelection))
-            EnergyMapObjectHitCanvas.Children.Add(_energyMapObjectSelection);
-
-        _energyMapObjectSelection.Width = bounds.Width;
-        _energyMapObjectSelection.Height = bounds.Height;
-        System.Windows.Controls.Canvas.SetLeft(_energyMapObjectSelection, bounds.X);
-        System.Windows.Controls.Canvas.SetTop(_energyMapObjectSelection, bounds.Y);
-        System.Windows.Controls.Panel.SetZIndex(_energyMapObjectSelection, 1000);
         e.Handled = true;
     }
 
