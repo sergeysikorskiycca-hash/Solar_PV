@@ -10,6 +10,11 @@
         <shell:WindowChrome CaptionHeight="34" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
+        <DataTemplate x:Key="MenuItemHeaderTemplate">
+            <TextBlock Text="{Binding}"
+                       Foreground="{Binding RelativeSource={RelativeSource AncestorType={x:Type MenuItem}}, Path=Foreground}"
+                       TextOptions.TextFormattingMode="Display"/>
+        </DataTemplate>
         <Style TargetType="{x:Type MenuItem}">
             <Setter Property="Foreground" Value="#F4F7FB"/>
             <Setter Property="Background" Value="#24364D"/>
