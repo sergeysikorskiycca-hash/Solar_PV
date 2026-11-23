@@ -200,6 +200,8 @@ public partial class MainWindow : Window
             design = "Digital";
 
         var palette = _activePalette ?? new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" };
+        DigitalDashboard.Visibility = design == "Digital" ? Visibility.Visible : Visibility.Collapsed;
+        LegacyDashboard.Visibility = design == "Digital" ? Visibility.Collapsed : Visibility.Visible;
         var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[4]));
         var borderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[6]));
 
@@ -318,7 +320,10 @@ public partial class MainWindow : Window
         TotalPowerText.Text = "1 842";
         TotalEnergyText.Text = "12 846,0";
         SetString(1, "1 084 Вт", "186,4 В", "5,82 А", "7 214,6 кВт·ч", "ДЕМО");
+        SetDigitalString(1, 1084, 186.4, 5.82);
         SetString(2, "758 Вт", "182,1 В", "4,16 А", "5 631,4 кВт·ч", "ДЕМО");
+        SetDigitalString(2, 758, 182.1, 4.16);
+        DigitalInverterPower.Text = "1 842 Вт";
         NetworkInfoText.Text = "Реальный контроллер не подключён. Нажмите «Подключить ESP32», чтобы начать чтение данных.";
         LastUpdateText.Text = "Обновлено: " + DateTime.Now.ToString("HH:mm:ss");
         PollInfoText.Text = "Опрос: выключен";
@@ -450,6 +455,7 @@ public partial class MainWindow : Window
             var power = Number(item, "power");
             var energy = Number(item, "energyWh") / 1000.0;
             if (valid) totalPower += power;
+            SetDigitalString(id, valid ? power : double.NaN, voltage, current);
             SetString(id,
                 valid ? Format(power, "N0") + " Вт" : "Нет данных",
                 Format(voltage, "N1") + " В",
@@ -458,6 +464,28 @@ public partial class MainWindow : Window
                 valid ? "НА СВЯЗИ" : "НЕТ ДАННЫХ");
         }
         TotalPowerText.Text = Format(totalPower, "N0");
+        DigitalInverterPower.Text = Format(totalPower, "N0") + " Вт";
+    }
+
+
+    private void SetDigitalString(int id, double power, double voltage, double current)
+    {
+        var powerText = double.IsNaN(power) ? "— Вт" : Format(power, "N0") + " Вт";
+        var lineText = double.IsNaN(power) ? "— кВт" : Format(power / 1000.0, "N2") + " кВт";
+        if (id == 1)
+        {
+            DigitalPv1Power.Text = powerText;
+            DigitalPv1Voltage.Text = Format(voltage, "N1") + " В";
+            DigitalPv1Current.Text = Format(current, "N2") + " А";
+            DigitalPv1LinePower.Text = lineText;
+        }
+        else
+        {
+            DigitalPv2Power.Text = powerText;
+            DigitalPv2Voltage.Text = Format(voltage, "N1") + " В";
+            DigitalPv2Current.Text = Format(current, "N2") + " А";
+            DigitalPv2LinePower.Text = lineText;
+        }
     }
 
     private static double Number(JsonElement item, string name) =>
