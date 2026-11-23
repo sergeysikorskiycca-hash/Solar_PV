@@ -152,7 +152,7 @@
                 </Grid>
 
                 <TextBlock Text="СОЛНЕЧНЫЕ СТРОКИ" FontSize="12" FontWeight="Bold" Foreground="#8FA2BA" Margin="2,7,0,12"/>
-                <Grid>
+                <Grid x:Name="StringCardsGrid">
                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
                     <Border Style="{StaticResource MetricCard}">
                         <StackPanel>
