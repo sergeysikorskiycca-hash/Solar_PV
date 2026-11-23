@@ -246,10 +246,10 @@ public partial class MainWindow : Window
             await using var stream = await response.Content.ReadAsStreamAsync();
             using var json = await JsonDocument.ParseAsync(stream);
             ApplyControllerData(json.RootElement);
-            if (!_connected)
-                WriteConnectionLog("Связь установлена с " + _baseAddress + ".");
-            else if (_connectionFailureLogged)
+            if (_connectionFailureLogged)
                 WriteConnectionLog("Связь восстановлена с " + _baseAddress + ".");
+            else if (!_connected)
+                WriteConnectionLog("Связь установлена с " + _baseAddress + ".");
             _connected = true;
             _connectionFailureLogged = false;
             DataModeText.Text = "  ·  данные контроллера";
