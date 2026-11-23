@@ -85,12 +85,8 @@
                     <MenuItem Header="Графитовая" Tag="Graphite" Click="Theme_Click"/>
                     <MenuItem Header="Синяя" Tag="Blue" Click="Theme_Click"/>
                 </MenuItem>
-                <MenuItem Header="Дизайн">
-                    <MenuItem Header="01 · Цифровой прибор" Tag="Digital" Click="Design_Click"/>
-                    <MenuItem Header="02 · Аналоговая станция" Tag="Analog" Click="Design_Click"/>
-                    <MenuItem Header="03 · Энергосхема" Tag="EnergyMap" Click="Design_Click"/>
-                    <MenuItem Header="04 · Энергетический поток" Tag="Flow" Click="Design_Click"/>
-                    <MenuItem Header="09 · Технический чертёж" Tag="Blueprint" Click="Design_Click"/>
+                <MenuItem Header="Рабочая область">
+                    <MenuItem Header="Энергосхема" Tag="EnergyMap" Click="Design_Click"/>
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="Инструменты">
