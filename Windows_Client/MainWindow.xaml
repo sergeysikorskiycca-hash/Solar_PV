@@ -181,6 +181,7 @@
                 <Viewbox Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <Canvas Width="1409" Height="905">
                         <Canvas x:Name="EnergyMapSvgHost" Width="1409" Height="905"/>
+                        <Canvas x:Name="EnergyMapObjectHitCanvas" Width="1409" Height="905" IsHitTestVisible="False"/>
                         <Border Canvas.Left="930" Canvas.Top="16" Width="470" Height="46" Background="#E6103155" BorderBrush="#8BC9F5" BorderThickness="1" CornerRadius="9" Padding="8,5">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <TextBlock Text="ЭНЕРГОСХЕМА" Foreground="White" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
