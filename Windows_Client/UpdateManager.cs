@@ -241,7 +241,8 @@ public partial class MainWindow
             "  [System.Windows.MessageBox]::Show($message, 'Solar_PV — ошибка обновления') | Out-Null",
             "}"
         };
-        await File.WriteAllTextAsync(scriptPath, string.Join(Environment.NewLine, lines), new UTF8Encoding(false));
+        // Windows PowerShell 5.1 must see the UTF-8 BOM to decode Cyrillic script text correctly.
+        await File.WriteAllTextAsync(scriptPath, string.Join(Environment.NewLine, lines), new UTF8Encoding(true));
         WriteUpdateDiagnostic("PowerShell-скрипт создан: " + scriptPath + "; размер: " + new FileInfo(scriptPath).Length + " байт.");
 
         var needsElevation = false;
