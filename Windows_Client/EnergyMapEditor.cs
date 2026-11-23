@@ -230,7 +230,7 @@ internal sealed class EnergyMapEditorWindow : Window
         AddField(editor, "Толщина рамки", "BorderWidth");
         AddField(editor, "Скругление", "CornerRadius");
         editor.Children.Add(new TextBlock { Text = "Источник данных", Margin = new Thickness(0, 8, 0, 4), Foreground = Brushes.LightGray });
-        foreach (var item in new[] { "", "Pv1Power", "Pv1Voltage", "Pv1Current", "Pv2Power", "Pv2Voltage", "Pv2Current", "InverterPower", "HousePower", "GridPower", "BatteryVoltage", "BatteryCharge", "BatteryPower" })
+        foreach (var item in new[] { "", "Pv1Power", "Pv1Voltage", "Pv1Current", "Pv2Power", "Pv2Voltage", "Pv2Current", "InverterPower" })
             _dataSource.Items.Add(item);
         editor.Children.Add(_dataSource);
         editorScroll.Content = editor;
