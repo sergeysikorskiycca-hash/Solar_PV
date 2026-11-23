@@ -455,7 +455,7 @@ public partial class MainWindow : Window
             var power = Number(item, "power");
             var energy = Number(item, "energyWh") / 1000.0;
             if (valid) totalPower += power;
-            SetDigitalString(id, valid ? power : double.NaN, voltage, current);
+            SetDigitalString(id, valid ? power : double.NaN, valid ? voltage : double.NaN, valid ? current : double.NaN);
             SetString(id,
                 valid ? Format(power, "N0") + " Вт" : "Нет данных",
                 Format(voltage, "N1") + " В",
@@ -475,15 +475,15 @@ public partial class MainWindow : Window
         if (id == 1)
         {
             DigitalPv1Power.Text = powerText;
-            DigitalPv1Voltage.Text = Format(voltage, "N1") + " В";
-            DigitalPv1Current.Text = Format(current, "N2") + " А";
+            DigitalPv1Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
+            DigitalPv1Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
             DigitalPv1LinePower.Text = lineText;
         }
         else
         {
             DigitalPv2Power.Text = powerText;
-            DigitalPv2Voltage.Text = Format(voltage, "N1") + " В";
-            DigitalPv2Current.Text = Format(current, "N2") + " А";
+            DigitalPv2Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
+            DigitalPv2Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
             DigitalPv2LinePower.Text = lineText;
         }
     }
