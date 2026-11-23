@@ -105,6 +105,7 @@ public partial class MainWindow : Window
         EnergyMapEditButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapElementsButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapObjectHitCanvas.IsHitTestVisible = enabled && !_energyMapEditMode;
+        UpdateEnergyMapHitTesting();
         if (!enabled)
         {
             _selectedEnergyMapObjectId = null;
@@ -659,7 +660,7 @@ public partial class MainWindow : Window
         EnergyMapEditButton.Background = new SolidColorBrush(_energyMapEditMode
             ? Color.FromRgb(99, 214, 162) : Color.FromRgb(245, 185, 66));
         EnergyMapObjectHitCanvas.IsHitTestVisible = _isAdminMode && !_energyMapEditMode;
-        EnergyMapItemsCanvas.IsHitTestVisible = _energyMapEditMode;
+        UpdateEnergyMapHitTesting();
         foreach (var pair in _energyMapItems)
         {
             var element = _energyMapElements.FirstOrDefault(candidate => candidate.Id == pair.Key);
@@ -688,9 +689,43 @@ public partial class MainWindow : Window
         SaveEnergyMapLayout();
     }
 
+    private void UpdateEnergyMapHitTesting()
+    {
+        EnergyMapItemsCanvas.IsHitTestVisible = _isAdminMode;
+        foreach (var pair in _energyMapItems)
+        {
+            var element = _energyMapElements.FirstOrDefault(candidate => candidate.Id == pair.Key);
+            pair.Value.IsHitTestVisible = _isAdminMode &&
+                (_energyMapEditMode || element?.Kind == "Text");
+        }
+    }
+
     private void EnergyMapItem_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (!_energyMapEditMode || sender is not System.Windows.Controls.Border item) return;
+        if (sender is not System.Windows.Controls.Border item) return;
+
+        if (_isAdminMode && !_energyMapEditMode && e.ClickCount == 2 &&
+            item.Tag is string textId)
+        {
+            var textElement = _energyMapElements.FirstOrDefault(element =>
+                element.Id == textId && element.Kind == "Text");
+            if (textElement is not null)
+            {
+                var dialog = new EnergyMapTextDialog(textElement.Text, this);
+                if (dialog.ShowDialog() == true)
+                {
+                    textElement.Text = dialog.EditedText;
+                    if (item.Child is System.Windows.Controls.TextBlock textBlock)
+                        SetEnergyMapText(textBlock, textElement);
+                    item.ToolTip = textElement.Text;
+                    SaveEnergyMapLayout();
+                }
+                e.Handled = true;
+                return;
+            }
+        }
+
+        if (!_energyMapEditMode) return;
         _draggedEnergyMapItem = item;
         _energyMapDragOffset = e.GetPosition(item);
         item.CaptureMouse();
