@@ -26,21 +26,11 @@ public partial class MainWindow : Window
     private System.Windows.Controls.Border? _draggedEnergyMapItem;
     private System.Windows.Point _energyMapDragOffset;
 
-    private readonly bool _isAdminMode;
+    private bool _isAdminMode;
 
-    public MainWindow() : this(false)
+    public MainWindow()
     {
-    }
-
-    public MainWindow(bool isAdminMode)
-    {
-        _isAdminMode = isAdminMode;
         InitializeComponent();
-        if (_isAdminMode)
-        {
-            Title = "Solar_PV — Администратор";
-            WindowModeText.Text = "Solar_PV · АДМИНИСТРАТОР";
-        }
         BuildEnergyMapItems();
         UpdateWindowStateButton();
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
@@ -88,13 +78,22 @@ public partial class MainWindow : Window
 
     private void Admin_Click(object sender, RoutedEventArgs e)
     {
-        if (!ShowAdminLoginDialog()) return;
-
-        var adminWindow = new MainWindow(isAdminMode: true)
+        if (_isAdminMode)
         {
-            Owner = this
-        };
-        adminWindow.Show();
+            SetAdminMode(false);
+            return;
+        }
+
+        if (ShowAdminLoginDialog())
+            SetAdminMode(true);
+    }
+
+    private void SetAdminMode(bool enabled)
+    {
+        _isAdminMode = enabled;
+        Title = enabled ? "Solar_PV — Администратор" : "Solar_PV — Панель станции";
+        WindowModeText.Text = enabled ? "Solar_PV · АДМИНИСТРАТОР" : "Solar_PV";
+        AdminMenuItem.Header = enabled ? "Назад" : "Администратор";
     }
 
     private bool ShowAdminLoginDialog()
@@ -102,8 +101,8 @@ public partial class MainWindow : Window
         var loginWindow = new Window
         {
             Title = "Вход администратора",
-            Width = 390,
-            Height = 250,
+            Width = 420,
+            Height = 310,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ResizeMode = ResizeMode.NoResize,
             Owner = this,
