@@ -266,6 +266,7 @@ internal sealed class EnergyMapEditorWindow : Window
         _dataSource.Background = new SolidColorBrush(Color.FromRgb(36, 54, 74));
         _dataSource.Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251));
         _dataSource.BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124));
+        ApplyDarkComboBoxItems(_dataSource);
         editor.Children.Add(_dataSource);
         editorScroll.Content = editor;
         Grid.SetColumn(editorScroll, 1);
@@ -275,6 +276,23 @@ internal sealed class EnergyMapEditorWindow : Window
         Content = root;
         RefreshList();
         if (_elements.Count > 0) _list.SelectedIndex = 0;
+    }
+
+    private static void ApplyDarkComboBoxItems(ComboBox combo)
+    {
+        var itemStyle = new Style(typeof(ComboBoxItem));
+        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(36, 54, 74))));
+        itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
+        var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+        hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(65, 91, 120))));
+        itemStyle.Triggers.Add(hover);
+        var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
+        selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
+        itemStyle.Triggers.Add(selected);
+        combo.ItemContainerStyle = itemStyle;
     }
 
     private static Button MakeButton(string text) => new()
@@ -415,7 +433,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
         Owner = owner;
         Title = element.Kind == "Text" ? "Свойства текстового объекта" : "Свойства объекта";
         Width = 440;
-        Height = element.Kind == "Text" ? 430 : 350;
+        Height = element.Kind == "Text" ? 500 : 350;
+        MinHeight = element.Kind == "Text" ? 470 : 330;
         MinWidth = 380;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.CanResize;
@@ -514,6 +533,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
             Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
             BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124))
         };
+        ApplyDarkComboBoxItems(_dataSourceBox);
         foreach (var source in new[]
         {
             "", "Pv1Power", "Pv1Voltage", "Pv1Current",
@@ -531,7 +551,12 @@ internal sealed class EnergyMapPropertiesDialog : Window
             Foreground = new SolidColorBrush(Color.FromRgb(150, 174, 197))
         });
 
-        root.Children.Add(fields);
+        root.Children.Add(new ScrollViewer
+        {
+            Content = fields,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+        });
         Content = root;
     }
 
@@ -554,6 +579,93 @@ internal sealed class EnergyMapPropertiesDialog : Window
             CaretBrush = Brushes.White
         };
         parent.Children.Add(box);
+    }
+}
+
+internal sealed class EnergyMapObjectPropertiesDialog : Window
+{
+    private readonly TextBox _bindingBox;
+
+    public string BindingKey { get; private set; } = "";
+
+    public EnergyMapObjectPropertiesDialog(string objectName, string bindingKey, Window owner)
+    {
+        Owner = owner;
+        Title = "Свойства: " + objectName;
+        Width = 440;
+        Height = 250;
+        MinWidth = 380;
+        MinHeight = 220;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        ResizeMode = ResizeMode.CanResize;
+        Background = new SolidColorBrush(Color.FromRgb(18, 30, 48));
+        Foreground = Brushes.White;
+
+        var root = new DockPanel { Margin = new Thickness(18) };
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 14, 0, 0)
+        };
+        DockPanel.SetDock(buttons, Dock.Bottom);
+
+        var cancel = new Button
+        {
+            Content = "Отмена",
+            Padding = new Thickness(14, 7, 14, 7),
+            Margin = new Thickness(0, 0, 8, 0),
+            Background = new SolidColorBrush(Color.FromRgb(38, 56, 77)),
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(0),
+            IsCancel = true
+        };
+        var save = new Button
+        {
+            Content = "Сохранить",
+            Padding = new Thickness(14, 7, 14, 7),
+            Background = new SolidColorBrush(Color.FromRgb(245, 185, 66)),
+            Foreground = new SolidColorBrush(Color.FromRgb(23, 32, 45)),
+            BorderThickness = new Thickness(0),
+            FontWeight = FontWeights.Bold,
+            IsDefault = true
+        };
+        save.Click += (_, _) =>
+        {
+            BindingKey = _bindingBox.Text.Trim();
+            DialogResult = true;
+        };
+        buttons.Children.Add(cancel);
+        buttons.Children.Add(save);
+        root.Children.Add(buttons);
+
+        var fields = new StackPanel();
+        fields.Children.Add(new TextBlock
+        {
+            Text = "Ключ привязки к датчикам / функциям",
+            Margin = new Thickness(0, 4, 0, 5),
+            Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228))
+        });
+        _bindingBox = new TextBox
+        {
+            Text = bindingKey,
+            Height = 32,
+            Padding = new Thickness(7, 5, 7, 5),
+            Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
+            Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124)),
+            CaretBrush = Brushes.White
+        };
+        fields.Children.Add(_bindingBox);
+        fields.Children.Add(new TextBlock
+        {
+            Text = "Поле сохраняет идентификатор привязки. Подключение к датчикам и выполнение функций будут реализованы отдельно.",
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 12, 0, 0),
+            Foreground = new SolidColorBrush(Color.FromRgb(150, 174, 197))
+        });
+        root.Children.Add(fields);
+        Content = root;
     }
 }
 
