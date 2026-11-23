@@ -299,6 +299,99 @@ public partial class MainWindow : Window
         String1Power.Foreground = accent;
         String2Power.Foreground = accent;
 
+        if (design == "Analog")
+        {
+            var dashboardBlue = new SolidColorBrush(Color.FromRgb(48, 169, 220));
+            var cardBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[1]));
+            var cardBorder = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[6]));
+            var mainText = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[2]));
+            var mutedText = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[3]));
+
+            TitleBarGrid.Background = dashboardBlue;
+            MainMenu.Background = dashboardBlue;
+            MainMenu.Foreground = Brushes.White;
+            DashboardHeaderGrid.Background = dashboardBlue;
+            DashboardHeaderGrid.Margin = new Thickness(0, 0, 0, 18);
+            DashboardHeaderGrid.Padding = new Thickness(12, 10, 12, 10);
+            StringSectionHeader.Background = dashboardBlue;
+            StringSectionHeader.CornerRadius = new CornerRadius(0);
+
+            void ApplyAnalogMenuStyle(System.Windows.Controls.MenuItem item)
+            {
+                item.Background = dashboardBlue;
+                item.Foreground = Brushes.White;
+                foreach (var child in item.Items)
+                    if (child is System.Windows.Controls.MenuItem childItem)
+                        ApplyAnalogMenuStyle(childItem);
+            }
+            foreach (var entry in MainMenu.Items)
+                if (entry is System.Windows.Controls.MenuItem menuItem)
+                    ApplyAnalogMenuStyle(menuItem);
+
+            for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(TitleBarGrid); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(TitleBarGrid, i);
+                if (child is System.Windows.Controls.TextBlock titleText)
+                    titleText.Foreground = Brushes.White;
+                if (child is System.Windows.Controls.Button titleButton)
+                {
+                    titleButton.Foreground = Brushes.White;
+                    titleButton.Background = Brushes.Transparent;
+                }
+            }
+
+            foreach (var button in new[] { ConnectButton })
+            {
+                button.Background = Brushes.White;
+                button.Foreground = dashboardBlue;
+                button.BorderBrush = Brushes.White;
+                button.BorderThickness = new Thickness(1);
+            }
+            AddressBox.Background = Brushes.White;
+            AddressBox.Foreground = new SolidColorBrush(Color.FromRgb(45, 55, 65));
+            AddressBox.BorderBrush = new SolidColorBrush(Color.FromRgb(210, 220, 228));
+
+            void ApplyAnalogCards(DependencyObject parent)
+            {
+                for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+                {
+                    var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                    if (child is System.Windows.Controls.Border border && border != StringSectionHeader)
+                    {
+                        border.Background = cardBackground;
+                        border.BorderBrush = cardBorder;
+                        border.BorderThickness = new Thickness(1);
+                        border.CornerRadius = new CornerRadius(2);
+                    }
+                    if (child is System.Windows.Controls.TextBlock textBlock &&
+                        textBlock.Foreground is SolidColorBrush oldBrush &&
+                        oldBrush.Color == (Color)ColorConverter.ConvertFromString("#FF8FA2BA"))
+                        textBlock.Foreground = mutedText;
+                    ApplyAnalogCards(child);
+                }
+            }
+            ApplyAnalogCards(TopMetricsGrid);
+            ApplyAnalogCards(StringCardsGrid);
+
+            foreach (var header in new[] { TotalPowerText, TotalEnergyText, String1Power, String2Power })
+                header.FontFamily = new FontFamily("Segoe UI");
+            TotalPowerText.Foreground = accent;
+            String1Power.Foreground = accent;
+            String2Power.Foreground = accent;
+
+            foreach (var textBlock in new[] { DataModeText, StringSectionHeader.Child as System.Windows.Controls.TextBlock })
+                if (textBlock != null)
+                    textBlock.Foreground = Brushes.White;
+            foreach (var child in System.Windows.Media.VisualTreeHelper.GetChildrenCount(DashboardHeaderGrid) > 0
+                ? Enumerable.Range(0, System.Windows.Media.VisualTreeHelper.GetChildrenCount(DashboardHeaderGrid))
+                    .Select(i => System.Windows.Media.VisualTreeHelper.GetChild(DashboardHeaderGrid, i))
+                : Enumerable.Empty<DependencyObject>())
+                if (child is System.Windows.Controls.StackPanel stack)
+                    foreach (var item in stack.Children)
+                        if (item is System.Windows.Controls.TextBlock headerText)
+                            headerText.Foreground = Brushes.White;
+        }
+
         ClientSettings.SaveDesign(design);
     }
 
