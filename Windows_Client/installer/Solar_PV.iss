@@ -1,5 +1,5 @@
 #ifndef MyAppVersion
-  #define MyAppVersion "0.3.8"
+  #define MyAppVersion "0.3.9"
 #endif
 #define MyAppName "Solar_PV"
 #define MyPublisher "Solar_PV"
