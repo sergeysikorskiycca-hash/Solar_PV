@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Solar_PV</AssemblyName>
     <RootNamespace>SolarPV.Client</RootNamespace>
-    <Version>0.3.22</Version>
+    <Version>0.3.23</Version>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
