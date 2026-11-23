@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private System.Windows.Point _energyMapDragOffset;
     private string? _selectedEnergyMapObjectId;
     private System.Windows.Controls.Border? _energyMapObjectSelection;
+    private readonly Dictionary<string, Rect> _energyMapObjectBounds = new();
 
     private bool _isAdminMode;
 
@@ -479,6 +480,7 @@ public partial class MainWindow : Window
     private void BuildEnergyMapObjectTargets()
     {
         EnergyMapObjectHitCanvas.Children.Clear();
+        _energyMapObjectBounds.Clear();
 
         var objects = new (string Id, string Name, double X, double Y, double Width, double Height, string? Path)[]
         {
@@ -498,12 +500,16 @@ public partial class MainWindow : Window
 
         foreach (var item in objects)
         {
+            _energyMapObjectBounds[item.Id] = new Rect(item.X, item.Y, item.Width, item.Height);
             System.Windows.FrameworkElement target;
             if (item.Path is not null)
             {
                 target = new System.Windows.Shapes.Path
                 {
                     Data = System.Windows.Media.Geometry.Parse(item.Path),
+                    Width = 1409,
+                    Height = 905,
+                    Stretch = System.Windows.Media.Stretch.None,
                     Stroke = Brushes.Transparent,
                     StrokeThickness = 28,
                     Fill = Brushes.Transparent,
@@ -539,13 +545,7 @@ public partial class MainWindow : Window
             return;
 
         _selectedEnergyMapObjectId = id;
-        var bounds = target is System.Windows.Shapes.Path path
-            ? path.Data.Bounds
-            : new Rect(
-                System.Windows.Controls.Canvas.GetLeft(target),
-                System.Windows.Controls.Canvas.GetTop(target),
-                target.ActualWidth,
-                target.ActualHeight);
+        if (!_energyMapObjectBounds.TryGetValue(id, out var bounds)) return;
 
         _energyMapObjectSelection ??= new System.Windows.Controls.Border
         {
