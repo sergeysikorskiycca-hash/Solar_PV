@@ -107,6 +107,18 @@ public partial class MainWindow : Window
         menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(palette[7])));
         menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(palette[2])));
         menuItemStyle.Setters.Add(new Setter(System.Windows.Documents.TextElement.ForegroundProperty, PaletteBrush(palette[2])));
+        var menuTextStyle = new Style(typeof(System.Windows.Controls.TextBlock));
+        menuTextStyle.Setters.Add(new Setter(
+            System.Windows.Controls.TextBlock.ForegroundProperty,
+            new System.Windows.Data.Binding(System.Windows.Controls.Control.ForegroundProperty.Name)
+            {
+                RelativeSource = new System.Windows.Data.RelativeSource(
+                    System.Windows.Data.RelativeSourceMode.FindAncestor,
+                    typeof(System.Windows.Controls.MenuItem),
+                    1)
+            }));
+        menuItemStyle.Resources[typeof(System.Windows.Controls.TextBlock)] = menuTextStyle;
+        MainMenu.Resources[typeof(System.Windows.Controls.TextBlock)] = menuTextStyle;
         menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.PaddingProperty, new Thickness(10, 6, 10, 6)));
         var highlighted = new Trigger
         {
