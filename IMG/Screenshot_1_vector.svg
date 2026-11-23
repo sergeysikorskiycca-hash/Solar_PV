@@ -89,7 +89,7 @@
  <path d="M1130 331H865" stroke="#087bff" stroke-width="13" fill="none" marker-end="url(#arrBlue)"/>
  <rect x="944" y="283" width="130" height="43" rx="12" fill="#102a4a" stroke="#1688ff" stroke-width="3"/><text x="1009" y="313" font-size="27" fill="#fff">1.75 кВт</text>
  <path d="M151 625V596" stroke="#168bff" stroke-width="0"/>
- <path d="M503 733H570Q648 733 648 655V454" stroke="#087bff" stroke-width="11" fill="none" marker-end="url(#arrBlue)"/>
+ <path d="M250 850H570Q648 850 648 772V454" stroke="#087bff" stroke-width="11" fill="none" marker-end="url(#arrBlue)"/>
  <path d="M520 790H700Q700 790 700 705V454" stroke="#087bff" stroke-width="11" fill="none" marker-end="url(#arrBlue)"/>
  <rect x="520" y="587" width="112" height="43" rx="11" fill="#0a2c57" stroke="#168bff" stroke-width="3"/><text x="576" y="617" font-size="25" fill="#fff">0.31 кВт</text>
  <rect x="520" y="735" width="112" height="43" rx="11" fill="#0a2c57" stroke="#168bff" stroke-width="3"/><text x="576" y="765" font-size="25" fill="#fff">0.30 кВт</text>
