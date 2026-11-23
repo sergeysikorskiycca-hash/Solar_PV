@@ -93,6 +93,8 @@ public partial class MainWindow : Window
     private void SetAdminMode(bool enabled)
     {
         _isAdminMode = enabled;
+        EnergyMapEditButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        EnergyMapElementsButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         Title = enabled ? "Solar_PV — Администратор" : "Solar_PV — Панель станции";
         WindowModeText.Text = enabled ? "Solar_PV · АДМИНИСТРАТОР" : "Solar_PV";
         AdminMenuItem.Header = enabled ? "Назад" : "Администратор";
@@ -470,7 +472,7 @@ public partial class MainWindow : Window
                 Foreground = EnergyMapBrush(element.Foreground, Brushes.White),
                 FontSize = element.FontSize,
                 FontWeight = element.Bold ? FontWeights.Bold : FontWeights.Normal,
-                FontFamily = new FontFamily("Arial"),
+                FontFamily = new FontFamily(string.IsNullOrWhiteSpace(element.FontFamily) ? "Arial" : element.FontFamily),
                 TextAlignment = TextAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
                 VerticalAlignment = VerticalAlignment.Center,
