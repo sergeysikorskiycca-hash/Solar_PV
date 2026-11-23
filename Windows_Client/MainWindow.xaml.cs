@@ -97,7 +97,7 @@ public partial class MainWindow : Window
         {
             _energyMapEditMode = false;
             EnergyMapEditButton.Content = "Перемещать";
-            foreach (var item in _energyMapItems.Values) item.Cursor = System.Windows.Input.Cursors.Arrow;
+            RenderEnergyMapElements();
             SaveEnergyMapLayout();
         }
         EnergyMapEditButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
@@ -563,10 +563,16 @@ public partial class MainWindow : Window
         EnergyMapEditButton.Content = _energyMapEditMode ? "Завершить перенос" : "Перемещать";
         EnergyMapEditButton.Background = new SolidColorBrush(_energyMapEditMode
             ? Color.FromRgb(99, 214, 162) : Color.FromRgb(245, 185, 66));
-        foreach (var item in _energyMapItems.Values)
+        foreach (var pair in _energyMapItems)
         {
-            item.BorderBrush = new SolidColorBrush(_energyMapEditMode
-                ? Color.FromRgb(245, 185, 66) : Color.FromRgb(125, 187, 232));
+            var element = _energyMapElements.FirstOrDefault(candidate => candidate.Id == pair.Key);
+            var item = pair.Value;
+            item.BorderBrush = _energyMapEditMode
+                ? new SolidColorBrush(Color.FromRgb(245, 185, 66))
+                : EnergyMapBrush(element?.BorderColor ?? "#00000000", Brushes.Transparent);
+            item.BorderThickness = _energyMapEditMode
+                ? new Thickness(Math.Max(1.5, element?.BorderWidth ?? 0))
+                : new Thickness(element?.Kind == "Indicator" ? element.BorderWidth : 0);
             item.Cursor = _energyMapEditMode
                 ? System.Windows.Input.Cursors.SizeAll : System.Windows.Input.Cursors.Arrow;
             item.ToolTip = _energyMapEditMode
