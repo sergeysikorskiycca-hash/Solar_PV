@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _pollTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private bool _connected;
     private string _baseAddress = "";
+    private string[]? _activePalette;
 
     public MainWindow()
     {
@@ -87,6 +88,18 @@ public partial class MainWindow : Window
             ["#FF26384D"] = palette[7], ["#FF405875"] = palette[6],
             ["#FF1A2B3E"] = palette[1]
         };
+
+        // Re-map colors from the currently active theme as well as the original XAML colors.
+        // Without this, a second theme switch cannot recognize brushes changed by the first one.
+        if (_activePalette is not null)
+        {
+            int[] paletteSlots = { 0, 1, 2, 3, 4, 6, 7 };
+            foreach (var slot in paletteSlots)
+            {
+                var oldColor = "#FF" + _activePalette[slot].TrimStart('#');
+                map[oldColor] = palette[slot];
+            }
+        }
         Brush ConvertBrush(Brush brush)
         {
             if (brush is SolidColorBrush solid)
@@ -160,6 +173,7 @@ public partial class MainWindow : Window
             }
         }
         Visit(this);
+        _activePalette = palette;
         ClientSettings.SaveTheme(theme);
     }
 
