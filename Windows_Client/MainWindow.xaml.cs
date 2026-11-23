@@ -40,7 +40,7 @@ public partial class MainWindow : Window
         VersionText.Text = $"Solar_PV Desktop {version}";
         AddressBox.Text = ClientSettings.LoadControllerAddress() ?? AddressBox.Text;
         var savedTheme = ClientSettings.LoadTheme() ?? "Dark";
-        var savedDesign = ClientSettings.LoadDesign() ?? "Digital";
+        var savedDesign = "EnergyMap";
         Loaded += (_, _) =>
         {
             ApplyTheme(savedTheme);
@@ -207,7 +207,7 @@ public partial class MainWindow : Window
     private void Design_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not System.Windows.Controls.MenuItem item || item.Tag is not string design) return;
-        ApplyDesign(design);
+        if (design == "EnergyMap") ApplyDesign("EnergyMap");
     }
 
     private void ApplyTheme(string theme)
@@ -313,7 +313,7 @@ public partial class MainWindow : Window
 
         _activePalette = palette;
         ClientSettings.SaveTheme(theme);
-        ApplyDesign(ClientSettings.LoadDesign() ?? "Digital");
+        ApplyDesign("EnergyMap");
     }
 
     private void ApplyDesign(string design)
