@@ -260,6 +260,10 @@ public partial class MainWindow : Window
             lines.Children.Add(new LineGeometry(new Point(0, 0), new Point(32, 0)));
             lines.Children.Add(new LineGeometry(new Point(0, 0), new Point(0, 32)));
             var drawing = new DrawingGroup();
+            drawing.Children.Add(new GeometryDrawing(
+                new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[0])),
+                null,
+                new RectangleGeometry(new Rect(0, 0, 32, 32))));
             drawing.Children.Add(new GeometryDrawing(null, new Pen(borderBrush, 0.45), lines));
             Background = new DrawingBrush(drawing)
             {
