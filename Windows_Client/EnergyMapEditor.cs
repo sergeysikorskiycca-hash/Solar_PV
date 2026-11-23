@@ -17,6 +17,7 @@ internal sealed class EnergyMapElement
     public double Width { get; set; } = 160;
     public double Height { get; set; } = 42;
     public double FontSize { get; set; } = 22;
+    public string FontFamily { get; set; } = "Arial";
     public string Foreground { get; set; } = "#FFFFFFFF";
     public string Background { get; set; } = "#00000000";
     public string BorderColor { get; set; } = "#00000000";
@@ -57,6 +58,8 @@ internal static class EnergyMapSvgDocument
             var fontSize = ReadNumber(textNode.Attribute("font-size"), 22);
             var fill = (string?)textNode.Attribute("fill") ?? "#FFFFFF";
             var weight = (string?)textNode.Attribute("font-weight") ?? "";
+            var fontFamily = (string?)textNode.Attribute("font-family") ??
+                (string?)textNode.Ancestors().FirstOrDefault(node => node.Attribute("font-family") is not null)?.Attribute("font-family") ?? "Arial";
             var x = ReadNumber(textNode.Attribute("x"), 0);
             var y = ReadNumber(textNode.Attribute("y"), 0);
 
@@ -87,6 +90,7 @@ internal static class EnergyMapSvgDocument
                     Width = width,
                     Height = height,
                     FontSize = fontSize * scale,
+                    FontFamily = fontFamily,
                     Foreground = NormalizeColor(fill),
                     Background = NormalizeColor(fillColor),
                     BorderColor = NormalizeColor(strokeColor),
@@ -111,6 +115,7 @@ internal static class EnergyMapSvgDocument
                     Width = width,
                     Height = fontSize * 1.55,
                     FontSize = fontSize,
+                    FontFamily = fontFamily,
                     Foreground = NormalizeColor(fill),
                     Bold = weight == "700" || weight.Equals("bold", StringComparison.OrdinalIgnoreCase)
                 });
@@ -145,6 +150,7 @@ internal sealed class EnergyMapEditorWindow : Window
     private readonly ListBox _list = new() { Width = 245, Margin = new Thickness(0, 0, 14, 0) };
     private readonly Dictionary<string, TextBox> _fields = new();
     private readonly ComboBox _dataSource = new() { MinWidth = 220, Height = 28 };
+    private readonly CheckBox _bold = new() { Content = "Жирный шрифт", Foreground = Brushes.White, Margin = new Thickness(0, 8, 0, 0) };
 
     public List<EnergyMapElement> Elements => _elements;
 
@@ -216,6 +222,8 @@ internal sealed class EnergyMapEditorWindow : Window
         AddField(editor, "Ширина", "Width");
         AddField(editor, "Высота", "Height");
         AddField(editor, "Размер шрифта", "FontSize");
+        AddField(editor, "Шрифт", "FontFamily");
+        editor.Children.Add(_bold);
         AddField(editor, "Цвет текста", "Foreground");
         AddField(editor, "Цвет фона", "Background");
         AddField(editor, "Цвет рамки", "BorderColor");
@@ -302,6 +310,8 @@ internal sealed class EnergyMapEditorWindow : Window
         _fields["Width"].Text = F(item.Width);
         _fields["Height"].Text = F(item.Height);
         _fields["FontSize"].Text = F(item.FontSize);
+        _fields["FontFamily"].Text = item.FontFamily;
+        _bold.IsChecked = item.Bold;
         _fields["Foreground"].Text = item.Foreground;
         _fields["Background"].Text = item.Background;
         _fields["BorderColor"].Text = item.BorderColor;
@@ -319,6 +329,8 @@ internal sealed class EnergyMapEditorWindow : Window
         item.Width = Math.Max(12, N(_fields["Width"].Text, item.Width));
         item.Height = Math.Max(12, N(_fields["Height"].Text, item.Height));
         item.FontSize = Math.Clamp(N(_fields["FontSize"].Text, item.FontSize), 6, 160);
+        item.FontFamily = _fields["FontFamily"].Text;
+        item.Bold = _bold.IsChecked == true;
         item.Foreground = _fields["Foreground"].Text;
         item.Background = _fields["Background"].Text;
         item.BorderColor = _fields["BorderColor"].Text;
