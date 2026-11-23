@@ -5,10 +5,10 @@
  <linearGradient id="metal" x2="0" y2="1"><stop stop-color="#f9fbfd"/><stop offset="1" stop-color="#8b9baa"/></linearGradient>
  <linearGradient id="grass" x2="0" y2="1"><stop stop-color="#a8d96a"/><stop offset="1" stop-color="#4b9b32"/></linearGradient>
  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#102b4c" flood-opacity=".35"/></filter>
- <marker id="arrBlue" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#087bff"/></marker>
- <marker id="arrAmber" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#ffad00"/></marker>
- <marker id="arrRed" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#f02b20"/></marker>
- <marker id="arrGreen" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#13b944"/></marker>
+ <marker id="arrBlue" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0L6 3L0 6Z" fill="#087bff"/></marker>
+ <marker id="arrAmber" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0L6 3L0 6Z" fill="#ffad00"/></marker>
+ <marker id="arrRed" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0L6 3L0 6Z" fill="#f02b20"/></marker>
+ <marker id="arrGreen" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0L6 3L0 6Z" fill="#13b944"/></marker>
 </defs>
 <rect width="1409" height="905" fill="url(#sky)"/>
 <circle cx="105" cy="82" r="42" fill="#ffd84c"/><circle cx="105" cy="82" r="60" fill="#ffe783" opacity=".25"/>
