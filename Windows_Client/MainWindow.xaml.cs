@@ -689,6 +689,7 @@ public partial class MainWindow : Window
                 ? "Перетащите элемент мышью"
                 : item.Child is System.Windows.Controls.TextBlock text ? text.Text : "";
         }
+        UpdateEnergyMapSelection();
         if (!_energyMapEditMode) SaveEnergyMapLayout();
     }
 
