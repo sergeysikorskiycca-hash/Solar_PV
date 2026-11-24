@@ -702,10 +702,25 @@ internal sealed class EnergyMapPropertiesDialog : Window
 
     private void UpdatePreview()
     {
-        _previewText.Text = string.IsNullOrEmpty(_accentTextBox.Text)
-            ? (_textBox?.Text ?? "Пример показания")
-            : (_textBox?.Text ?? "Пример показания");
+        var previewValue = _textBox?.Text ?? "Пример показания";
+        _previewText.Inlines.Clear();
         _previewText.Foreground = PaletteBrush(_textColorBox);
+        var accent = _accentTextBox.Text;
+        var accentIndex = string.IsNullOrEmpty(accent)
+            ? -1 : previewValue.IndexOf(accent, StringComparison.Ordinal);
+        if (accentIndex >= 0)
+        {
+            if (accentIndex > 0)
+                _previewText.Inlines.Add(new System.Windows.Documents.Run(previewValue[..accentIndex]));
+            _previewText.Inlines.Add(new System.Windows.Documents.Run(accent)
+            {
+                Foreground = PaletteBrush(_accentColorBox),
+                FontWeight = FontWeights.Bold
+            });
+            var tail = previewValue[(accentIndex + accent.Length)..];
+            if (tail.Length > 0) _previewText.Inlines.Add(new System.Windows.Documents.Run(tail));
+        }
+        else _previewText.Text = previewValue;
         _previewText.FontSize = TryNumber(_fontSizeBox.Text, out var size) ? Math.Clamp(size, 6, 48) : 18;
         _previewText.FontFamily = new FontFamily(_fontBox.SelectedItem as string ?? "Arial");
         _previewText.FontWeight = _boldBox.IsChecked == true ? FontWeights.Bold : FontWeights.Normal;
