@@ -320,14 +320,13 @@ public partial class MainWindow : Window
 
     private void ApplyDesign(string design)
     {
-        if (design is not ("Digital" or "Analog" or "EnergyMap" or "Flow" or "Blueprint"))
+        if (design is not ("Digital" or "EnergyMap" or "Flow" or "Blueprint"))
             design = "Digital";
 
         var palette = _activePalette ?? new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" };
         DigitalDashboard.Visibility = design == "Digital" ? Visibility.Visible : Visibility.Collapsed;
-        AnalogDashboard.Visibility = design == "Analog" ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapDashboard.Visibility = design == "EnergyMap" ? Visibility.Visible : Visibility.Collapsed;
-        if (design is "Analog" or "EnergyMap")
+        if (design == "EnergyMap")
         {
             DashboardContentGrid.SetBinding(System.Windows.FrameworkElement.WidthProperty,
                 new System.Windows.Data.Binding(nameof(System.Windows.Controls.ScrollViewer.ViewportWidth)) { Source = DashboardScrollViewer });
@@ -339,13 +338,12 @@ public partial class MainWindow : Window
             DashboardContentGrid.ClearValue(System.Windows.FrameworkElement.WidthProperty);
             DashboardContentGrid.ClearValue(System.Windows.FrameworkElement.HeightProperty);
         }
-        LegacyDashboard.Visibility = design is "Digital" or "Analog" or "EnergyMap" ? Visibility.Collapsed : Visibility.Visible;
+        LegacyDashboard.Visibility = design is "Digital" or "EnergyMap" ? Visibility.Collapsed : Visibility.Visible;
         var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[4]));
         var borderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[6]));
 
         var cornerRadius = design switch
         {
-            "Analog" => new CornerRadius(16),
             "Flow" => new CornerRadius(1),
             "Blueprint" => new CornerRadius(0),
             _ => new CornerRadius(4)
@@ -426,7 +424,6 @@ public partial class MainWindow : Window
 
         var valueFont = design switch
         {
-            "Analog" => new FontFamily("Georgia"),
             "Blueprint" => new FontFamily("Consolas"),
             _ => new FontFamily("Segoe UI")
         };
@@ -434,10 +431,10 @@ public partial class MainWindow : Window
         TotalEnergyText.FontFamily = valueFont;
         String1Power.FontFamily = valueFont;
         String2Power.FontFamily = valueFont;
-        TotalPowerText.FontSize = design == "Analog" ? 36 : 34;
-        TotalEnergyText.FontSize = design == "Analog" ? 36 : 34;
-        String1Power.FontSize = design == "Analog" ? 31 : 29;
-        String2Power.FontSize = design == "Analog" ? 31 : 29;
+        TotalPowerText.FontSize = 34;
+        TotalEnergyText.FontSize = 34;
+        String1Power.FontSize = 29;
+        String2Power.FontSize = 29;
 
         TotalPowerText.Foreground = accent;
         String1Power.Foreground = accent;
@@ -842,9 +839,7 @@ public partial class MainWindow : Window
         SetString(2, "758 Вт", "182,1 В", "4,16 А", "5 631,4 кВт·ч", "ДЕМО");
         SetDigitalString(2, 758, 182.1, 4.16);
         DigitalInverterPower.Text = "1 842 Вт";
-        AnalogInverterPower.Text = "1 842 Вт";
         SetEnergyMapValue("InverterPower", "1 842 Вт");
-        AnalogInverterEnergy.Text = "12 846,0 кВт·ч";
         NetworkInfoText.Text = "Реальный контроллер не подключён. Нажмите «Подключить ESP32», чтобы начать чтение данных.";
         LastUpdateText.Text = "Обновлено: " + DateTime.Now.ToString("HH:mm:ss");
         PollInfoText.Text = "Опрос: выключен";
@@ -959,7 +954,6 @@ public partial class MainWindow : Window
     {
         if (root.TryGetProperty("totalEnergyWh", out var totalWh) && totalWh.TryGetDouble(out var wh))
             TotalEnergyText.Text = (wh / 1000.0).ToString("N1", CultureInfo.GetCultureInfo("ru-RU"));
-        AnalogInverterEnergy.Text = TotalEnergyText.Text + " кВт·ч";
 
         if (!root.TryGetProperty("stringTelemetry", out var telemetry) || telemetry.ValueKind != JsonValueKind.Array)
             return;
@@ -987,7 +981,6 @@ public partial class MainWindow : Window
         }
         TotalPowerText.Text = Format(totalPower, "N0");
         DigitalInverterPower.Text = Format(totalPower, "N0") + " Вт";
-        AnalogInverterPower.Text = Format(totalPower, "N0") + " Вт";
         SetEnergyMapValue("InverterPower", Format(totalPower, "N0") + " Вт");
     }
 
@@ -1001,9 +994,6 @@ public partial class MainWindow : Window
             DigitalPv1Power.Text = powerText;
             DigitalPv1Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
             DigitalPv1Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
-            AnalogPv1Power.Text = powerText;
-            AnalogPv1Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
-            AnalogPv1Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
             SetEnergyMapValue("Pv1Power", powerText);
             SetEnergyMapValue("Pv1Voltage", double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В");
             SetEnergyMapValue("Pv1Current", double.IsNaN(current) ? "— А" : Format(current, "N2") + " А");
@@ -1014,9 +1004,6 @@ public partial class MainWindow : Window
             DigitalPv2Power.Text = powerText;
             DigitalPv2Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
             DigitalPv2Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
-            AnalogPv2Power.Text = powerText;
-            AnalogPv2Voltage.Text = double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В";
-            AnalogPv2Current.Text = double.IsNaN(current) ? "— А" : Format(current, "N2") + " А";
             SetEnergyMapValue("Pv2Power", powerText);
             SetEnergyMapValue("Pv2Voltage", double.IsNaN(voltage) ? "— В" : Format(voltage, "N1") + " В");
             SetEnergyMapValue("Pv2Current", double.IsNaN(current) ? "— А" : Format(current, "N2") + " А");
@@ -1036,13 +1023,11 @@ public partial class MainWindow : Window
         {
             String1Power.Text = power; String1Voltage.Text = voltage;
             String1Current.Text = current; String1Energy.Text = energy; String1State.Text = state;
-            AnalogPv1Energy.Text = "Энергия: " + energy;
         }
         else
         {
             String2Power.Text = power; String2Voltage.Text = voltage;
             String2Current.Text = current; String2Energy.Text = energy; String2State.Text = state;
-            AnalogPv2Energy.Text = "Энергия: " + energy;
         }
     }
 }
