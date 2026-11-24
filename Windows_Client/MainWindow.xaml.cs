@@ -737,6 +737,7 @@ public partial class MainWindow : Window
                     {
                         element.Width = dialog.ElementWidth;
                         element.Height = dialog.ElementHeight;
+                        element.FontSize = dialog.ElementFontSize;
                         element.Text = dialog.ElementText;
                         element.DataSource = dialog.DataSource;
                     }
