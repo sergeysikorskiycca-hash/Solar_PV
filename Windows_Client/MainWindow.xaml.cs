@@ -98,13 +98,12 @@ public partial class MainWindow : Window
         if (!enabled && _energyMapEditMode)
         {
             _energyMapEditMode = false;
-            EnergyMapEditButton.Content = "Перемещать";
+            EnergyMapEditMenuItem.Header = "Перемещать";
             RenderEnergyMapElements();
             SaveEnergyMapLayout();
         }
-        EnergyMapToolbar.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
-        EnergyMapEditButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
-        EnergyMapElementsButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        EnergyMapEditMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        EnergyMapElementsMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapObjectHitCanvas.IsHitTestVisible = enabled && !_energyMapEditMode;
         UpdateEnergyMapHitTesting();
         UpdateEnergyMapSelection();
@@ -672,9 +671,7 @@ public partial class MainWindow : Window
     private void EnergyMapEdit_Click(object sender, RoutedEventArgs e)
     {
         _energyMapEditMode = !_energyMapEditMode;
-        EnergyMapEditButton.Content = _energyMapEditMode ? "Завершить перенос" : "Перемещать";
-        EnergyMapEditButton.Background = new SolidColorBrush(_energyMapEditMode
-            ? Color.FromRgb(99, 214, 162) : Color.FromRgb(245, 185, 66));
+        EnergyMapEditMenuItem.Header = _energyMapEditMode ? "Завершить перенос" : "Перемещать";
         EnergyMapObjectHitCanvas.IsHitTestVisible = _isAdminMode && !_energyMapEditMode;
         UpdateEnergyMapHitTesting();
         UpdateEnergyMapSelection();
