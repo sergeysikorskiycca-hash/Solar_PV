@@ -522,7 +522,6 @@ internal sealed class EnergyMapPropertiesDialog : Window
         };
         var save = MakeButton("Сохранить", true);
         save.IsDefault = true;
-        save.Click += (_, _) => Save(element);
         buttons.Children.Add(delete);
         buttons.Children.Add(cancel);
         buttons.Children.Add(save);
@@ -596,6 +595,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
             BorderBrush = InputBorder(), CaretBrush = Brushes.White
         };
         fields.Children.Add(borderWidthBox);
+
+        save.Click += (_, _) => Save(element);
 
         AddLabel(fields, "Акцентный фрагмент текста");
         _accentTextBox = new TextBox
