@@ -23,7 +23,7 @@ jobs:
       - name: Automatically bump Windows client patch version
         shell: pwsh
         run: |
-          if ${{ github.ref != 'refs/heads/main' }} { throw "Run this release workflow from main only." }
+          if (${{ github.ref != 'refs/heads/main' }}) { throw "Run this release workflow from main only." }
           [xml]$project = Get-Content "Windows_Client/SolarPV.Client.csproj"
           $currentVersion = [version]$project.Project.PropertyGroup.Version
           $nextVersion = "{0}.{1}.{2}" -f $currentVersion.Major, $currentVersion.Minor, ($currentVersion.Build + 1)
