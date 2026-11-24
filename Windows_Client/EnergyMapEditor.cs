@@ -643,7 +643,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
             else if (control is CheckBox check) check.Checked += (_, _) => UpdatePreview();
         }
         _boldBox.Unchecked += (_, _) => UpdatePreview();
-        _textBox?.TextChanged += (_, _) => UpdatePreview();
+        if (_textBox is not null) _textBox.TextChanged += (_, _) => UpdatePreview();
         UpdatePreview();
 
         fields.Children.Add(new TextBlock
