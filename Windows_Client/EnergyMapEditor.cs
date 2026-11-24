@@ -405,9 +405,15 @@ internal sealed class EnergyMapEditorWindow : Window
         item.Text = _fields["Text"].Text;
         item.X = N(_fields["X"].Text, item.X);
         item.Y = N(_fields["Y"].Text, item.Y);
-        item.Width = Math.Max(12, N(_fields["Width"].Text, item.Width));
-        item.Height = Math.Max(12, N(_fields["Height"].Text, item.Height));
-        item.FontSize = Math.Clamp(N(_fields["FontSize"].Text, item.FontSize), 6, 160);
+        var newWidth = Math.Max(12, N(_fields["Width"].Text, item.Width));
+        var newHeight = Math.Max(12, N(_fields["Height"].Text, item.Height));
+        var widthScale = newWidth / item.Width;
+        var heightScale = newHeight / item.Height;
+        var fontScale = Math.Sqrt(widthScale * heightScale);
+        item.Width = newWidth;
+        item.Height = newHeight;
+        item.FontSize = Math.Clamp(N(_fields["FontSize"].Text, item.FontSize) * fontScale, 6, 160);
+        _fields["FontSize"].Text = F(item.FontSize);
         item.FontFamily = _fields["FontFamily"].Text;
         item.Bold = _bold.IsChecked == true;
         item.Foreground = _fields["Foreground"].Text;
@@ -464,6 +470,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
 
     public double ElementWidth { get; private set; }
     public double ElementHeight { get; private set; }
+    public double ElementFontSize { get; private set; }
     public string ElementText { get; private set; } = "";
     public string DataSource { get; private set; } = "";
     public bool DeleteRequested { get; private set; }
@@ -542,6 +549,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
 
             ElementWidth = width;
             ElementHeight = height;
+            var fontScale = Math.Sqrt((width / element.Width) * (height / element.Height));
+            ElementFontSize = Math.Clamp(element.FontSize * fontScale, 6, 160);
             ElementText = _textBox?.Text ?? element.Text;
             DataSource = _dataSourceBox.SelectedItem as string ?? "";
             DialogResult = true;
