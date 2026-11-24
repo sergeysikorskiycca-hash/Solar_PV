@@ -18,6 +18,8 @@ internal sealed class EnergyMapElement
     public double Width { get; set; } = 160;
     public double Height { get; set; } = 42;
     public double FontSize { get; set; } = 22;
+    public double TextScaleX { get; set; } = 1;
+    public double TextScaleY { get; set; } = 1;
     public string FontFamily { get; set; } = "Arial";
     public string Foreground { get; set; } = "#FFFFFFFF";
     public string Background { get; set; } = "#00000000";
@@ -407,13 +409,11 @@ internal sealed class EnergyMapEditorWindow : Window
         item.Y = N(_fields["Y"].Text, item.Y);
         var newWidth = Math.Max(12, N(_fields["Width"].Text, item.Width));
         var newHeight = Math.Max(12, N(_fields["Height"].Text, item.Height));
-        var widthScale = newWidth / item.Width;
-        var heightScale = newHeight / item.Height;
-        var fontScale = Math.Sqrt(widthScale * heightScale);
+        item.TextScaleX *= newWidth / item.Width;
+        item.TextScaleY *= newHeight / item.Height;
         item.Width = newWidth;
         item.Height = newHeight;
-        item.FontSize = Math.Clamp(N(_fields["FontSize"].Text, item.FontSize) * fontScale, 6, 160);
-        _fields["FontSize"].Text = F(item.FontSize);
+        item.FontSize = Math.Clamp(N(_fields["FontSize"].Text, item.FontSize), 6, 160);
         item.FontFamily = _fields["FontFamily"].Text;
         item.Bold = _bold.IsChecked == true;
         item.Foreground = _fields["Foreground"].Text;
@@ -470,7 +470,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
 
     public double ElementWidth { get; private set; }
     public double ElementHeight { get; private set; }
-    public double ElementFontSize { get; private set; }
+    public double ElementTextScaleX { get; private set; }
+    public double ElementTextScaleY { get; private set; }
     public string ElementText { get; private set; } = "";
     public string DataSource { get; private set; } = "";
     public bool DeleteRequested { get; private set; }
@@ -549,8 +550,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
 
             ElementWidth = width;
             ElementHeight = height;
-            var fontScale = Math.Sqrt((width / element.Width) * (height / element.Height));
-            ElementFontSize = Math.Clamp(element.FontSize * fontScale, 6, 160);
+            ElementTextScaleX = element.TextScaleX * (width / element.Width);
+            ElementTextScaleY = element.TextScaleY * (height / element.Height);
             ElementText = _textBox?.Text ?? element.Text;
             DataSource = _dataSourceBox.SelectedItem as string ?? "";
             DialogResult = true;
