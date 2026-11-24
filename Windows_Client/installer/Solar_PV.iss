@@ -16,6 +16,7 @@ OutputBaseFilename=Solar_PV_Windows_Demo_Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+ArchitecturesAllowed=x86 x64
 ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=admin
 UninstallDisplayIcon={app}\Solar_PV.exe
@@ -26,7 +27,8 @@ RestartApplications=no
 Name: "{app}"; Permissions: users-modify
 
 [Files]
-Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\publish-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Check: Is64BitInstallMode
+Source: "..\publish-x86\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Check: not Is64BitInstallMode
 
 [Icons]
 Name: "{group}\Solar_PV"; Filename: "{app}\Solar_PV.exe"

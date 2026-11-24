@@ -12,7 +12,7 @@ namespace SolarPV.Client;
 public partial class MainWindow
 {
     private const string ReleaseApiUrl = "https://api.github.com/repos/sergeysikorskiycca-hash/Solar_PV/releases/tags/solar-pv-windows-demo";
-    private const string UpdateAssetName = "Solar_PV_Windows_Portable_Update.zip";
+    private static readonly string UpdateAssetName = Environment.Is64BitProcess ? "Solar_PV_Windows_Portable_Update_x64.zip" : "Solar_PV_Windows_Portable_Update_x86.zip";
     private static readonly HttpClient UpdateHttp = CreateUpdateClient();
     private bool _checkingUpdates;
     private MenuItem? _updateMenuItem;

@@ -23,7 +23,7 @@ jobs:
       - name: Automatically bump Windows client patch version
         shell: pwsh
         run: |
-          if (${{ github.ref != 'refs/heads/main' }}) { throw "Run this release workflow from main only." }
+          if ${{ github.ref != 'refs/heads/main' }} { throw "Run this release workflow from main only." }
           [xml]$project = Get-Content "Windows_Client/SolarPV.Client.csproj"
           $currentVersion = [version]$project.Project.PropertyGroup.Version
           $nextVersion = "{0}.{1}.{2}" -f $currentVersion.Major, $currentVersion.Minor, ($currentVersion.Build + 1)
@@ -44,27 +44,31 @@ jobs:
           $appVersion = $project.Project.PropertyGroup.Version
           if ([string]::IsNullOrWhiteSpace($appVersion)) { throw "Client version is missing from the project file." }
           "app_version=$appVersion" >> $env:GITHUB_OUTPUT
-      - name: Publish self-contained portable Windows app
-        run: dotnet publish Windows_Client/SolarPV.Client.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows_Client/publish
-      - name: Write package version
+      - name: Publish self-contained x64 application
+        run: dotnet publish Windows_Client/SolarPV.Client.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows_Client/publish-x64
+      - name: Publish self-contained x86 application
+        run: dotnet publish Windows_Client/SolarPV.Client.csproj -c Release -r win-x86 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows_Client/publish-x86
+      - name: Write package versions
         shell: pwsh
         run: |
           $appVersion = "${{ steps.version.outputs.app_version }}"
-          [System.IO.File]::WriteAllText("Windows_Client/publish/version.txt", $appVersion, [System.Text.UTF8Encoding]::new($false))
-      - name: Create portable update package
+          [System.IO.File]::WriteAllText("Windows_Client/publish-x64/version.txt", $appVersion, [System.Text.UTF8Encoding]::new($false))
+          [System.IO.File]::WriteAllText("Windows_Client/publish-x86/version.txt", $appVersion, [System.Text.UTF8Encoding]::new($false))
+      - name: Create portable update packages
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Compress-Archive -Path "Windows_Client/publish/*" -DestinationPath "dist/Solar_PV_Windows_Portable_Update.zip" -CompressionLevel Optimal
+          Compress-Archive -Path "Windows_Client/publish-x64/*" -DestinationPath "dist/Solar_PV_Windows_Portable_Update_x64.zip" -CompressionLevel Optimal
+          Compress-Archive -Path "Windows_Client/publish-x86/*" -DestinationPath "dist/Solar_PV_Windows_Portable_Update_x86.zip" -CompressionLevel Optimal
       - name: Install Inno Setup
         run: choco install innosetup --yes --no-progress
-      - name: Build standalone installer
+      - name: Build universal architecture installer
         shell: pwsh
         run: |
           $appVersion = "${{ steps.version.outputs.app_version }}"
-          & "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" "/DMyAppVersion=$appVersion" "Windows_Client/installer/Solar_PV.iss"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$appVersion" "Windows_Client/installer/Solar_PV.iss"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Publish installer and portable update package
+      - name: Publish installer and portable update packages
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
@@ -75,8 +79,8 @@ jobs:
             gh release create solar-pv-windows-demo --title "Solar_PV Windows $appVersion" --notes "Версия клиента: $appVersion"
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          gh release upload solar-pv-windows-demo dist/Solar_PV_Windows_Demo_Setup.exe dist/Solar_PV_Windows_Portable_Update.zip --clobber
+          gh release upload solar-pv-windows-demo dist/Solar_PV_Windows_Demo_Setup.exe dist/Solar_PV_Windows_Portable_Update_x64.zip dist/Solar_PV_Windows_Portable_Update_x86.zip --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $notes = "Версия клиента: $appVersion" + [Environment]::NewLine + [Environment]::NewLine + "Установщик Windows 10/11 x64 и portable-пакет обновления. Обновление выполняется внутри программы без повторного запуска установщика."
+          $notes = "Версия клиента: $appVersion" + [Environment]::NewLine + [Environment]::NewLine + "Единый установщик Windows x86/x64 автоматически выбирает подходящую сборку. Портативные пакеты обновления публикуются отдельно для x86 и x64; приложение выбирает нужный пакет автоматически."
           gh release edit solar-pv-windows-demo --title "Solar_PV Windows $appVersion" --notes $notes
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
