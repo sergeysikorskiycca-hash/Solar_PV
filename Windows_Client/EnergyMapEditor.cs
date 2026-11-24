@@ -283,8 +283,8 @@ internal sealed class EnergyMapEditorWindow : Window
     private static void ApplyDarkComboBoxItems(ComboBox combo)
     {
         var itemStyle = new Style(typeof(ComboBoxItem));
-        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(36, 54, 74))));
+        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(23, 32, 45))));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.White));
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
@@ -296,14 +296,10 @@ internal sealed class EnergyMapEditorWindow : Window
         itemStyle.Triggers.Add(selected);
         combo.ItemContainerStyle = itemStyle;
 
-        var selectedText = new FrameworkElementFactory(typeof(TextBlock));
-        selectedText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding());
-        selectedText.SetValue(TextBlock.ForegroundProperty, Brushes.White);
-        selectedText.SetValue(TextBlock.BackgroundProperty, new SolidColorBrush(Color.FromRgb(36, 54, 74)));
-        combo.ItemTemplate = new DataTemplate { VisualTree = selectedText };
-        combo.Resources[SystemColors.WindowBrushKey] = new SolidColorBrush(Color.FromRgb(36, 54, 74));
-        combo.Resources[SystemColors.WindowTextBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.ControlTextBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.WindowBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.WindowTextBrushKey] = new SolidColorBrush(Color.FromRgb(23, 32, 45));
+        combo.Resources[SystemColors.ControlBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.ControlTextBrushKey] = new SolidColorBrush(Color.FromRgb(23, 32, 45));
         combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
         combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
     }
@@ -833,8 +829,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
     private static void ApplyDarkComboBoxItems(ComboBox combo)
     {
         var itemStyle = new Style(typeof(ComboBoxItem));
-        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, InputBackground()));
+        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(23, 32, 45))));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.White));
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
@@ -845,9 +841,10 @@ internal sealed class EnergyMapPropertiesDialog : Window
         selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
         itemStyle.Triggers.Add(selected);
         combo.ItemContainerStyle = itemStyle;
-        combo.Resources[SystemColors.WindowBrushKey] = InputBackground();
-        combo.Resources[SystemColors.WindowTextBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.ControlTextBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.WindowBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.WindowTextBrushKey] = new SolidColorBrush(Color.FromRgb(23, 32, 45));
+        combo.Resources[SystemColors.ControlBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.ControlTextBrushKey] = new SolidColorBrush(Color.FromRgb(23, 32, 45));
         combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
         combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
     }
