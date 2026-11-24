@@ -590,6 +590,9 @@ public partial class MainWindow : Window
 
             SetEnergyMapText(text, element);
 
+            text.RenderTransform = new ScaleTransform(element.TextScaleX, element.TextScaleY);
+            text.RenderTransformOrigin = new Point(0.5, 0.5);
+
             var isIndicator = element.Kind == "Indicator";
             var item = new System.Windows.Controls.Border
             {
@@ -737,7 +740,8 @@ public partial class MainWindow : Window
                     {
                         element.Width = dialog.ElementWidth;
                         element.Height = dialog.ElementHeight;
-                        element.FontSize = dialog.ElementFontSize;
+                        element.TextScaleX = dialog.ElementTextScaleX;
+                        element.TextScaleY = dialog.ElementTextScaleY;
                         element.Text = dialog.ElementText;
                         element.DataSource = dialog.DataSource;
                     }
