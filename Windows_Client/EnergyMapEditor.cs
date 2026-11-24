@@ -785,8 +785,9 @@ internal sealed class EnergyMapPropertiesDialog : Window
         ApplyDarkComboBoxItems(combo);
         foreach (var item in Palette)
             combo.Items.Add(new PaletteItem(item.Name, item.Value));
-        combo.SelectedValue = Palette.Any(item => item.Value.Equals(selected, StringComparison.OrdinalIgnoreCase))
-            ? selected : Palette[1].Value;
+        if (!Palette.Any(item => item.Value.Equals(selected, StringComparison.OrdinalIgnoreCase)))
+            combo.Items.Add(new PaletteItem("Текущий цвет", selected));
+        combo.SelectedValue = selected;
         parent.Children.Add(combo);
         return combo;
     }
