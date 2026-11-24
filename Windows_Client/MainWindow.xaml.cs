@@ -590,8 +590,9 @@ public partial class MainWindow : Window
 
             SetEnergyMapText(text, element);
 
-            text.RenderTransform = new ScaleTransform(element.TextScaleX, element.TextScaleY);
-            text.RenderTransformOrigin = new Point(0.5, 0.5);
+            // LayoutTransform applies the independent X/Y text scaling during WPF layout,
+            // so shrinking an element also shrinks the text before it is arranged.
+            text.LayoutTransform = new ScaleTransform(element.TextScaleX, element.TextScaleY);
 
             var isIndicator = element.Kind == "Indicator";
             var item = new System.Windows.Controls.Border
