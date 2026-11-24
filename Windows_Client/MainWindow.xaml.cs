@@ -599,12 +599,10 @@ public partial class MainWindow : Window
                 Width = Math.Max(12, element.Width),
                 Height = Math.Max(12, element.Height),
                 Padding = isIndicator ? new Thickness(5, 2, 5, 2) : new Thickness(0),
-                Background = isIndicator ? EnergyMapBrush(element.Background, Brushes.Transparent) : Brushes.Transparent,
-                BorderBrush = _energyMapEditMode
-                    ? new SolidColorBrush(Color.FromRgb(245, 185, 66))
-                    : Brushes.Transparent,
-                BorderThickness = _energyMapEditMode
-                    ? new Thickness(Math.Max(1.5, element.BorderWidth))
+                Background = EnergyMapBrush(element.Background, Brushes.Transparent),
+                BorderBrush = EnergyMapBrush(element.BorderColor, Brushes.Transparent),
+                BorderThickness = element.BorderWidth > 0
+                    ? new Thickness(element.BorderWidth)
                     : new Thickness(0),
                 CornerRadius = new CornerRadius(element.CornerRadius),
                 Child = text,
@@ -740,6 +738,16 @@ public partial class MainWindow : Window
                         element.Height = dialog.ElementHeight;
                         element.TextScaleX = dialog.ElementTextScaleX;
                         element.TextScaleY = dialog.ElementTextScaleY;
+                        element.FontSize = dialog.ElementFontSize;
+                        element.FontFamily = dialog.ElementFontFamily;
+                        element.Bold = dialog.ElementBold;
+                        element.Foreground = dialog.ElementForeground;
+                        element.Background = dialog.ElementBackground;
+                        element.BorderColor = dialog.ElementBorderColor;
+                        element.BorderWidth = dialog.ElementBorderWidth;
+                        element.CornerRadius = dialog.ElementCornerRadius;
+                        element.AccentText = dialog.ElementAccentText;
+                        element.AccentForeground = dialog.ElementAccentForeground;
                         element.Text = dialog.ElementText;
                         element.DataSource = dialog.DataSource;
                     }
@@ -771,13 +779,15 @@ public partial class MainWindow : Window
         foreach (var pair in _energyMapItems)
         {
             var selected = pair.Key == _selectedEnergyMapObjectId;
+            var element = _energyMapElements.FirstOrDefault(candidate => candidate.Id == pair.Key);
             pair.Value.BorderBrush = selected || _energyMapEditMode
                 ? new SolidColorBrush(Color.FromRgb(245, 185, 66))
-                : Brushes.Transparent;
+                : element is not null ? EnergyMapBrush(element.BorderColor, Brushes.Transparent) : Brushes.Transparent;
             pair.Value.BorderThickness = selected || _energyMapEditMode
-                ? new Thickness(Math.Max(1.5,
-                    _energyMapElements.FirstOrDefault(element => element.Id == pair.Key)?.BorderWidth ?? 0))
-                : new Thickness(0);
+                ? new Thickness(Math.Max(1.5, element?.BorderWidth ?? 0))
+                : element is not null && element.BorderWidth > 0
+                    ? new Thickness(element.BorderWidth)
+                    : new Thickness(0);
         }
     }
 
