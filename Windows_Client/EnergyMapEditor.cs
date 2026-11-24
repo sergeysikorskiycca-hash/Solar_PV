@@ -435,55 +435,64 @@ internal sealed class EnergyMapEditorWindow : Window
 
 internal sealed class EnergyMapPropertiesDialog : Window
 {
-    private static void ApplyDarkComboBoxItems(ComboBox combo)
-    {
-        var itemStyle = new Style(typeof(ComboBoxItem));
-        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(36, 54, 74))));
-        itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
-        var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(65, 91, 120))));
-        itemStyle.Triggers.Add(hover);
-        var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
-        selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
-        itemStyle.Triggers.Add(selected);
-        combo.ItemContainerStyle = itemStyle;
-
-        var selectedText = new FrameworkElementFactory(typeof(TextBlock));
-        selectedText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding());
-        selectedText.SetValue(TextBlock.ForegroundProperty, Brushes.White);
-        selectedText.SetValue(TextBlock.BackgroundProperty, new SolidColorBrush(Color.FromRgb(36, 54, 74)));
-        combo.ItemTemplate = new DataTemplate { VisualTree = selectedText };
-        combo.Resources[SystemColors.WindowBrushKey] = new SolidColorBrush(Color.FromRgb(36, 54, 74));
-        combo.Resources[SystemColors.WindowTextBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.ControlTextBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
-        combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
-    }
-
     private readonly TextBox _widthBox;
     private readonly TextBox _heightBox;
     private readonly TextBox? _textBox;
+    private readonly TextBox _fontSizeBox;
+    private readonly TextBox _accentTextBox;
     private readonly ComboBox _dataSourceBox;
+    private readonly ComboBox _backgroundBox;
+    private readonly ComboBox _borderBox;
+    private readonly ComboBox _textColorBox;
+    private readonly ComboBox _accentColorBox;
+    private readonly ComboBox _shapeBox;
+    private readonly ComboBox _fontBox;
+    private readonly CheckBox _boldBox;
+    private readonly Border _preview;
+    private readonly TextBlock _previewText;
 
     public double ElementWidth { get; private set; }
     public double ElementHeight { get; private set; }
     public double ElementTextScaleX { get; private set; }
     public double ElementTextScaleY { get; private set; }
+    public double ElementFontSize { get; private set; }
+    public double ElementBorderWidth { get; private set; }
+    public double ElementCornerRadius { get; private set; }
     public string ElementText { get; private set; } = "";
+    public string ElementBackground { get; private set; } = "#00000000";
+    public string ElementBorderColor { get; private set; } = "#00000000";
+    public string ElementForeground { get; private set; } = "#FFFFFFFF";
+    public string ElementAccentText { get; private set; } = "";
+    public string ElementAccentForeground { get; private set; } = "#FFFFFFFF";
+    public string ElementFontFamily { get; private set; } = "Arial";
+    public bool ElementBold { get; private set; }
     public string DataSource { get; private set; } = "";
     public bool DeleteRequested { get; private set; }
+
+    private static readonly (string Name, string Value)[] Palette =
+    {
+        ("Прозрачный", "#00000000"),
+        ("Белый", "#FFFFFFFF"),
+        ("Светло-серый", "#FFDCE6F0"),
+        ("Серый", "#FF9EADBC"),
+        ("Тёмный", "#E6101E2E"),
+        ("Синий", "#E61B4770"),
+        ("Голубой", "#FF55B8F2"),
+        ("Зелёный", "#FF55D69E"),
+        ("Жёлтый", "#FFFFC857"),
+        ("Оранжевый", "#FFFF984F"),
+        ("Красный", "#FFFF6868"),
+        ("Фиолетовый", "#FFB69CFF")
+    };
 
     public EnergyMapPropertiesDialog(EnergyMapElement element, Window owner)
     {
         Owner = owner;
-        Title = element.Kind == "Text" ? "Свойства текстового объекта" : "Свойства объекта";
-        Width = 440;
-        Height = element.Kind == "Text" ? 500 : 350;
-        MinHeight = element.Kind == "Text" ? 470 : 330;
-        MinWidth = 380;
+        Title = "Свойства информационного блока";
+        Width = 510;
+        Height = 790;
+        MinWidth = 440;
+        MinHeight = 650;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.CanResize;
         Background = new SolidColorBrush(Color.FromRgb(18, 30, 48));
@@ -494,29 +503,14 @@ internal sealed class EnergyMapPropertiesDialog : Window
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 14, 0, 0)
+            Margin = new Thickness(0, 12, 0, 0)
         };
         DockPanel.SetDock(buttons, Dock.Bottom);
 
-        var cancel = new Button
-        {
-            Content = "Отмена",
-            Padding = new Thickness(14, 7, 14, 7),
-            Margin = new Thickness(0, 0, 8, 0),
-            Background = new SolidColorBrush(Color.FromRgb(38, 56, 77)),
-            Foreground = Brushes.White,
-            BorderThickness = new Thickness(0),
-            IsCancel = true
-        };
-        var delete = new Button
-        {
-            Content = "Удалить",
-            Padding = new Thickness(14, 7, 14, 7),
-            Margin = new Thickness(0, 0, 8, 0),
-            Background = new SolidColorBrush(Color.FromRgb(150, 48, 55)),
-            Foreground = Brushes.White,
-            BorderThickness = new Thickness(0)
-        };
+        var cancel = MakeButton("Отмена", false);
+        cancel.IsCancel = true;
+        var delete = MakeButton("Удалить", false);
+        delete.Background = new SolidColorBrush(Color.FromRgb(150, 48, 55));
         delete.Click += (_, _) =>
         {
             var result = MessageBox.Show(this,
@@ -526,97 +520,137 @@ internal sealed class EnergyMapPropertiesDialog : Window
             DeleteRequested = true;
             DialogResult = true;
         };
-        var save = new Button
-        {
-            Content = "Сохранить",
-            Padding = new Thickness(14, 7, 14, 7),
-            Background = new SolidColorBrush(Color.FromRgb(245, 185, 66)),
-            Foreground = new SolidColorBrush(Color.FromRgb(23, 32, 45)),
-            BorderThickness = new Thickness(0),
-            FontWeight = FontWeights.Bold,
-            IsDefault = true
-        };
-        save.Click += (_, _) =>
-        {
-            if (!double.TryParse(_widthBox.Text.Replace(',', '.'), NumberStyles.Float,
-                    CultureInfo.InvariantCulture, out var width) || width < 12 ||
-                !double.TryParse(_heightBox.Text.Replace(',', '.'), NumberStyles.Float,
-                    CultureInfo.InvariantCulture, out var height) || height < 12)
-            {
-                MessageBox.Show(this, "Ширина и высота должны быть числами не меньше 12.",
-                    "Свойства объекта", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            ElementWidth = width;
-            ElementHeight = height;
-            ElementTextScaleX = element.TextScaleX * (width / element.Width);
-            ElementTextScaleY = element.TextScaleY * (height / element.Height);
-            ElementText = _textBox?.Text ?? element.Text;
-            DataSource = _dataSourceBox.SelectedItem as string ?? "";
-            DialogResult = true;
-        };
+        var save = MakeButton("Сохранить", true);
+        save.IsDefault = true;
+        save.Click += (_, _) => Save(element);
         buttons.Children.Add(delete);
         buttons.Children.Add(cancel);
         buttons.Children.Add(save);
         root.Children.Add(buttons);
 
         var fields = new StackPanel();
-        AddField(fields, "Ширина", out _widthBox, element.Width);
-        AddField(fields, "Высота", out _heightBox, element.Height);
+        var sizeRow = new Grid();
+        sizeRow.ColumnDefinitions.Add(new ColumnDefinition());
+        sizeRow.ColumnDefinitions.Add(new ColumnDefinition());
+        AddField(sizeRow, "Ширина", out _widthBox, element.Width, 0);
+        AddField(sizeRow, "Высота", out _heightBox, element.Height, 1);
+        fields.Children.Add(sizeRow);
 
         if (element.Kind == "Text")
         {
-            fields.Children.Add(new TextBlock
-            {
-                Text = "Текст",
-                Margin = new Thickness(0, 12, 0, 4),
-                Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228))
-            });
+            AddLabel(fields, "Текст");
             _textBox = new TextBox
             {
-                Text = element.Text,
-                Height = 76,
-                AcceptsReturn = true,
-                TextWrapping = TextWrapping.Wrap,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Padding = new Thickness(7),
-                Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
-                Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124)),
-                CaretBrush = Brushes.White
+                Text = element.Text, Height = 58, AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap, Padding = new Thickness(7),
+                Background = InputBackground(), Foreground = Brushes.White,
+                BorderBrush = InputBorder(), CaretBrush = Brushes.White
             };
             fields.Children.Add(_textBox);
         }
 
-        fields.Children.Add(new TextBlock
+        AddLabel(fields, "Размер текста");
+        _fontSizeBox = new TextBox
         {
-            Text = "Источник данных",
-            Margin = new Thickness(0, 12, 0, 4),
-            Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228))
-        });
-        _dataSourceBox = new ComboBox
-        {
-            Height = 30,
-            Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
-            Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124))
+            Text = element.FontSize.ToString("0.##", CultureInfo.InvariantCulture),
+            Height = 30, Padding = new Thickness(7, 4, 7, 4),
+            Background = InputBackground(), Foreground = Brushes.White,
+            BorderBrush = InputBorder(), CaretBrush = Brushes.White
         };
-        ApplyDarkComboBoxItems(_dataSourceBox);
-        foreach (var source in new[]
+        fields.Children.Add(_fontSizeBox);
+
+        AddLabel(fields, "Шрифт");
+        _fontBox = MakeCombo(fields, new[] { "Arial", "Segoe UI", "Consolas", "Verdana" });
+        _fontBox.SelectedItem = NormalizeFont(element.FontFamily);
+
+        _boldBox = new CheckBox
+        {
+            Content = "Жирный текст",
+            IsChecked = element.Bold,
+            Foreground = Brushes.White,
+            Margin = new Thickness(0, 9, 0, 2)
+        };
+        fields.Children.Add(_boldBox);
+
+        AddLabel(fields, "Цвет текста");
+        _textColorBox = MakePaletteCombo(fields, element.Foreground);
+        AddLabel(fields, "Фон блока");
+        _backgroundBox = MakePaletteCombo(fields, element.Background);
+        AddLabel(fields, "Цвет рамки");
+        _borderBox = MakePaletteCombo(fields, element.BorderColor);
+
+        AddLabel(fields, "Форма блока");
+        _shapeBox = MakeCombo(fields, new[]
+        {
+            "Прямоугольник", "Слегка скруглённый", "Скруглённый", "Капсула"
+        });
+        _shapeBox.SelectedIndex = element.CornerRadius <= 1 ? 0 :
+            element.CornerRadius <= 7 ? 1 : element.CornerRadius <= 15 ? 2 : 3;
+
+        AddLabel(fields, "Толщина рамки");
+        var borderWidthBox = new TextBox
+        {
+            Text = element.BorderWidth.ToString("0.##", CultureInfo.InvariantCulture),
+            Height = 30, Padding = new Thickness(7, 4, 7, 4),
+            Background = InputBackground(), Foreground = Brushes.White,
+            BorderBrush = InputBorder(), CaretBrush = Brushes.White
+        };
+        fields.Children.Add(borderWidthBox);
+
+        AddLabel(fields, "Акцентный фрагмент текста");
+        _accentTextBox = new TextBox
+        {
+            Text = element.AccentText, Height = 30, Padding = new Thickness(7, 4, 7, 4),
+            Background = InputBackground(), Foreground = Brushes.White,
+            BorderBrush = InputBorder(), CaretBrush = Brushes.White
+        };
+        fields.Children.Add(_accentTextBox);
+        AddLabel(fields, "Цвет акцента");
+        _accentColorBox = MakePaletteCombo(fields, element.AccentForeground);
+
+        AddLabel(fields, "Источник данных");
+        _dataSourceBox = MakeCombo(fields, new[]
         {
             "", "Pv1Power", "Pv1Voltage", "Pv1Current",
             "Pv2Power", "Pv2Voltage", "Pv2Current", "InverterPower"
-        })
-            _dataSourceBox.Items.Add(source);
+        });
         _dataSourceBox.SelectedItem = element.DataSource;
-        fields.Children.Add(_dataSourceBox);
+
+        AddLabel(fields, "Предпросмотр");
+        _previewText = new TextBlock
+        {
+            Text = element.Text, Foreground = Brushes.White, FontSize = element.FontSize,
+            FontFamily = new FontFamily("Arial"), TextAlignment = TextAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap
+        };
+        _preview = new Border
+        {
+            Height = 58, MinWidth = 120, Padding = new Thickness(6),
+            Child = _previewText, Background = InputBackground(),
+            BorderBrush = InputBorder(), BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6), Margin = new Thickness(0, 2, 0, 8)
+        };
+        fields.Children.Add(_preview);
+
+        foreach (var control in new Control[]
+        {
+            _fontSizeBox, _fontBox, _boldBox, _textColorBox, _backgroundBox,
+            _borderBox, _shapeBox, borderWidthBox, _accentTextBox, _accentColorBox
+        })
+        {
+            if (control is TextBox tb) tb.TextChanged += (_, _) => UpdatePreview();
+            else if (control is ComboBox cb) cb.SelectionChanged += (_, _) => UpdatePreview();
+            else if (control is CheckBox check) check.Checked += (_, _) => UpdatePreview();
+        }
+        _boldBox.Unchecked += (_, _) => UpdatePreview();
+        _textBox?.TextChanged += (_, _) => UpdatePreview();
+        UpdatePreview();
 
         fields.Children.Add(new TextBlock
         {
-            Text = "Привязки к функциям и дополнительным датчикам будут добавлены в этом окне на следующем этапе.",
+            Text = "Цвета выбираются из готовой палитры. Настройки сохраняются вместе с блоком.",
             TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(0, 14, 0, 0),
+            Margin = new Thickness(0, 7, 0, 0),
             Foreground = new SolidColorBrush(Color.FromRgb(150, 174, 197))
         });
 
@@ -627,27 +661,178 @@ internal sealed class EnergyMapPropertiesDialog : Window
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         });
         Content = root;
+
+        void Save(EnergyMapElement source)
+        {
+            if (!TryNumber(_widthBox.Text, out var width) || width < 12 ||
+                !TryNumber(_heightBox.Text, out var height) || height < 12 ||
+                !TryNumber(_fontSizeBox.Text, out var fontSize) || fontSize < 6 || fontSize > 160 ||
+                !TryNumber(borderWidthBox.Text, out var borderWidth) || borderWidth < 0 || borderWidth > 20)
+            {
+                MessageBox.Show(this, "Проверьте размеры, размер шрифта и толщину рамки. Значения должны быть в допустимом диапазоне.",
+                    "Свойства блока", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            ElementWidth = width;
+            ElementHeight = height;
+            ElementTextScaleX = source.TextScaleX * (width / source.Width);
+            ElementTextScaleY = source.TextScaleY * (height / source.Height);
+            ElementFontSize = fontSize;
+            ElementBorderWidth = borderWidth;
+            ElementCornerRadius = _shapeBox.SelectedIndex switch
+            {
+                0 => 0,
+                1 => 5,
+                2 => 12,
+                _ => Math.Min(width, height) / 2
+            };
+            ElementText = _textBox?.Text ?? source.Text;
+            ElementBackground = SelectedColor(_backgroundBox, source.Background);
+            ElementBorderColor = SelectedColor(_borderBox, source.BorderColor);
+            ElementForeground = SelectedColor(_textColorBox, source.Foreground);
+            ElementAccentText = _accentTextBox.Text;
+            ElementAccentForeground = SelectedColor(_accentColorBox, source.AccentForeground);
+            ElementFontFamily = _fontBox.SelectedItem as string ?? "Arial";
+            ElementBold = _boldBox.IsChecked == true;
+            DataSource = _dataSourceBox.SelectedItem as string ?? "";
+            DialogResult = true;
+        }
     }
 
-    private static void AddField(Panel parent, string label, out TextBox box, double value)
+    private void UpdatePreview()
     {
+        _previewText.Text = string.IsNullOrEmpty(_accentTextBox.Text)
+            ? (_textBox?.Text ?? "Пример показания")
+            : (_textBox?.Text ?? "Пример показания");
+        _previewText.Foreground = PaletteBrush(_textColorBox);
+        _previewText.FontSize = TryNumber(_fontSizeBox.Text, out var size) ? Math.Clamp(size, 6, 48) : 18;
+        _previewText.FontFamily = new FontFamily(_fontBox.SelectedItem as string ?? "Arial");
+        _previewText.FontWeight = _boldBox.IsChecked == true ? FontWeights.Bold : FontWeights.Normal;
+        _preview.Background = PaletteBrush(_backgroundBox);
+        _preview.BorderBrush = PaletteBrush(_borderBox);
+        _preview.BorderThickness = new Thickness(1);
+        _preview.CornerRadius = _shapeBox.SelectedIndex switch
+        {
+            0 => new CornerRadius(0),
+            1 => new CornerRadius(5),
+            2 => new CornerRadius(12),
+            _ => new CornerRadius(28)
+        };
+    }
+
+    private static Button MakeButton(string text, bool primary) => new()
+    {
+        Content = text, Padding = new Thickness(14, 7, 14, 7),
+        Margin = new Thickness(0, 0, 8, 0),
+        Background = primary
+            ? new SolidColorBrush(Color.FromRgb(245, 185, 66))
+            : new SolidColorBrush(Color.FromRgb(38, 56, 77)),
+        Foreground = primary
+            ? new SolidColorBrush(Color.FromRgb(23, 32, 45))
+            : Brushes.White,
+        BorderThickness = new Thickness(0),
+        FontWeight = primary ? FontWeights.Bold : FontWeights.Normal
+    };
+
+    private static SolidColorBrush InputBackground() => new(Color.FromRgb(36, 54, 74));
+    private static SolidColorBrush InputBorder() => new(Color.FromRgb(73, 98, 124));
+
+    private static void AddLabel(Panel parent, string label) =>
         parent.Children.Add(new TextBlock
         {
-            Text = label,
-            Margin = new Thickness(0, 8, 0, 4),
+            Text = label, Margin = new Thickness(0, 8, 0, 4),
             Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228))
         });
+
+    private static void AddField(Grid parent, string label, out TextBox box, double value, int column)
+    {
+        var panel = new StackPanel { Margin = new Thickness(column == 0 ? 0 : 8, 0, 0, 0) };
+        AddLabel(panel, label);
         box = new TextBox
         {
             Text = value.ToString("0.##", CultureInfo.InvariantCulture),
-            Height = 30,
-            Padding = new Thickness(7, 4, 7, 4),
-            Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
-            Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124)),
-            CaretBrush = Brushes.White
+            Height = 30, Padding = new Thickness(7, 4, 7, 4),
+            Background = InputBackground(), Foreground = Brushes.White,
+            BorderBrush = InputBorder(), CaretBrush = Brushes.White
         };
-        parent.Children.Add(box);
+        panel.Children.Add(box);
+        Grid.SetColumn(panel, column);
+        parent.Children.Add(panel);
+    }
+
+    private static ComboBox MakeCombo(Panel parent, IEnumerable<string> values)
+    {
+        var combo = new ComboBox
+        {
+            Height = 30, Background = InputBackground(), Foreground = Brushes.White,
+            BorderBrush = InputBorder()
+        };
+        ApplyDarkComboBoxItems(combo);
+        foreach (var value in values) combo.Items.Add(value);
+        parent.Children.Add(combo);
+        return combo;
+    }
+
+    private static ComboBox MakePaletteCombo(Panel parent, string selected)
+    {
+        var combo = new ComboBox
+        {
+            Height = 30, Background = InputBackground(), Foreground = Brushes.White,
+            BorderBrush = InputBorder(), DisplayMemberPath = "Name",
+            SelectedValuePath = "Value"
+        };
+        ApplyDarkComboBoxItems(combo);
+        foreach (var item in Palette)
+            combo.Items.Add(new PaletteItem(item.Name, item.Value));
+        combo.SelectedValue = Palette.Any(item => item.Value.Equals(selected, StringComparison.OrdinalIgnoreCase))
+            ? selected : Palette[1].Value;
+        parent.Children.Add(combo);
+        return combo;
+    }
+
+    private static string SelectedColor(ComboBox combo, string fallback) =>
+        combo.SelectedValue as string ?? fallback;
+
+    private static Brush PaletteBrush(ComboBox combo)
+    {
+        var value = combo.SelectedValue as string ?? "#FFFFFFFF";
+        try { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(value)); }
+        catch { return Brushes.Transparent; }
+    }
+
+    private static string NormalizeFont(string value) =>
+        new[] { "Arial", "Segoe UI", "Consolas", "Verdana" }
+            .FirstOrDefault(font => font.Equals(value, StringComparison.OrdinalIgnoreCase)) ?? "Arial";
+
+    private static bool TryNumber(string value, out double number) =>
+        double.TryParse(value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out number);
+
+    private sealed record PaletteItem(string Name, string Value)
+    {
+        public override string ToString() => Name;
+    }
+
+    private static void ApplyDarkComboBoxItems(ComboBox combo)
+    {
+        var itemStyle = new Style(typeof(ComboBoxItem));
+        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, InputBackground()));
+        itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
+        var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+        hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(65, 91, 120))));
+        itemStyle.Triggers.Add(hover);
+        var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
+        selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
+        itemStyle.Triggers.Add(selected);
+        combo.ItemContainerStyle = itemStyle;
+        combo.Resources[SystemColors.WindowBrushKey] = InputBackground();
+        combo.Resources[SystemColors.WindowTextBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.ControlTextBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
+        combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
     }
 }
 
