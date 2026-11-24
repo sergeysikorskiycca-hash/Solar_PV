@@ -139,40 +139,6 @@
             <Grid x:Name="DashboardContentGrid">
                 <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
 
-            <Grid x:Name="AnalogDashboard" Grid.Row="0" Visibility="Collapsed" Margin="0">
-                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                    <Canvas Width="1409" Height="937">
-                        <Image Source="pack://application:,,,/Screenshot_1.jpg" Width="1409" Height="937" Stretch="Fill"/>
-                        <TextBlock x:Name="AnalogInverterPower" Visibility="Collapsed"/>
-                        <TextBlock x:Name="AnalogInverterEnergy" Visibility="Collapsed"/>
-                        <Border Canvas.Left="1000" Canvas.Top="16" Width="390" Height="42" Background="#E6103155" BorderBrush="#8BC9F5" BorderThickness="1" CornerRadius="9" Padding="9,5">
-                            <TextBlock Text="Схема иллюстративная · показания на рисунке условные" Foreground="White" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" TextAlignment="Center"/>
-                        </Border>
-                        <Border Canvas.Left="40" Canvas.Top="566" Width="202" Height="49" Background="#F20B2B4B" BorderBrush="#7DBBE8" BorderThickness="1" CornerRadius="5" Padding="5,3">
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                <StackPanel><TextBlock Text="НАПРЯЖЕНИЕ" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv1Voltage" Text="— В" Foreground="White" FontSize="15" FontWeight="Bold"/></StackPanel>
-                                <StackPanel Grid.Column="1"><TextBlock Text="ТОК" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv1Current" Text="— А" Foreground="White" FontSize="15" FontWeight="Bold"/></StackPanel>
-                                <StackPanel Grid.Column="2"><TextBlock Text="МОЩНОСТЬ" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv1Power" Text="— Вт" Foreground="#FFD34E" FontSize="15" FontWeight="Bold"/></StackPanel>
-                            </Grid>
-                        </Border>
-                        <Border Canvas.Left="291" Canvas.Top="566" Width="202" Height="49" Background="#F20B2B4B" BorderBrush="#7DBBE8" BorderThickness="1" CornerRadius="5" Padding="5,3">
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                <StackPanel><TextBlock Text="НАПРЯЖЕНИЕ" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv2Voltage" Text="— В" Foreground="White" FontSize="15" FontWeight="Bold"/></StackPanel>
-                                <StackPanel Grid.Column="1"><TextBlock Text="ТОК" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv2Current" Text="— А" Foreground="White" FontSize="15" FontWeight="Bold"/></StackPanel>
-                                <StackPanel Grid.Column="2"><TextBlock Text="МОЩНОСТЬ" Foreground="#BBDCF3" FontSize="9"/><TextBlock x:Name="AnalogPv2Power" Text="— Вт" Foreground="#FFD34E" FontSize="15" FontWeight="Bold"/></StackPanel>
-                            </Grid>
-                        </Border>
-                        <Border Canvas.Left="40" Canvas.Top="619" Width="202" Height="27" Background="#E60B2B4B" CornerRadius="4" Padding="6,3">
-                            <TextBlock x:Name="AnalogPv1Energy" Text="Энергия: — кВт·ч" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
-                        </Border>
-                        <Border Canvas.Left="291" Canvas.Top="619" Width="202" Height="27" Background="#E60B2B4B" CornerRadius="4" Padding="6,3">
-                            <TextBlock x:Name="AnalogPv2Energy" Text="Энергия: — кВт·ч" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
-                        </Border>
-                    </Canvas>
-                </Viewbox>
-            </Grid>
             <Grid x:Name="EnergyMapDashboard" Grid.Row="0" Visibility="Collapsed" Margin="0">
                 <Viewbox Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <Canvas Width="1409" Height="905">
