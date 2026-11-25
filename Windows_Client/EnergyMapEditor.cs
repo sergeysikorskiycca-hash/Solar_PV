@@ -308,15 +308,6 @@ internal sealed class EnergyMapEditorWindow : Window
         combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
         combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
 
-        // Отдельно задаём оформление текста выбранного значения в закрытом ComboBox.
-        combo.Resources[typeof(TextBlock)] = new Style(typeof(TextBlock))
-        {
-            Setters =
-            {
-                new Setter(TextBlock.ForegroundProperty, new SolidColorBrush(Color.FromRgb(244, 247, 251))),
-                new Setter(TextBlock.BackgroundProperty, InputBackground())
-            }
-        };
     }
 
     private static Button MakeButton(string text) => new()
@@ -864,6 +855,15 @@ internal sealed class EnergyMapPropertiesDialog : Window
         combo.Resources[SystemColors.ControlTextBrushKey] = new SolidColorBrush(Color.FromRgb(244, 247, 251));
         combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
         combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
+
+        // Цвет текста выбранного значения в закрытом ComboBox.
+        combo.Resources[typeof(TextBlock)] = new Style(typeof(TextBlock))
+        {
+            Setters =
+            {
+                new Setter(TextBlock.ForegroundProperty, new SolidColorBrush(Color.FromRgb(244, 247, 251)))
+            }
+        };
     }
 }
 
