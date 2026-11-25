@@ -833,9 +833,10 @@ internal sealed class EnergyMapPropertiesDialog : Window
 
     private static void ApplyDarkComboBoxItems(ComboBox combo)
     {
+        // Тёмный фон списка сочетается со светлым текстом, заданным глобальной темой.
         var itemStyle = new Style(typeof(ComboBoxItem));
-        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(23, 32, 45))));
-        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.White));
+        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(244, 247, 251))));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, InputBackground()));
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
@@ -847,18 +848,13 @@ internal sealed class EnergyMapPropertiesDialog : Window
         itemStyle.Triggers.Add(selected);
         combo.ItemContainerStyle = itemStyle;
 
-        // App.xaml задаёт глобальный Foreground для TextBlock. Локальный стиль
-        // позволяет тексту наследовать цвет от ComboBox/ComboBoxItem:
-        // выбранное значение остаётся светлым, пункты списка — тёмными.
-        combo.Resources[typeof(TextBlock)] = new Style(typeof(TextBlock));
-        combo.Resources[SystemColors.WindowBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.WindowTextBrushKey] = new SolidColorBrush(Color.FromRgb(23, 32, 45));
-        combo.Resources[SystemColors.ControlBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.ControlTextBrushKey] = new SolidColorBrush(Color.FromRgb(23, 32, 45));
+        combo.Resources[SystemColors.WindowBrushKey] = InputBackground();
+        combo.Resources[SystemColors.WindowTextBrushKey] = new SolidColorBrush(Color.FromRgb(244, 247, 251));
+        combo.Resources[SystemColors.ControlBrushKey] = InputBackground();
+        combo.Resources[SystemColors.ControlTextBrushKey] = new SolidColorBrush(Color.FromRgb(244, 247, 251));
         combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
         combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
-    }
-}
+    }}
 
 internal sealed class EnergyMapObjectPropertiesDialog : Window
 {
