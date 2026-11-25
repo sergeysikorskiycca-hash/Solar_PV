@@ -562,6 +562,19 @@ internal sealed class EnergyMapPropertiesDialog : Window
 
         AddLabel(fields, "Шрифт");
         _fontBox = MakeCombo(fields, new[] { "Arial", "Segoe UI", "Consolas", "Verdana" });
+        _fontBox.IsEditable = true;
+        _fontBox.IsReadOnly = true;
+        _fontBox.Resources[typeof(TextBox)] = new Style(typeof(TextBox))
+        {
+            Setters =
+            {
+                new Setter(Control.BackgroundProperty, InputBackground()),
+                new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(244, 247, 251))),
+                new Setter(Control.BorderThicknessProperty, new Thickness(0)),
+                new Setter(Control.PaddingProperty, new Thickness(7, 4, 7, 4)),
+                new Setter(Control.VerticalContentAlignmentProperty, VerticalAlignment.Center)
+            }
+        };
         _fontBox.SelectedItem = NormalizeFont(element.FontFamily);
 
         _boldBox = new CheckBox
