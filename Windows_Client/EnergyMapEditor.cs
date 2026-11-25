@@ -296,6 +296,11 @@ internal sealed class EnergyMapEditorWindow : Window
         itemStyle.Triggers.Add(selected);
         combo.ItemContainerStyle = itemStyle;
 
+        // App.xaml задаёт глобальный Foreground для TextBlock. Локальный стиль
+        // позволяет тексту наследовать цвет от ComboBox/ComboBoxItem:
+        // выбранное значение остаётся светлым, пункты списка — тёмными.
+        combo.Resources[typeof(TextBlock)] = new Style(typeof(TextBlock));
+
         combo.Resources[SystemColors.WindowBrushKey] = Brushes.White;
         combo.Resources[SystemColors.WindowTextBrushKey] = new SolidColorBrush(Color.FromRgb(23, 32, 45));
         combo.Resources[SystemColors.ControlBrushKey] = Brushes.White;
@@ -841,6 +846,11 @@ internal sealed class EnergyMapPropertiesDialog : Window
         selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
         itemStyle.Triggers.Add(selected);
         combo.ItemContainerStyle = itemStyle;
+
+        // App.xaml задаёт глобальный Foreground для TextBlock. Локальный стиль
+        // позволяет тексту наследовать цвет от ComboBox/ComboBoxItem:
+        // выбранное значение остаётся светлым, пункты списка — тёмными.
+        combo.Resources[typeof(TextBlock)] = new Style(typeof(TextBlock));
         combo.Resources[SystemColors.WindowBrushKey] = Brushes.White;
         combo.Resources[SystemColors.WindowTextBrushKey] = new SolidColorBrush(Color.FromRgb(23, 32, 45));
         combo.Resources[SystemColors.ControlBrushKey] = Brushes.White;
