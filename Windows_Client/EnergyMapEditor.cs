@@ -854,7 +854,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
         combo.Resources[SystemColors.ControlTextBrushKey] = new SolidColorBrush(Color.FromRgb(244, 247, 251));
         combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
         combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
-    }}
+    }
+}
 
 internal sealed class EnergyMapObjectPropertiesDialog : Window
 {
