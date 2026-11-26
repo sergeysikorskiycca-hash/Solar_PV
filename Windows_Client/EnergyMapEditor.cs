@@ -157,6 +157,125 @@ internal static class EnergyMapSvgDocument
 
 internal static class EnergyMapEditorSystemTheme
 {
+
+    public static MessageBoxResult ShowMessage(Window? owner, string message, string caption,
+        MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage image = MessageBoxImage.None)
+    {
+        var dialog = new Window
+        {
+            Title = caption,
+            Width = 480,
+            MinWidth = 380,
+            MaxWidth = 720,
+            SizeToContent = SizeToContent.Height,
+            MinHeight = 170,
+            ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = owner is null ? WindowStartupLocation.CenterScreen : WindowStartupLocation.CenterOwner,
+            Owner = owner,
+            ShowInTaskbar = false
+        };
+
+        var root = new DockPanel { Margin = new Thickness(20) };
+        var buttonsPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 18, 0, 0)
+        };
+        DockPanel.SetDock(buttonsPanel, Dock.Bottom);
+
+        var messageRow = new StackPanel { Orientation = Orientation.Horizontal };
+        var glyph = image switch
+        {
+            MessageBoxImage.Warning => "⚠",
+            MessageBoxImage.Error => "✖",
+            MessageBoxImage.Question => "?",
+            MessageBoxImage.Information => "ℹ",
+            _ => ""
+        };
+        if (glyph.Length > 0)
+            messageRow.Children.Add(new TextBlock
+            {
+                Text = glyph,
+                FontSize = 22,
+                Margin = new Thickness(0, 0, 14, 0),
+                VerticalAlignment = VerticalAlignment.Top,
+                Foreground = Brushes.White
+            });
+        messageRow.Children.Add(new TextBlock
+        {
+            Text = message,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 620,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = Brushes.White
+        });
+
+        var choices = buttons switch
+        {
+            MessageBoxButton.OKCancel => new[]
+            {
+                (MessageBoxResult.OK, "ОК", true, false),
+                (MessageBoxResult.Cancel, "Отмена", false, true)
+            },
+            MessageBoxButton.YesNo => new[]
+            {
+                (MessageBoxResult.Yes, "Да", true, false),
+                (MessageBoxResult.No, "Нет", false, false)
+            },
+            MessageBoxButton.YesNoCancel => new[]
+            {
+                (MessageBoxResult.Yes, "Да", true, false),
+                (MessageBoxResult.No, "Нет", false, false),
+                (MessageBoxResult.Cancel, "Отмена", false, true)
+            },
+            MessageBoxButton.RetryCancel => new[]
+            {
+                (MessageBoxResult.Retry, "Повторить", true, false),
+                (MessageBoxResult.Cancel, "Отмена", false, true)
+            },
+            _ => new[]
+            {
+                (MessageBoxResult.OK, "ОК", true, false)
+            }
+        };
+
+        var result = MessageBoxResult.None;
+        foreach (var choice in choices)
+        {
+            var button = new Button
+            {
+                Content = choice.Item2,
+                MinWidth = 88,
+                Padding = new Thickness(14, 7, 14, 7),
+                Margin = new Thickness(8, 0, 0, 0),
+                Tag = choice.Item3 ? "SystemPrimaryButton" : null,
+                IsDefault = choice.Item3,
+                IsCancel = choice.Item4
+            };
+            button.Click += (_, _) =>
+            {
+                result = choice.Item1;
+                dialog.DialogResult = true;
+            };
+            buttonsPanel.Children.Add(button);
+        }
+
+        root.Children.Add(buttonsPanel);
+        root.Children.Add(messageRow);
+        dialog.Content = root;
+        dialog.Loaded += (_, _) => Apply(dialog);
+        dialog.Closed += (_, _) =>
+        {
+            if (result == MessageBoxResult.None)
+                result = buttons == MessageBoxButton.YesNo ? MessageBoxResult.No : MessageBoxResult.Cancel;
+        };
+        dialog.ShowDialog();
+        return result == MessageBoxResult.None
+            ? buttons == MessageBoxButton.YesNo ? MessageBoxResult.No : MessageBoxResult.Cancel
+            : result;
+    }
+
     private static readonly Brush DefaultSurfaceBrush = new SolidColorBrush(Color.FromRgb(58, 58, 58));
 
     public static void Apply(Window window, params DependencyObject[] excluded)
@@ -582,7 +701,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         delete.Background = new SolidColorBrush(Color.FromRgb(150, 48, 55));
         delete.Click += (_, _) =>
         {
-            var result = MessageBox.Show(this,
+            var result = EnergyMapEditorSystemTheme.ShowMessage(this,
                 "Удалить выбранный информационный блок со схемы? Это действие нельзя отменить.",
                 "Удаление объекта", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes) return;
@@ -753,7 +872,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
                 !TryNumber(_fontSizeBox.Text, out var fontSize) || fontSize < 6 || fontSize > 160 ||
                 !TryNumber(borderWidthBox.Text, out var borderWidth) || borderWidth < 0 || borderWidth > 20)
             {
-                MessageBox.Show(this, "Проверьте размеры, размер шрифта и толщину рамки. Значения должны быть в допустимом диапазоне.",
+                EnergyMapEditorSystemTheme.ShowMessage(this, "Проверьте размеры, размер шрифта и толщину рамки. Значения должны быть в допустимом диапазоне.",
                     "Свойства блока", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
