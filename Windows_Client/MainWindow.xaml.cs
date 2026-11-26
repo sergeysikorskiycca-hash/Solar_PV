@@ -1328,14 +1328,34 @@ public partial class MainWindow : Window
         {
             var selected = pair.Key == _selectedEnergyMapObjectId;
             var element = _energyMapElements.FirstOrDefault(candidate => candidate.Id == pair.Key);
-            pair.Value.BorderBrush = selected || _energyMapEditMode
-                ? new SolidColorBrush(Color.FromRgb(245, 185, 66))
-                : element is not null ? EnergyMapBrush(element.BorderColor, Brushes.Transparent) : Brushes.Transparent;
-            pair.Value.BorderThickness = selected || _energyMapEditMode
-                ? new Thickness(Math.Max(1.5, element?.BorderWidth ?? 0))
-                : element is not null && element.BorderWidth > 0
+            var item = pair.Value;
+
+            if (_energyMapEditMode)
+            {
+                // В режиме перемещения оставляем заметную рамку режима редактирования.
+                item.BorderBrush = new SolidColorBrush(Color.FromRgb(245, 185, 66));
+                item.BorderThickness = new Thickness(Math.Max(1.5, element?.BorderWidth ?? 0));
+                item.Effect = null;
+            }
+            else
+            {
+                // Выделение больше не подменяет пользовательские цвет и толщину рамки.
+                item.BorderBrush = element is not null
+                    ? EnergyMapBrush(element.BorderColor, Brushes.Transparent)
+                    : Brushes.Transparent;
+                item.BorderThickness = element is not null && element.BorderWidth > 0
                     ? new Thickness(element.BorderWidth)
                     : new Thickness(0);
+                item.Effect = selected
+                    ? new System.Windows.Media.Effects.DropShadowEffect
+                    {
+                        Color = Color.FromRgb(245, 185, 66),
+                        BlurRadius = 10,
+                        ShadowDepth = 0,
+                        Opacity = 0.9
+                    }
+                    : null;
+            }
         }
     }
 
