@@ -42,6 +42,9 @@ public partial class MainWindow : Window
     private readonly Dictionary<DependencyObject, Brush> _systemOriginalBackgrounds = new();
     private readonly Dictionary<DependencyObject, Brush> _systemOriginalForegrounds = new();
     private readonly Dictionary<DependencyObject, Brush> _systemOriginalBorderBrushes = new();
+    private readonly Dictionary<DependencyObject, Brush> _systemOriginalTextBlockBackgrounds = new();
+    private readonly Dictionary<DependencyObject, Brush> _systemOriginalShapeFills = new();
+    private readonly Dictionary<DependencyObject, Brush> _systemOriginalShapeStrokes = new();
 
     public MainWindow()
     {
@@ -804,6 +807,26 @@ public partial class MainWindow : Window
                         _systemOriginalForegrounds[textBlock] = currentTextForeground;
                     if (_systemOriginalForegrounds.TryGetValue(textBlock, out var originalTextForeground))
                         textBlock.Foreground = ConvertBrush(originalTextForeground);
+
+                    if (textBlock.Background is SolidColorBrush currentTextBackground &&
+                        !_systemOriginalTextBlockBackgrounds.ContainsKey(textBlock))
+                        _systemOriginalTextBlockBackgrounds[textBlock] = currentTextBackground;
+                    if (_systemOriginalTextBlockBackgrounds.TryGetValue(textBlock, out var originalTextBackground))
+                        textBlock.Background = ConvertBrush(originalTextBackground);
+                }
+                if (child is System.Windows.Shapes.Shape shape)
+                {
+                    if (shape.Fill is SolidColorBrush currentFill &&
+                        !_systemOriginalShapeFills.ContainsKey(shape))
+                        _systemOriginalShapeFills[shape] = currentFill;
+                    if (_systemOriginalShapeFills.TryGetValue(shape, out var originalFill))
+                        shape.Fill = ConvertBrush(originalFill);
+
+                    if (shape.Stroke is SolidColorBrush currentStroke &&
+                        !_systemOriginalShapeStrokes.ContainsKey(shape))
+                        _systemOriginalShapeStrokes[shape] = currentStroke;
+                    if (_systemOriginalShapeStrokes.TryGetValue(shape, out var originalStroke))
+                        shape.Stroke = ConvertBrush(originalStroke);
                 }
                 if (child is System.Windows.Controls.Panel panel)
                 {
@@ -848,6 +871,13 @@ public partial class MainWindow : Window
         _activePalette = palette;
         ClientSettings.SaveTheme(theme);
         ApplyDesign(_activeDesign);
+
+        // ApplyDesign adjusts card borders and the window background; apply user color
+        // overrides once more so the selected system colors take precedence immediately.
+        TitleBarGrid.Background = PaletteBrush(StyleColor("background|titlebar", "#17263A"));
+        MainMenu.Background = PaletteBrush(StyleColor("background|menu", palette[7]));
+        Visit(this);
+
         ApplyStyleOverrides();
     }
 
