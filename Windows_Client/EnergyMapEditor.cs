@@ -284,7 +284,7 @@ internal sealed class EnergyMapEditorWindow : Window
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         _list.DisplayMemberPath = "Text";
         _list.Background = new SolidColorBrush(Color.FromRgb(58, 58, 58));
-        _list.Foreground = new SolidColorBrush(Color.FromRgb(240, 245, 250));
+        _list.Foreground = Brushes.White;
         _list.BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124));
         var listItemStyle = new Style(typeof(ListBoxItem));
         listItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.Transparent));
@@ -384,13 +384,13 @@ internal sealed class EnergyMapEditorWindow : Window
 
     private void AddField(Panel parent, string label, string key)
     {
-        parent.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 8, 0, 4), Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228)) });
+        parent.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 8, 0, 4), Foreground = Brushes.White });
         var box = new TextBox
         {
             Height = 30,
             Padding = new Thickness(7, 4, 7, 4),
             Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
-            Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
+            Foreground = Brushes.White,
             BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124)),
             CaretBrush = Brushes.White,
             SelectionBrush = new SolidColorBrush(Color.FromRgb(65, 112, 158))
@@ -631,7 +631,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
             Setters =
             {
                 new Setter(Control.BackgroundProperty, InputBackground()),
-                new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(244, 247, 251))),
+                new Setter(Control.ForegroundProperty, Brushes.White),
                 new Setter(Control.BorderThicknessProperty, new Thickness(0)),
                 new Setter(Control.PaddingProperty, new Thickness(7, 4, 7, 4)),
                 new Setter(Control.VerticalContentAlignmentProperty, VerticalAlignment.Center)
@@ -836,7 +836,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         parent.Children.Add(new TextBlock
         {
             Text = label, Margin = new Thickness(0, 8, 0, 4),
-            Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228))
+            Foreground = Brushes.White
         });
 
     private static void AddField(Grid parent, string label, out TextBox box, double value, int column)
@@ -912,7 +912,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
     {
         // Тёмный фон списка сочетается со светлым текстом, заданным глобальной темой.
         var itemStyle = new Style(typeof(ComboBoxItem));
-        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(244, 247, 251))));
+        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
         itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, InputBackground()));
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
@@ -926,9 +926,9 @@ internal sealed class EnergyMapPropertiesDialog : Window
         combo.ItemContainerStyle = itemStyle;
 
         combo.Resources[SystemColors.WindowBrushKey] = InputBackground();
-        combo.Resources[SystemColors.WindowTextBrushKey] = new SolidColorBrush(Color.FromRgb(244, 247, 251));
+        combo.Resources[SystemColors.WindowTextBrushKey] = Brushes.White;
         combo.Resources[SystemColors.ControlBrushKey] = InputBackground();
-        combo.Resources[SystemColors.ControlTextBrushKey] = new SolidColorBrush(Color.FromRgb(244, 247, 251));
+        combo.Resources[SystemColors.ControlTextBrushKey] = Brushes.White;
         combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(58, 58, 58));
         combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
 
@@ -937,7 +937,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         {
             Setters =
             {
-                new Setter(TextBlock.ForegroundProperty, new SolidColorBrush(Color.FromRgb(244, 247, 251)))
+                new Setter(TextBlock.ForegroundProperty, Brushes.White)
             }
         };
     }
@@ -1005,7 +1005,7 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
         {
             Text = "Ключ привязки к датчикам / функциям",
             Margin = new Thickness(0, 4, 0, 5),
-            Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228))
+            Foreground = Brushes.White
         });
         _bindingBox = new TextBox
         {
@@ -1013,7 +1013,7 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
             Height = 32,
             Padding = new Thickness(7, 5, 7, 5),
             Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
-            Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
+            Foreground = Brushes.White,
             BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124)),
             CaretBrush = Brushes.White
         };
@@ -1023,7 +1023,7 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
             Text = "Поле сохраняет идентификатор привязки. Подключение к датчикам и выполнение функций будут реализованы отдельно.",
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 12, 0, 0),
-            Foreground = new SolidColorBrush(Color.FromRgb(150, 174, 197))
+            Foreground = Brushes.White
         });
         root.Children.Add(fields);
         Content = root;
@@ -1092,7 +1092,7 @@ internal sealed class EnergyMapTextDialog : Window
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Padding = new Thickness(9),
             Background = new SolidColorBrush(Color.FromRgb(36, 54, 74)),
-            Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251)),
+            Foreground = Brushes.White,
             BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124)),
             CaretBrush = Brushes.White,
             SelectionBrush = new SolidColorBrush(Color.FromRgb(65, 112, 158))
