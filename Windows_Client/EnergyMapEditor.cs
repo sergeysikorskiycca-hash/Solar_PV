@@ -165,10 +165,12 @@ internal static class EnergyMapEditorSystemTheme
         var textBrush = Resource("SystemPrimaryTextBrush");
         var inputTextBrush = Resource("SystemInputTextBrush");
         var buttonTextBrush = Resource("SystemButtonTextBrush");
+        var primaryButtonTextBrush = Resource("SystemPrimaryButtonTextBrush");
         var surfaceBrush = Resource("SystemSurfaceBackgroundBrush");
         var dialogBrush = Resource("SystemDialogBackgroundBrush");
         var inputBrush = Resource("SystemInputBackgroundBrush");
         var buttonBrush = Resource("SystemButtonBackgroundBrush");
+        var primaryButtonBrush = Resource("SystemPrimaryButtonBackgroundBrush");
 
         window.Background = dialogBrush;
         window.Foreground = textBrush;
@@ -178,8 +180,11 @@ internal static class EnergyMapEditorSystemTheme
             if (skip.Contains(parent)) return;
             if (parent is Button button)
             {
-                button.Foreground = buttonTextBrush;
-                button.Background = buttonBrush;
+                var isPrimary = string.Equals(button.Tag?.ToString(), "SystemPrimaryButton", StringComparison.Ordinal) ||
+                    button.Background is SolidColorBrush originalButtonBrush &&
+                    originalButtonBrush.Color == Color.FromRgb(245, 185, 66);
+                button.Foreground = isPrimary ? primaryButtonTextBrush : buttonTextBrush;
+                button.Background = isPrimary ? primaryButtonBrush : buttonBrush;
             }
             else if (parent is TextBox or PasswordBox or ComboBox or ComboBoxItem)
             {
