@@ -557,15 +557,8 @@ public partial class MainWindow : Window
         }
         Visit(this);
 
-        var topMetricsTextColor = palette[2];
-        void ApplyTopMetricsTextColor(DependencyObject parent)
-        {
-            if (parent is System.Windows.Controls.TextBlock textBlock)
-                textBlock.Foreground = PaletteBrush(topMetricsTextColor);
-            for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
-                ApplyTopMetricsTextColor(System.Windows.Media.VisualTreeHelper.GetChild(parent, i));
-        }
-        ApplyTopMetricsTextColor(TopMetricsGrid);
+        Resources["SystemButtonHoverBrush"] = PaletteBrush(buttonHoverBackground);
+        Resources["SystemButtonPressedBrush"] = PaletteBrush(buttonPressedBackground);
 
         _activePalette = palette;
         ClientSettings.SaveTheme(theme);
