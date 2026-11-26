@@ -663,13 +663,9 @@ public partial class MainWindow : Window
             ["#FFE8EEF7"] = palette[2], ["#FF8FA2BA"] = palette[3],
             ["#FFF5B942"] = palette[4], ["#FF17202D"] = palette[0],
             ["#FF17263A"] = palette[7], ["#FF30445E"] = palette[6],
-            ["#FF26384D"] = palette[7], ["#FF405875"] = palette[6],
+            ["#FF26384D"] = buttonBackground, ["#FF405875"] = buttonPressedBackground,
             ["#FF1A2B3E"] = palette[1],
-            ["#FF26384D"] = buttonBackground,
             ["#FF31445E"] = buttonHoverBackground,
-            ["#FF405875"] = buttonPressedBackground,
-            ["#FF17263A"] = palette[7],
-            ["#FF17202D"] = menuSelectedTextColor,
             ["#FFDCE6F2"] = menuSelectedBackground,
             ["#FFF4F7FB"] = menuTextColor,
             ["#FFAAB4C0"] = disabledTextColor
@@ -715,6 +711,20 @@ public partial class MainWindow : Window
         Application.Current.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
         MainMenu.ItemContainerStyle = menuItemStyle;
 
+        var listItemStyle = new Style(typeof(System.Windows.Controls.ListBoxItem));
+        listItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(palette[2])));
+        var selectedItem = new Trigger
+        {
+            Property = System.Windows.Controls.ListBoxItem.IsSelectedProperty,
+            Value = true
+        };
+        selectedItem.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,
+            PaletteBrush(StyleColor("background|selection", "#DCE6F2"))));
+        selectedItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
+            PaletteBrush(StyleColor("text|selection", "#17202D"))));
+        listItemStyle.Triggers.Add(selectedItem);
+        Application.Current.Resources[typeof(System.Windows.Controls.ListBoxItem)] = listItemStyle;
+
         void ApplyMenuItemStyle(System.Windows.Controls.MenuItem item)
         {
             item.Style = menuItemStyle;
@@ -735,6 +745,19 @@ public partial class MainWindow : Window
                 {
                     if (control.Background is SolidColorBrush bg) control.Background = ConvertBrush(bg);
                     if (control.Foreground is SolidColorBrush fg) control.Foreground = ConvertBrush(fg);
+
+                    if (control is System.Windows.Controls.TextBox or System.Windows.Controls.PasswordBox)
+                    {
+                        control.Background = PaletteBrush(inputBackground);
+                        control.Foreground = PaletteBrush(inputTextColor);
+                    }
+                    else if (control is System.Windows.Controls.Button button &&
+                             button.Foreground is SolidColorBrush buttonForeground &&
+                             (buttonForeground.Color.ToString() == "#FFE8EEF7" ||
+                              buttonForeground.Color.ToString() == "#FFF4F7FB"))
+                    {
+                        button.Foreground = PaletteBrush(buttonTextColor);
+                    }
                 }
                 if (child is System.Windows.Controls.TextBlock textBlock && textBlock.Foreground is SolidColorBrush textBrush)
                     textBlock.Foreground = ConvertBrush(textBrush);
