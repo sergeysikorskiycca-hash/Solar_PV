@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Solar_PV</AssemblyName>
     <RootNamespace>SolarPV.Client</RootNamespace>
-    <Version>0.3.62</Version>
+    <Version>0.3.63</Version>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
