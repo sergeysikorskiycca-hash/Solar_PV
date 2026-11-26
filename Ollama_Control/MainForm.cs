@@ -78,9 +78,7 @@ internal sealed class MainForm : Form
         top.Controls.Add(CopyableTextBox(105, 25).Also(x => x.Text = "Адрес Ollama:"));
         top.Controls.Add(address);
         top.Controls.Add(Btn("Проверить", RefreshAll));
-        top.Controls.Add(CopyableTextBox(180, 25).Also(x => x.Text = status.Text));
-        var statusField = top.Controls[top.Controls.Count - 1] as TextBox;
-        statusField!.DataBindings.Add("Text", status, "Text");
+        top.Controls.Add(status);
         root.Controls.Add(top);
 
         var actions = new FlowLayoutPanel
@@ -108,6 +106,7 @@ internal sealed class MainForm : Form
         mid.Controls.Add(CopyableTextBox(125, 25).Also(x => x.Text = "Модели в памяти:"));
         mid.Controls.Add(running);
         root.Controls.Add(mid);
+        log.Dock = DockStyle.Fill;
         root.Controls.Add(log);
     }
 
