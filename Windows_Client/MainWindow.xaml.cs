@@ -213,7 +213,7 @@ public partial class MainWindow : Window
     private void About_Click(object sender, RoutedEventArgs e)
     {
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
-        MessageBox.Show($"Solar_PV Desktop {version}\nКлиент мониторинга солнечной станции\nWindows 10 / 11",
+        EnergyMapEditorSystemTheme.ShowMessage(this, $"Solar_PV Desktop {version}\nКлиент мониторинга солнечной станции\nWindows 10 / 11",
             "О программе", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
@@ -468,12 +468,12 @@ public partial class MainWindow : Window
                     selectedName.Text = "Пользовательский цвет";
                 }
                 else
-                    MessageBox.Show(dialog, "Не удалось распознать цвет.", "Стиль",
+                    EnergyMapEditorSystemTheme.ShowMessage(dialog, "Не удалось распознать цвет.", "Стиль",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch
             {
-                MessageBox.Show(dialog, "Не удалось распознать цвет.", "Стиль",
+                EnergyMapEditorSystemTheme.ShowMessage(dialog, "Не удалось распознать цвет.", "Стиль",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         };
@@ -1412,7 +1412,7 @@ public partial class MainWindow : Window
         if (!Uri.TryCreate(raw, UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            MessageBox.Show("Введите адрес контроллера, например http://192.168.4.1", "Solar_PV",
+            EnergyMapEditorSystemTheme.ShowMessage(this, "Введите адрес контроллера, например http://192.168.4.1", "Solar_PV",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -1506,7 +1506,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Не удалось открыть журнал связи: " + ex.Message,
+            EnergyMapEditorSystemTheme.ShowMessage(this, "Не удалось открыть журнал связи: " + ex.Message,
                 "Solar_PV", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
