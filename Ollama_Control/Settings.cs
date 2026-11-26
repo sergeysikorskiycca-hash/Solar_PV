@@ -1,0 +1,25 @@
+using System.Text.Json;
+namespace OllamaControl;
+internal sealed class AppSettings
+{
+    public string ApiUrl { get; set; } = "http://localhost:11434";
+    public string KeepAlive { get; set; } = "24h";
+    public string TextPrimary { get; set; } = "#FFFFFF";
+    public string TextSecondary { get; set; } = "#D0D0D0";
+    public string WindowBackground { get; set; } = "#303030";
+    public string PanelBackground { get; set; } = "#383838";
+    public string InputBackground { get; set; } = "#252525";
+    public string ButtonBackground { get; set; } = "#454545";
+    public string LogBackground { get; set; } = "#202020";
+    private static string Dir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OllamaControl");
+    public static AppSettings Load()
+    {
+        try { var p=Path.Combine(Dir,"settings.json"); if(File.Exists(p)) return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(p)) ?? new(); } catch {}
+        return new();
+    }
+    public void Save()
+    {
+        Directory.CreateDirectory(Dir);
+        File.WriteAllText(Path.Combine(Dir,"settings.json"),JsonSerializer.Serialize(this,new JsonSerializerOptions{WriteIndented=true}));
+    }
+}
