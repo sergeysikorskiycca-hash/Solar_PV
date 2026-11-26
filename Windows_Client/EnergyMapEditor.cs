@@ -260,7 +260,7 @@ internal sealed class EnergyMapEditorWindow : Window
         listItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
         listItemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var listHover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        listHover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(41, 63, 88))));
+        listHover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
         listItemStyle.Triggers.Add(listHover);
         var listSelected = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
         listSelected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
@@ -314,8 +314,8 @@ internal sealed class EnergyMapEditorWindow : Window
     private static void ApplyDarkComboBoxItems(ComboBox combo)
     {
         var itemStyle = new Style(typeof(ComboBoxItem));
-        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(23, 32, 45))));
-        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.White));
+        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(58, 58, 58))));
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
@@ -323,20 +323,20 @@ internal sealed class EnergyMapEditorWindow : Window
         itemStyle.Triggers.Add(hover);
         var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
         selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
+        selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(58, 58, 58))));
         itemStyle.Triggers.Add(selected);
         combo.ItemContainerStyle = itemStyle;
 
         // App.xaml задаёт глобальный Foreground для TextBlock. Локальный стиль
         // позволяет тексту наследовать цвет от ComboBox/ComboBoxItem:
-        // выбранное значение остаётся светлым, пункты списка — тёмными.
+        // выбранное значение остаётся светлым, пункты списка — светлыми.
         combo.Resources[typeof(TextBlock)] = new Style(typeof(TextBlock));
 
-        combo.Resources[SystemColors.WindowBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.WindowTextBrushKey] = new SolidColorBrush(Color.FromRgb(23, 32, 45));
-        combo.Resources[SystemColors.ControlBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.ControlTextBrushKey] = new SolidColorBrush(Color.FromRgb(23, 32, 45));
-        combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
+        combo.Resources[SystemColors.WindowBrushKey] = new SolidColorBrush(Color.FromRgb(58, 58, 58));
+        combo.Resources[SystemColors.WindowTextBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.ControlBrushKey] = new SolidColorBrush(Color.FromRgb(58, 58, 58));
+        combo.Resources[SystemColors.ControlTextBrushKey] = Brushes.White;
+        combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(58, 58, 58));
         combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
 
     }
@@ -792,7 +792,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
             ? new SolidColorBrush(Color.FromRgb(245, 185, 66))
             : new SolidColorBrush(Color.FromRgb(38, 56, 77)),
         Foreground = primary
-            ? new SolidColorBrush(Color.FromRgb(23, 32, 45))
+            ? Brushes.White
             : Brushes.White,
         BorderThickness = new Thickness(0),
         FontWeight = primary ? FontWeights.Bold : FontWeights.Normal
@@ -886,11 +886,11 @@ internal sealed class EnergyMapPropertiesDialog : Window
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(65, 91, 120))));
+        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
         itemStyle.Triggers.Add(hover);
         var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
         selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
+        selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(58, 58, 58))));
         itemStyle.Triggers.Add(selected);
         combo.ItemContainerStyle = itemStyle;
 
@@ -898,7 +898,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         combo.Resources[SystemColors.WindowTextBrushKey] = new SolidColorBrush(Color.FromRgb(244, 247, 251));
         combo.Resources[SystemColors.ControlBrushKey] = InputBackground();
         combo.Resources[SystemColors.ControlTextBrushKey] = new SolidColorBrush(Color.FromRgb(244, 247, 251));
-        combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(54, 81, 110));
+        combo.Resources[SystemColors.HighlightBrushKey] = new SolidColorBrush(Color.FromRgb(58, 58, 58));
         combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
 
         // Цвет текста выбранного значения в закрытом ComboBox.
@@ -955,7 +955,7 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
             Content = "Сохранить",
             Padding = new Thickness(14, 7, 14, 7),
             Background = new SolidColorBrush(Color.FromRgb(245, 185, 66)),
-            Foreground = new SolidColorBrush(Color.FromRgb(23, 32, 45)),
+            Foreground = Brushes.White,
             BorderThickness = new Thickness(0),
             FontWeight = FontWeights.Bold,
             IsDefault = true
@@ -1043,7 +1043,7 @@ internal sealed class EnergyMapTextDialog : Window
             Content = "Сохранить",
             Padding = new Thickness(14, 7, 14, 7),
             Background = new SolidColorBrush(Color.FromRgb(245, 185, 66)),
-            Foreground = new SolidColorBrush(Color.FromRgb(23, 32, 45)),
+            Foreground = Brushes.White,
             BorderThickness = new Thickness(0),
             FontWeight = FontWeights.Bold,
             IsDefault = true
