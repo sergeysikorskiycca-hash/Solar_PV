@@ -620,8 +620,9 @@ internal sealed class EnergyMapPropertiesDialog : Window
 {
     private readonly TextBox _widthBox;
     private readonly TextBox _heightBox;
-    private readonly TextBox? _textBox;
+    private readonly TextBox _textBox;
     private readonly TextBox _fontSizeBox;
+    private readonly TextBox _borderWidthBox;
     private readonly TextBox _accentTextBox;
     private readonly ComboBox _dataSourceBox;
     private readonly ComboBox _backgroundBox;
@@ -718,18 +719,15 @@ internal sealed class EnergyMapPropertiesDialog : Window
         AddField(sizeRow, "Высота", out _heightBox, element.Height, 1);
         fields.Children.Add(sizeRow);
 
-        if (element.Kind == "Text")
+        AddLabel(fields, element.Kind == "Text" ? "Текст" : "Текст / шаблон значения");
+        _textBox = new TextBox
         {
-            AddLabel(fields, "Текст");
-            _textBox = new TextBox
-            {
-                Text = element.Text, Height = 58, AcceptsReturn = true,
-                TextWrapping = TextWrapping.Wrap, Padding = new Thickness(7),
-                Background = InputBackground(), Foreground = Brushes.White,
-                BorderBrush = InputBorder(), CaretBrush = Brushes.White
-            };
-            fields.Children.Add(_textBox);
-        }
+            Text = element.Text, Height = 58, AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap, Padding = new Thickness(7),
+            Background = InputBackground(), Foreground = Brushes.White,
+            BorderBrush = InputBorder(), CaretBrush = Brushes.White
+        };
+        fields.Children.Add(_textBox);
 
         AddLabel(fields, "Размер текста");
         _fontSizeBox = new TextBox
@@ -756,7 +754,9 @@ internal sealed class EnergyMapPropertiesDialog : Window
                 new Setter(Control.VerticalContentAlignmentProperty, VerticalAlignment.Center)
             }
         };
-        _fontBox.SelectedItem = NormalizeFont(element.FontFamily);
+        var selectedFont = string.IsNullOrWhiteSpace(element.FontFamily) ? "Arial" : element.FontFamily;
+        if (!_fontBox.Items.Contains(selectedFont)) _fontBox.Items.Add(selectedFont);
+        _fontBox.SelectedItem = selectedFont;
 
         _boldBox = new CheckBox
         {
@@ -783,14 +783,14 @@ internal sealed class EnergyMapPropertiesDialog : Window
             element.CornerRadius <= 7 ? 1 : element.CornerRadius <= 15 ? 2 : 3;
 
         AddLabel(fields, "Толщина рамки");
-        var borderWidthBox = new TextBox
+        _borderWidthBox = new TextBox
         {
             Text = element.BorderWidth.ToString("0.##", CultureInfo.InvariantCulture),
             Height = 30, Padding = new Thickness(7, 4, 7, 4),
             Background = InputBackground(), Foreground = Brushes.White,
             BorderBrush = InputBorder(), CaretBrush = Brushes.White
         };
-        fields.Children.Add(borderWidthBox);
+        fields.Children.Add(_borderWidthBox);
 
         save.Click += (_, _) => Save(element);
 
@@ -832,7 +832,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         foreach (var control in new Control[]
         {
             _fontSizeBox, _fontBox, _boldBox, _textColorBox, _backgroundBox,
-            _borderBox, _shapeBox, borderWidthBox, _accentTextBox, _accentColorBox
+            _borderBox, _shapeBox, _borderWidthBox, _accentTextBox, _accentColorBox
         })
         {
             if (control is TextBox tb) tb.TextChanged += (_, _) => UpdatePreview();
@@ -865,7 +865,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
             if (!TryNumber(_widthBox.Text, out var width) || width < 12 ||
                 !TryNumber(_heightBox.Text, out var height) || height < 12 ||
                 !TryNumber(_fontSizeBox.Text, out var fontSize) || fontSize < 6 || fontSize > 160 ||
-                !TryNumber(borderWidthBox.Text, out var borderWidth) || borderWidth < 0 || borderWidth > 20)
+                !TryNumber(_borderWidthBox.Text, out var borderWidth) || borderWidth < 0 || borderWidth > 20)
             {
                 EnergyMapEditorSystemTheme.ShowMessage(this, "Проверьте размеры, размер шрифта и толщину рамки. Значения должны быть в допустимом диапазоне.",
                     "Свойства блока", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -885,13 +885,13 @@ internal sealed class EnergyMapPropertiesDialog : Window
                 2 => 12,
                 _ => Math.Min(width, height) / 2
             };
-            ElementText = _textBox?.Text ?? source.Text;
+            ElementText = _textBox.Text;
             ElementBackground = SelectedColor(_backgroundBox, source.Background);
             ElementBorderColor = SelectedColor(_borderBox, source.BorderColor);
             ElementForeground = SelectedColor(_textColorBox, source.Foreground);
             ElementAccentText = _accentTextBox.Text;
             ElementAccentForeground = SelectedColor(_accentColorBox, source.AccentForeground);
-            ElementFontFamily = _fontBox.SelectedItem as string ?? "Arial";
+            ElementFontFamily = _fontBox.SelectedItem as string ?? source.FontFamily;
             ElementBold = _boldBox.IsChecked == true;
             DataSource = _dataSourceBox.SelectedItem as string ?? "";
             DialogResult = true;
@@ -900,7 +900,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
 
     private void UpdatePreview()
     {
-        var previewValue = _textBox?.Text ?? "Пример показания";
+        var previewValue = _textBox.Text;
         _previewText.Inlines.Clear();
         _previewText.Foreground = PaletteBrush(_textColorBox);
         var accent = _accentTextBox.Text;
@@ -924,7 +924,9 @@ internal sealed class EnergyMapPropertiesDialog : Window
         _previewText.FontWeight = _boldBox.IsChecked == true ? FontWeights.Bold : FontWeights.Normal;
         _preview.Background = PaletteBrush(_backgroundBox);
         _preview.BorderBrush = PaletteBrush(_borderBox);
-        _preview.BorderThickness = new Thickness(1);
+        _preview.BorderThickness = TryNumber(_borderWidthBox.Text, out var borderWidth)
+            ? new Thickness(Math.Clamp(borderWidth, 0, 20))
+            : new Thickness(1);
         _preview.CornerRadius = _shapeBox.SelectedIndex switch
         {
             0 => new CornerRadius(0),
