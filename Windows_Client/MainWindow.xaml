@@ -56,8 +56,8 @@
         </Style>
         <Style x:Key="CloseTitleBarButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource TitleBarButtonStyle}">
             <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#C42B1C"/><Setter Property="Foreground" Value="#17202D"/></Trigger>
-                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#9E2116"/><Setter Property="Foreground" Value="#17202D"/></Trigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SystemCloseHoverBrush}"/><Setter Property="Foreground" Value="#17202D"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource SystemClosePressedBrush}"/><Setter Property="Foreground" Value="#17202D"/></Trigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
