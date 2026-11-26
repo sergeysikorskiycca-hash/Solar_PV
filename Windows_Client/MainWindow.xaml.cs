@@ -322,7 +322,9 @@ public partial class MainWindow : Window
     {
         var brush = GetElementBackground(element);
         if (brush is null) return false;
-        return brush is not System.Windows.Media.SolidColorBrush solid || solid.Color.A > 0;
+        if (brush is System.Windows.Media.SolidColorBrush solid && solid.Color.A == 0)
+            return element is System.Windows.Controls.Border border && border.Child is not null;
+        return true;
     }
 
     private static System.Windows.Media.Brush? GetElementBackground(System.Windows.FrameworkElement element) =>
