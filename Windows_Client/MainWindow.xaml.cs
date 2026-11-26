@@ -498,6 +498,14 @@ public partial class MainWindow : Window
         hovered.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(menuSelectedBackground)));
         hovered.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(menuSelectedTextColor)));
         menuItemStyle.Triggers.Add(hovered);
+        var disabledMenuItem = new Trigger
+        {
+            Property = System.Windows.Controls.UIElement.IsEnabledProperty,
+            Value = false
+        };
+        disabledMenuItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
+            PaletteBrush(disabledTextColor)));
+        menuItemStyle.Triggers.Add(disabledMenuItem);
         MainMenu.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
         Application.Current.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
         MainMenu.ItemContainerStyle = menuItemStyle;
