@@ -242,6 +242,7 @@ public partial class MainWindow : Window
                 new SystemStyleTarget("system|background|dropdown", "Фон выпадающих меню и списков", false),
                 new SystemStyleTarget("system|background|menu-selected", "Фон выбранного пункта меню", false),
                 new SystemStyleTarget("system|background|button", "Фон кнопок", false),
+                new SystemStyleTarget("system|background|button-primary", "Фон основных кнопок", false),
                 new SystemStyleTarget("system|background|button-hover", "Фон кнопок при наведении", false),
                 new SystemStyleTarget("system|background|button-pressed", "Фон нажатых кнопок", false),
                 new SystemStyleTarget("system|background|input", "Фон полей ввода", false),
@@ -283,6 +284,7 @@ public partial class MainWindow : Window
                 "system|background|dropdown" => _activePalette?[7] ?? "#17263A",
                 "system|background|menu-selected" => "#DCE6F2",
                 "system|background|button" => "#26384D",
+                "system|background|button-primary" => _activePalette?[4] ?? "#F5B942",
                 "system|background|button-hover" => "#31445E",
                 "system|background|button-pressed" => "#405875",
                 "system|background|input" => "#17263A",
@@ -440,6 +442,7 @@ public partial class MainWindow : Window
         var inputTextColor = StyleColor("text|input", "#E8EEF7");
         var disabledTextColor = StyleColor("text|disabled", "#AAB4C0");
         var buttonBackground = StyleColor("background|button", "#26384D");
+        var primaryButtonBackground = StyleColor("background|button-primary", palette[4]);
         var buttonHoverBackground = StyleColor("background|button-hover", "#31445E");
         var buttonPressedBackground = StyleColor("background|button-pressed", "#405875");
         var inputBackground = StyleColor("background|input", "#17263A");
@@ -512,6 +515,21 @@ public partial class MainWindow : Window
         listItemStyle.Triggers.Add(selectedItem);
         Application.Current.Resources[typeof(System.Windows.Controls.ListBoxItem)] = listItemStyle;
 
+        var comboItemStyle = new Style(typeof(System.Windows.Controls.ComboBoxItem));
+        comboItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(dropdownBackground)));
+        comboItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(inputTextColor)));
+        var comboHighlighted = new Trigger
+        {
+            Property = System.Windows.UIElement.IsMouseOverProperty,
+            Value = true
+        };
+        comboHighlighted.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,
+            PaletteBrush(StyleColor("background|selection", "#DCE6F2"))));
+        comboHighlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
+            PaletteBrush(StyleColor("text|selection", "#17202D"))));
+        comboItemStyle.Triggers.Add(comboHighlighted);
+        Application.Current.Resources[typeof(System.Windows.Controls.ComboBoxItem)] = comboItemStyle;
+
         void ApplyMenuItemStyle(System.Windows.Controls.MenuItem item)
         {
             item.Style = menuItemStyle;
@@ -537,7 +555,18 @@ public partial class MainWindow : Window
                     }
                     else
                     {
-                        if (control.Background is SolidColorBrush bg) control.Background = ConvertBrush(bg);
+                        if (control is System.Windows.Controls.Button && control.Background is SolidColorBrush buttonBg)
+                        {
+                            if (buttonBg.Color.ToString() == "#FFF5B942")
+                                control.Background = PaletteBrush(primaryButtonBackground);
+                            else if (buttonBg.Color.ToString() == "#FF26384D")
+                                control.Background = PaletteBrush(buttonBackground);
+                            else
+                                control.Background = ConvertBrush(buttonBg);
+                        }
+                        else if (control.Background is SolidColorBrush bg)
+                            control.Background = ConvertBrush(bg);
+
                         if (control.Foreground is SolidColorBrush fg)
                         {
                             if (control is System.Windows.Controls.Button &&
