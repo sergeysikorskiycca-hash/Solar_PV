@@ -15,6 +15,8 @@
                        Foreground="{Binding RelativeSource={RelativeSource AncestorType={x:Type MenuItem}}, Path=Foreground}"
                        TextOptions.TextFormattingMode="Display"/>
         </DataTemplate>
+        <SolidColorBrush x:Key="SystemButtonHoverBrush" Color="#31445E"/>
+        <SolidColorBrush x:Key="SystemButtonPressedBrush" Color="#405875"/>
         <Style TargetType="{x:Type MenuItem}">
             <Setter Property="Foreground" Value="#F4F7FB"/>
             <Setter Property="Background" Value="#24364D"/>
@@ -48,8 +50,8 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Focusable" Value="False"/>
             <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#31445E"/></Trigger>
-                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#405875"/></Trigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SystemButtonHoverBrush}"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource SystemButtonPressedBrush}"/></Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="CloseTitleBarButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource TitleBarButtonStyle}">
