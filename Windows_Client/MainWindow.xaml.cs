@@ -847,9 +847,9 @@ public partial class MainWindow : Window
 
         // ApplyDesign adjusts card borders and the window background; apply user color
         // overrides once more so the selected system colors take precedence immediately.
+        Visit(this);
         TitleBarGrid.Background = PaletteBrush(StyleColor("background|titlebar", "#3A3A3A"));
         MainMenu.Background = PaletteBrush(StyleColor("background|menu", "#3A3A3A"));
-        Visit(this);
 
         ApplyStyleOverrides();
     }
