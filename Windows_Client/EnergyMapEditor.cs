@@ -789,7 +789,17 @@ internal sealed class EnergyMapPropertiesDialog : Window
             Text = element.BorderWidth.ToString("0.##", CultureInfo.InvariantCulture),
             Height = 30, Padding = new Thickness(7, 4, 7, 4),
             Background = InputBackground(), Foreground = Brushes.White,
-            BorderBrush = InputBorder(), CaretBrush = Brushes.White
+            BorderBrush = InputBorder(), CaretBrush = Brushes.White,
+            IsReadOnly = false, IsEnabled = true, Focusable = true, IsTabStop = true,
+            AcceptsReturn = false
+        };
+        _borderWidthBox.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            if (!_borderWidthBox.IsKeyboardFocusWithin)
+            {
+                _borderWidthBox.Focus();
+                e.Handled = false;
+            }
         };
         fields.Children.Add(_borderWidthBox);
 
