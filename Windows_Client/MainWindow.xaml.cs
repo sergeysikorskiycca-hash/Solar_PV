@@ -35,6 +35,7 @@ public partial class MainWindow : Window
 
     private sealed record SystemStyleTarget(string Key, string Label, bool IsText);
     private string _activeTheme = "Dark";
+    private string _activeDesign = "EnergyMap";
 
     public MainWindow()
     {
@@ -591,7 +592,7 @@ public partial class MainWindow : Window
 
         _activePalette = palette;
         ClientSettings.SaveTheme(theme);
-        ApplyDesign("EnergyMap");
+        ApplyDesign(_activeDesign);
         ApplyStyleOverrides();
     }
 
@@ -599,6 +600,7 @@ public partial class MainWindow : Window
     {
         if (design is not ("Digital" or "EnergyMap" or "Flow" or "Blueprint"))
             design = "Digital";
+        _activeDesign = design;
 
         var palette = _activePalette ?? new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" };
         DigitalDashboard.Visibility = design == "Digital" ? Visibility.Visible : Visibility.Collapsed;
