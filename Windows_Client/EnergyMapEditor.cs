@@ -155,6 +155,36 @@ internal static class EnergyMapSvgDocument
     }
 }
 
+internal static class EnergyMapEditorSystemTheme
+{
+    private static readonly Brush SurfaceBrush = new SolidColorBrush(Color.FromRgb(58, 58, 58));
+
+    public static void Apply(Window window, params DependencyObject[] excluded)
+    {
+        window.Background = SurfaceBrush;
+        window.Foreground = Brushes.White;
+        var skip = new HashSet<DependencyObject>(excluded);
+        void Visit(DependencyObject parent)
+        {
+            if (skip.Contains(parent)) return;
+            if (parent is Control control) { control.Foreground = Brushes.White; control.Background = SurfaceBrush; }
+            if (parent is TextBlock textBlock) textBlock.Foreground = Brushes.White;
+            if (parent is Border border) border.Background = SurfaceBrush;
+            if (parent is Panel panel && panel.Background is not null) panel.Background = SurfaceBrush;
+            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++) Visit(VisualTreeHelper.GetChild(parent, i));
+        }
+        var itemStyle = new Style(typeof(ComboBoxItem));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, SurfaceBrush));
+        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
+        hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        itemStyle.Triggers.Add(hover);
+        window.Resources[typeof(ComboBoxItem)] = itemStyle;
+        Visit(window);
+    }
+}
+
 internal sealed class EnergyMapEditorWindow : Window
 {
     private readonly List<EnergyMapElement> _elements;
@@ -176,7 +206,7 @@ internal sealed class EnergyMapEditorWindow : Window
         MinWidth = 760;
         MinHeight = 540;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = new SolidColorBrush(Color.FromRgb(18, 30, 48));
+        Background = new SolidColorBrush(Color.FromRgb(58, 58, 58));
         Foreground = Brushes.White;
 
         var root = new DockPanel { Margin = new Thickness(16) };
@@ -196,7 +226,7 @@ internal sealed class EnergyMapEditorWindow : Window
         delete.Click += (_, _) => DeleteSelected();
         var save = MakeButton("Сохранить");
         save.Background = new SolidColorBrush(Color.FromRgb(245, 185, 66));
-        save.Foreground = new SolidColorBrush(Color.FromRgb(23, 32, 45));
+        save.Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255));
         save.FontWeight = FontWeights.Bold;
         save.Click += (_, _) =>
         {
@@ -222,7 +252,7 @@ internal sealed class EnergyMapEditorWindow : Window
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(260) });
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         _list.DisplayMemberPath = "Text";
-        _list.Background = new SolidColorBrush(Color.FromRgb(23, 38, 58));
+        _list.Background = new SolidColorBrush(Color.FromRgb(58, 58, 58));
         _list.Foreground = new SolidColorBrush(Color.FromRgb(240, 245, 250));
         _list.BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124));
         var listItemStyle = new Style(typeof(ListBoxItem));
@@ -233,7 +263,7 @@ internal sealed class EnergyMapEditorWindow : Window
         listHover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(41, 63, 88))));
         listItemStyle.Triggers.Add(listHover);
         var listSelected = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
-        listSelected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(54, 81, 110))));
+        listSelected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
         listSelected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
         listItemStyle.Triggers.Add(listSelected);
         _list.ItemContainerStyle = listItemStyle;
@@ -262,11 +292,11 @@ internal sealed class EnergyMapEditorWindow : Window
         AddField(editor, "Цвет рамки", "BorderColor");
         AddField(editor, "Толщина рамки", "BorderWidth");
         AddField(editor, "Скругление", "CornerRadius");
-        editor.Children.Add(new TextBlock { Text = "Источник данных", Margin = new Thickness(0, 8, 0, 4), Foreground = new SolidColorBrush(Color.FromRgb(205, 216, 228)) });
+        editor.Children.Add(new TextBlock { Text = "Источник данных", Margin = new Thickness(0, 8, 0, 4), Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255)) });
         foreach (var item in new[] { "", "Pv1Power", "Pv1Voltage", "Pv1Current", "Pv2Power", "Pv2Voltage", "Pv2Current", "InverterPower" })
             _dataSource.Items.Add(item);
-        _dataSource.Background = new SolidColorBrush(Color.FromRgb(36, 54, 74));
-        _dataSource.Foreground = new SolidColorBrush(Color.FromRgb(244, 247, 251));
+        _dataSource.Background = new SolidColorBrush(Color.FromRgb(58, 58, 58));
+        _dataSource.Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255));
         _dataSource.BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124));
         ApplyDarkComboBoxItems(_dataSource);
         editor.Children.Add(_dataSource);
@@ -276,6 +306,7 @@ internal sealed class EnergyMapEditorWindow : Window
         root.Children.Add(body);
 
         Content = root;
+        Loaded += (_, _) => EnergyMapEditorSystemTheme.Apply(this);
         RefreshList();
         if (_elements.Count > 0) _list.SelectedIndex = 0;
     }
@@ -288,7 +319,7 @@ internal sealed class EnergyMapEditorWindow : Window
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(65, 91, 120))));
+        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
         itemStyle.Triggers.Add(hover);
         var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
         selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
@@ -315,7 +346,7 @@ internal sealed class EnergyMapEditorWindow : Window
         Content = text,
         Padding = new Thickness(12, 7, 12, 7),
         Margin = new Thickness(0, 0, 8, 0),
-        Background = new SolidColorBrush(Color.FromRgb(38, 56, 77)),
+        Background = new SolidColorBrush(Color.FromRgb(58, 58, 58)),
         Foreground = Brushes.White,
         BorderThickness = new Thickness(0)
     };
@@ -667,7 +698,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
             Text = "Цвета выбираются из готовой палитры. Настройки сохраняются вместе с блоком.",
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 7, 0, 0),
-            Foreground = new SolidColorBrush(Color.FromRgb(150, 174, 197))
+            Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255))
         });
 
         root.Children.Add(new ScrollViewer
@@ -677,6 +708,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         });
         Content = root;
+        Loaded += (_, _) => EnergyMapEditorSystemTheme.Apply(this, _preview);
 
         void Save(EnergyMapElement source)
         {
@@ -964,6 +996,7 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
         });
         root.Children.Add(fields);
         Content = root;
+        Loaded += (_, _) => EnergyMapEditorSystemTheme.Apply(this);
     }
 }
 
@@ -1035,6 +1068,7 @@ internal sealed class EnergyMapTextDialog : Window
         };
         root.Children.Add(_textBox);
         Content = root;
+        Loaded += (_, _) => EnergyMapEditorSystemTheme.Apply(this);
         Loaded += (_, _) =>
         {
             _textBox.Focus();
