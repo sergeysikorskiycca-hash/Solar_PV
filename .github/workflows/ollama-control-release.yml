@@ -1,0 +1,82 @@
+name: Ollama Control Release
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ollama-control-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Automatically bump PATCH version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref }}" -ne "refs/heads/main") { throw "Run this workflow from main only." }
+          [xml]$project = Get-Content "Ollama_Control/OllamaControl.csproj"
+          $current = [version]$project.Project.PropertyGroup.Version
+          $next = "{0}.{1}.{2}" -f $current.Major, $current.Minor, ($current.Build + 1)
+          $path = "Ollama_Control/OllamaControl.csproj"
+          $content = Get-Content $path -Raw
+          $content = [regex]::Replace($content, '<Version>[^<]+</Version>', "<Version>$next</Version>", 1)
+          $content = [regex]::Replace($content, '<AssemblyVersion>[^<]+</AssemblyVersion>', "<AssemblyVersion>$next.0</AssemblyVersion>", 1)
+          $content = [regex]::Replace($content, '<FileVersion>[^<]+</FileVersion>', "<FileVersion>$next.0</FileVersion>", 1)
+          [System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $path
+          git commit -m "Bump Ollama Control version to $next"
+          git push origin HEAD:main
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content "Ollama_Control/OllamaControl.csproj"
+          $version = $project.Project.PropertyGroup.Version
+          if ([string]::IsNullOrWhiteSpace($version)) { throw "Version is missing." }
+          "app_version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish self-contained Windows x64
+        run: dotnet publish Ollama_Control/OllamaControl.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Ollama_Control/publish
+
+      - name: Add package version
+        shell: pwsh
+        run: |
+          [System.IO.File]::WriteAllText("Ollama_Control/publish/version.txt", "${{ steps.version.outputs.app_version }}", [System.Text.UTF8Encoding]::new($false))
+
+      - name: Create update ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path "Ollama_Control/publish/*" -DestinationPath "dist/OllamaControl-win-x64.zip" -CompressionLevel Optimal
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.app_version }}"
+          gh release view ollama-control-windows *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create ollama-control-windows --title "Ollama Control $version" --notes "Версия программы: $version"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          gh release upload ollama-control-windows dist/OllamaControl-win-x64.zip --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $notes = "Версия программы: $version" + [Environment]::NewLine + [Environment]::NewLine + "Автоматически собранная Windows x64 версия. Пакет обновления проверяется по SHA-256 перед установкой."
+          gh release edit ollama-control-windows --title "Ollama Control $version" --notes $notes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
