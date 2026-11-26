@@ -819,6 +819,14 @@ public partial class MainWindow : Window
         }
         Visit(this);
 
+        Application.Current.Resources["SystemPrimaryTextBrush"] = PaletteBrush(StyleColor("text|primary", "#FFFFFF"));
+        Application.Current.Resources["SystemInputTextBrush"] = PaletteBrush(inputTextColor);
+        Application.Current.Resources["SystemButtonTextBrush"] = PaletteBrush(buttonTextColor);
+        Application.Current.Resources["SystemSurfaceBackgroundBrush"] = PaletteBrush(StyleColor("background|panel", "#3A3A3A"));
+        Application.Current.Resources["SystemDialogBackgroundBrush"] = PaletteBrush(StyleColor("background|dialog", "#3A3A3A"));
+        Application.Current.Resources["SystemInputBackgroundBrush"] = PaletteBrush(inputBackground);
+        Application.Current.Resources["SystemButtonBackgroundBrush"] = PaletteBrush(buttonBackground);
+
         Resources["SystemButtonHoverBrush"] = PaletteBrush(StyleColor("background|titlebar-hover", buttonHoverBackground));
         Resources["SystemButtonPressedBrush"] = PaletteBrush(StyleColor("background|titlebar-pressed", buttonPressedBackground));
         Resources["SystemCloseHoverBrush"] = PaletteBrush(StyleColor("background|close-hover", "#3A3A3A"));
