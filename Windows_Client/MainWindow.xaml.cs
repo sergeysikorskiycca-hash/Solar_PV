@@ -260,6 +260,48 @@ public partial class MainWindow : Window
         }
     }
 
+    private void StyleTarget_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.MenuItem item || item.Tag is not SystemStyleTarget target)
+            return;
+
+        var initialColor = _styleOverrides.TryGetValue(target.Key, out var savedColor)
+            ? savedColor
+            : target.Key switch
+            {
+                "system|text|primary" => _activePalette?[2] ?? "#E8EEF7",
+                "system|text|secondary" => _activePalette?[3] ?? "#8FA2BA",
+                "system|text|menu" => _activePalette?[2] ?? "#E8EEF7",
+                "system|text|menu-selected" => "#17202D",
+                "system|text|button" => "#E8EEF7",
+                "system|text|input" => "#E8EEF7",
+                "system|text|disabled" => "#AAB4C0",
+                "system|text|selection" => "#17202D",
+                "system|background|window" => _activePalette?[0] ?? "#0B1220",
+                "system|background|panel" => _activePalette?[1] ?? "#121E30",
+                "system|background|menu" => _activePalette?[7] ?? "#17263A",
+                "system|background|dropdown" => _activePalette?[7] ?? "#17263A",
+                "system|background|menu-selected" => "#DCE6F2",
+                "system|background|button" => "#26384D",
+                "system|background|button-hover" => "#31445E",
+                "system|background|button-pressed" => "#405875",
+                "system|background|input" => "#17263A",
+                "system|background|selection" => "#DCE6F2",
+                _ => "#FFFFFFFF"
+            };
+
+        var selectedColor = ShowStyleColorDialog(
+            (target.IsText ? "Цвет текста — " : "Цвет фона — ") + target.Label,
+            initialColor);
+        if (selectedColor is null ||
+            System.Windows.Media.ColorConverter.ConvertFromString(selectedColor) is not System.Windows.Media.Color)
+            return;
+
+        _styleOverrides[target.Key] = selectedColor;
+        ClientSettings.SaveStyleOverrides(_styleOverrides);
+        ApplyTheme(_activeTheme);
+    }
+
     private string? ShowStyleColorDialog(string title, string initialColor)
     {
         var dialog = new Window
