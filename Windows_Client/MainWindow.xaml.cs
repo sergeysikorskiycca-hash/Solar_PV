@@ -36,6 +36,8 @@ public partial class MainWindow : Window
     private sealed record SystemStyleTarget(string Key, string Label, bool IsText);
     private string _activeTheme = "Dark";
     private string _activeDesign = "EnergyMap";
+    private readonly HashSet<System.Windows.Controls.Button> _systemStyledButtons = new();
+    private readonly Dictionary<System.Windows.Controls.Button, Brush> _systemButtonBaseBackgrounds = new();
 
     public MainWindow()
     {
@@ -408,6 +410,41 @@ public partial class MainWindow : Window
         return dialog.ShowDialog() == true ? colorBox.Text.Trim() : null;
     }
 
+    private Brush GetSystemStyleBrush(string key, string fallback)
+    {
+        var value = _styleOverrides.TryGetValue("system|" + key, out var saved) ? saved : fallback;
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString(value));
+    }
+
+    private void RegisterSystemButton(System.Windows.Controls.Button button)
+    {
+        _systemButtonBaseBackgrounds[button] = button.Background;
+        if (!_systemStyledButtons.Add(button)) return;
+
+        button.MouseEnter += (_, _) =>
+        {
+            if (button.IsEnabled)
+                button.Background = GetSystemStyleBrush("background|button-hover", "#31445E");
+        };
+        button.MouseLeave += (_, _) =>
+        {
+            if (_systemButtonBaseBackgrounds.TryGetValue(button, out var background))
+                button.Background = background;
+        };
+        button.PreviewMouseLeftButtonDown += (_, _) =>
+        {
+            if (button.IsEnabled)
+                button.Background = GetSystemStyleBrush("background|button-pressed", "#405875");
+        };
+        button.PreviewMouseLeftButtonUp += (_, _) =>
+        {
+            if (!button.IsEnabled) return;
+            button.Background = button.IsMouseOver
+                ? GetSystemStyleBrush("background|button-hover", "#31445E")
+                : _systemButtonBaseBackgrounds[button];
+        };
+    }
+
     private void ApplyStyleOverrides()
     {
         // System color overrides are applied centrally by ApplyTheme.
@@ -564,14 +601,17 @@ public partial class MainWindow : Window
                     }
                     else
                     {
-                        if (control is System.Windows.Controls.Button && control.Background is SolidColorBrush buttonBg)
+                        if (control is System.Windows.Controls.Button button && button.Background is SolidColorBrush buttonBg)
                         {
                             if (buttonBg.Color.ToString() == "#FFF5B942")
-                                control.Background = PaletteBrush(primaryButtonBackground);
+                                button.Background = PaletteBrush(primaryButtonBackground);
                             else if (buttonBg.Color.ToString() == "#FF26384D")
-                                control.Background = PaletteBrush(buttonBackground);
+                                button.Background = PaletteBrush(buttonBackground);
                             else
-                                control.Background = ConvertBrush(buttonBg);
+                                button.Background = ConvertBrush(buttonBg);
+
+                            if (button.Style != TryFindResource("CloseTitleBarButtonStyle") as Style)
+                                RegisterSystemButton(button);
                         }
                         else if (control.Background is SolidColorBrush bg)
                             control.Background = ConvertBrush(bg);
