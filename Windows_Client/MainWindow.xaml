@@ -112,6 +112,10 @@
             </MenuItem>
             <MenuItem x:Name="EnergyMapEditMenuItem" Header="Перемещать" Visibility="Collapsed" Click="EnergyMapEdit_Click"/>
             <MenuItem x:Name="EnergyMapElementsMenuItem" Header="Объекты" Visibility="Collapsed" Click="EnergyMapElements_Click"/>
+            <MenuItem x:Name="StyleMenuItem" Header="Стиль" Visibility="Collapsed">
+                <MenuItem Header="Текст" Tag="Text" SubmenuOpened="StyleSubmenu_Opened"/>
+                <MenuItem Header="Фон" Tag="Background" SubmenuOpened="StyleSubmenu_Opened"/>
+            </MenuItem>
         </Menu>
 
         <Grid Grid.Row="2" Margin="26,18,26,18">
