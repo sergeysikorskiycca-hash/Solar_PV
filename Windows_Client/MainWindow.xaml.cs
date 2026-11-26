@@ -49,6 +49,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        EnsureDefaultSystemStyleOverrides();
         BuildEnergyMapItems();
         UpdateWindowStateButton();
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
@@ -226,6 +227,15 @@ public partial class MainWindow : Window
         if (design == "EnergyMap") ApplyDesign("EnergyMap");
     }
 
+    private void EnsureDefaultSystemStyleOverrides()
+    {
+        string[] textKeys = { "primary", "secondary", "menu", "menu-selected", "button", "button-primary", "input", "disabled", "selection", "titlebar", "muted", "data", "accent", "success", "info", "warning", "error", "tooltip", "dialog" };
+        string[] backgroundKeys = { "window", "panel", "menu", "dropdown", "menu-selected", "button", "button-primary", "button-hover", "button-pressed", "input", "selection", "titlebar", "dialog", "tooltip", "card", "card-alt", "surface-dark", "border", "accent", "info", "success", "warning", "error", "status-neutral", "titlebar-hover", "titlebar-pressed", "close-hover", "close-pressed" };
+        foreach (var key in textKeys) _styleOverrides.TryAdd("system|text|" + key, "#FFFFFF");
+        foreach (var key in backgroundKeys) _styleOverrides.TryAdd("system|background|" + key, "#3A3A3A");
+        ClientSettings.SaveStyleOverrides(_styleOverrides);
+    }
+
     private void StyleSubmenu_Opened(object sender, RoutedEventArgs e)
     {
         if (sender is not System.Windows.Controls.MenuItem menuItem) return;
@@ -306,57 +316,7 @@ public partial class MainWindow : Window
 
         var initialColor = _styleOverrides.TryGetValue(target.Key, out var savedColor)
             ? savedColor
-            : target.Key switch
-            {
-                "system|text|primary" => _activePalette?[2] ?? "#E8EEF7",
-                "system|text|secondary" => _activePalette?[3] ?? "#8FA2BA",
-                "system|text|menu" => _activePalette?[2] ?? "#E8EEF7",
-                "system|text|menu-selected" => "#17202D",
-                "system|text|button" => "#E8EEF7",
-                "system|text|button-primary" => "#17202D",
-                "system|text|input" => "#E8EEF7",
-                "system|text|disabled" => "#AAB4C0",
-                "system|text|selection" => "#17202D",
-                "system|text|titlebar" => "#F4F7FB",
-                "system|text|muted" => "#8FA2BA",
-                "system|text|data" => "#E8EEF7",
-                "system|text|accent" => "#F5B942",
-                "system|text|success" => "#63D6A2",
-                "system|text|info" => "#63B9F2",
-                "system|text|warning" => "#F5B942",
-                "system|text|error" => "#E45B5B",
-                "system|text|tooltip" => "#F4F7FB",
-                "system|text|dialog" => "#E8EEF7",
-                "system|background|window" => _activePalette?[0] ?? "#0B1220",
-                "system|background|panel" => _activePalette?[1] ?? "#121E30",
-                "system|background|menu" => _activePalette?[7] ?? "#17263A",
-                "system|background|dropdown" => _activePalette?[7] ?? "#17263A",
-                "system|background|menu-selected" => "#DCE6F2",
-                "system|background|button" => "#26384D",
-                "system|background|button-primary" => _activePalette?[4] ?? "#F5B942",
-                "system|background|button-hover" => "#31445E",
-                "system|background|button-pressed" => "#405875",
-                "system|background|input" => "#17263A",
-                "system|background|selection" => "#DCE6F2",
-                "system|background|titlebar" => "#17263A",
-                "system|background|dialog" => "#121E30",
-                "system|background|tooltip" => "#17263A",
-                "system|background|card" => "#172B40",
-                "system|background|card-alt" => "#1A3047",
-                "system|background|surface-dark" => "#0B1725",
-                "system|background|border" => "#31516B",
-                "system|background|accent" => "#F5B942",
-                "system|background|info" => "#247DB5",
-                "system|background|success" => "#63D6A2",
-                "system|background|warning" => "#F5B942",
-                "system|background|error" => "#E45B5B",
-                "system|background|status-neutral" => "#64748B",
-                "system|background|titlebar-hover" => "#31445E",
-                "system|background|titlebar-pressed" => "#405875",
-                "system|background|close-hover" => "#C42B1C",
-                "system|background|close-pressed" => "#9E2116",
-                _ => "#FFFFFFFF"
-            };
+            : target.IsText ? "#FFFFFF" : "#3A3A3A";
 
         var selectedColor = ShowStyleColorDialog(
             (target.IsText ? "Цвет текста — " : "Цвет фона — ") + target.Label,
@@ -600,56 +560,58 @@ public partial class MainWindow : Window
         string StyleColor(string key, string fallback) =>
             _styleOverrides.TryGetValue("system|" + key, out var value) ? value : fallback;
 
-        palette[0] = StyleColor("background|window", palette[0]);
-        palette[1] = StyleColor("background|panel", palette[1]);
-        palette[2] = StyleColor("text|primary", palette[2]);
-        palette[3] = StyleColor("text|secondary", palette[3]);
-        palette[7] = StyleColor("background|menu", palette[7]);
+        palette[0] = StyleColor("background|window", "#3A3A3A");
+        palette[1] = StyleColor("background|panel", "#3A3A3A");
+        palette[2] = StyleColor("text|primary", "#FFFFFF");
+        palette[3] = StyleColor("text|secondary", "#FFFFFF");
+        palette[4] = StyleColor("text|accent", "#FFFFFF");
+        palette[6] = StyleColor("background|border", "#555555");
+        palette[7] = StyleColor("background|menu", "#3A3A3A");
 
-        var menuTextColor = StyleColor("text|menu", palette[2]);
-        var menuSelectedTextColor = StyleColor("text|menu-selected", "#17202D");
-        var menuSelectedBackground = StyleColor("background|menu-selected", "#DCE6F2");
-        var dropdownBackground = StyleColor("background|dropdown", palette[7]);
-        var buttonTextColor = StyleColor("text|button", "#E8EEF7");
-        var inputTextColor = StyleColor("text|input", "#E8EEF7");
-        var disabledTextColor = StyleColor("text|disabled", "#AAB4C0");
-        var buttonBackground = StyleColor("background|button", "#26384D");
-        var primaryButtonBackground = StyleColor("background|button-primary", palette[4]);
-        var buttonHoverBackground = StyleColor("background|button-hover", "#31445E");
-        var buttonPressedBackground = StyleColor("background|button-pressed", "#405875");
-        var inputBackground = StyleColor("background|input", "#17263A");
+        var menuTextColor = StyleColor("text|menu", "#FFFFFF");
+        var menuSelectedTextColor = StyleColor("text|menu-selected", "#FFFFFF");
+        var menuSelectedBackground = StyleColor("background|menu-selected", "#3A3A3A");
+        var dropdownBackground = StyleColor("background|dropdown", "#3A3A3A");
+        var buttonTextColor = StyleColor("text|button", "#FFFFFF");
+        var inputTextColor = StyleColor("text|input", "#FFFFFF");
+        var disabledTextColor = StyleColor("text|disabled", "#FFFFFF");
+        var buttonBackground = StyleColor("background|button", "#3A3A3A");
+        var primaryButtonBackground = StyleColor("background|button-primary", "#3A3A3A");
+        var buttonHoverBackground = StyleColor("background|button-hover", "#3A3A3A");
+        var buttonPressedBackground = StyleColor("background|button-pressed", "#3A3A3A");
+        var inputBackground = StyleColor("background|input", "#3A3A3A");
 
         var map = new Dictionary<string, string>
         {
             ["#FF0B1220"] = palette[0], ["#FF121E30"] = palette[1],
             ["#FFE8EEF7"] = palette[2], ["#FF8FA2BA"] = palette[3],
-            ["#FFF5B942"] = StyleColor("text|accent", palette[4]),
-            ["#FF17263A"] = StyleColor("background|dropdown", palette[7]),
-            ["#FF24364D"] = StyleColor("background|menu", "#24364D"),
+            ["#FFF5B942"] = StyleColor("text|accent", "#FFFFFF"),
+            ["#FF17263A"] = StyleColor("background|dropdown", "#3A3A3A"),
+            ["#FF24364D"] = StyleColor("background|menu", "#3A3A3A"),
             ["#FF30445E"] = palette[6],
             ["#FF26384D"] = buttonBackground, ["#FF405875"] = buttonPressedBackground,
             ["#FF1A2B3E"] = palette[1],
             ["#FF31445E"] = buttonHoverBackground,
             ["#FFDCE6F2"] = menuSelectedBackground,
-            ["#FFF4F7FB"] = StyleColor("text|titlebar", "#F4F7FB"),
+            ["#FFF4F7FB"] = StyleColor("text|titlebar", "#FFFFFF"),
             ["#FFAAB4C0"] = disabledTextColor,
-            ["#FFF0F5FA"] = StyleColor("text|data", "#F0F5FA"),
-            ["#FFAFC1D2"] = StyleColor("text|muted", "#AFC1D2"),
-            ["#FF71849B"] = StyleColor("text|muted", "#71849B"),
-            ["#FF63D6A2"] = StyleColor("text|success", "#63D6A2"),
-            ["#FF63B9F2"] = StyleColor("text|info", "#63B9F2"),
-            ["#FFE45B5B"] = StyleColor("text|error", "#E45B5B"),
-            ["#FF64748B"] = StyleColor("background|status-neutral", "#64748B"),
-            ["#FF17202D"] = StyleColor("text|button-primary", "#17202D"),
-            ["#FF172B40"] = StyleColor("background|card", "#172B40"),
-            ["#FF1A3047"] = StyleColor("background|card-alt", "#1A3047"),
-            ["#FF0B1725"] = StyleColor("background|surface-dark", "#0B1725"),
-            ["#FF07111D"] = StyleColor("background|surface-dark", "#07111D"),
-            ["#FF31516B"] = StyleColor("background|border", "#31516B"),
-            ["#FF45617A"] = StyleColor("background|border", "#45617A"),
-            ["#FF247DB5"] = StyleColor("background|info", "#247DB5"),
-            ["#FFC42B1C"] = StyleColor("background|close-hover", "#C42B1C"),
-            ["#FF9E2116"] = StyleColor("background|close-pressed", "#9E2116")
+            ["#FFF0F5FA"] = StyleColor("text|data", "#FFFFFF"),
+            ["#FFAFC1D2"] = StyleColor("text|muted", "#FFFFFF"),
+            ["#FF71849B"] = StyleColor("text|muted", "#FFFFFF"),
+            ["#FF63D6A2"] = StyleColor("text|success", "#FFFFFF"),
+            ["#FF63B9F2"] = StyleColor("text|info", "#FFFFFF"),
+            ["#FFE45B5B"] = StyleColor("text|error", "#FFFFFF"),
+            ["#FF64748B"] = StyleColor("background|status-neutral", "#3A3A3A"),
+            ["#FF17202D"] = StyleColor("text|button-primary", "#FFFFFF"),
+            ["#FF172B40"] = StyleColor("background|card", "#3A3A3A"),
+            ["#FF1A3047"] = StyleColor("background|card-alt", "#3A3A3A"),
+            ["#FF0B1725"] = StyleColor("background|surface-dark", "#3A3A3A"),
+            ["#FF07111D"] = StyleColor("background|surface-dark", "#3A3A3A"),
+            ["#FF31516B"] = StyleColor("background|border", "#555555"),
+            ["#FF45617A"] = StyleColor("background|border", "#555555"),
+            ["#FF247DB5"] = StyleColor("background|info", "#3A3A3A"),
+            ["#FFC42B1C"] = StyleColor("background|close-hover", "#3A3A3A"),
+            ["#FF9E2116"] = StyleColor("background|close-pressed", "#3A3A3A")
         };
 
         if (_activePalette is not null)
@@ -749,8 +711,7 @@ public partial class MainWindow : Window
         void Visit(DependencyObject parent)
         {
             // Workspace objects have their own independent color settings.
-            if (ReferenceEquals(parent, EnergyMapObjectHitCanvas) ||
-                ReferenceEquals(parent, EnergyMapItemsCanvas))
+            if (ReferenceEquals(parent, EnergyMapDashboard))
                 return;
 
             for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
@@ -856,8 +817,8 @@ public partial class MainWindow : Window
 
         Resources["SystemButtonHoverBrush"] = PaletteBrush(StyleColor("background|titlebar-hover", buttonHoverBackground));
         Resources["SystemButtonPressedBrush"] = PaletteBrush(StyleColor("background|titlebar-pressed", buttonPressedBackground));
-        Resources["SystemCloseHoverBrush"] = PaletteBrush(StyleColor("background|close-hover", "#C42B1C"));
-        Resources["SystemClosePressedBrush"] = PaletteBrush(StyleColor("background|close-pressed", "#9E2116"));
+        Resources["SystemCloseHoverBrush"] = PaletteBrush(StyleColor("background|close-hover", "#3A3A3A"));
+        Resources["SystemClosePressedBrush"] = PaletteBrush(StyleColor("background|close-pressed", "#3A3A3A"));
 
         var toolTipStyle = new Style(typeof(System.Windows.Controls.ToolTip));
         toolTipStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,
@@ -874,8 +835,8 @@ public partial class MainWindow : Window
 
         // ApplyDesign adjusts card borders and the window background; apply user color
         // overrides once more so the selected system colors take precedence immediately.
-        TitleBarGrid.Background = PaletteBrush(StyleColor("background|titlebar", "#17263A"));
-        MainMenu.Background = PaletteBrush(StyleColor("background|menu", palette[7]));
+        TitleBarGrid.Background = PaletteBrush(StyleColor("background|titlebar", "#3A3A3A"));
+        MainMenu.Background = PaletteBrush(StyleColor("background|menu", "#3A3A3A"));
         Visit(this);
 
         ApplyStyleOverrides();
