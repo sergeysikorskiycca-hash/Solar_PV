@@ -139,8 +139,8 @@ public partial class MainWindow : Window
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ResizeMode = ResizeMode.NoResize,
             Owner = this,
-            Background = new SolidColorBrush(Color.FromRgb(18, 30, 48)),
-            Foreground = Brushes.White
+            Background = GetSystemStyleBrush("background|dialog", "#121E30"),
+            Foreground = GetSystemStyleBrush("text|dialog", "#E8EEF7")
         };
 
         var panel = new System.Windows.Controls.StackPanel { Margin = new Thickness(22) };
@@ -150,7 +150,7 @@ public partial class MainWindow : Window
             FontSize = 16,
             FontWeight = FontWeights.Bold,
             Margin = new Thickness(0, 0, 0, 16),
-            Foreground = new SolidColorBrush(Color.FromRgb(245, 185, 66))
+            Foreground = GetSystemStyleBrush("text|accent", "#F5B942")
         });
 
         panel.Children.Add(new System.Windows.Controls.TextBlock { Text = "Логин", Margin = new Thickness(0, 0, 0, 4) });
@@ -189,8 +189,8 @@ public partial class MainWindow : Window
             Content = "Войти",
             Width = 90,
             Height = 32,
-            Background = new SolidColorBrush(Color.FromRgb(245, 185, 66)),
-            Foreground = new SolidColorBrush(Color.FromRgb(23, 32, 45)),
+            Background = GetSystemStyleBrush("background|button-primary", "#F5B942"),
+            Foreground = GetSystemStyleBrush("text|button", "#17202D"),
             FontWeight = FontWeights.SemiBold,
             IsDefault = true
         };
@@ -375,8 +375,8 @@ public partial class MainWindow : Window
             ResizeMode = ResizeMode.CanMinimize,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,
-            Background = new SolidColorBrush(Color.FromRgb(18, 30, 48)),
-            Foreground = Brushes.White,
+            Background = GetSystemStyleBrush("background|dialog", "#121E30"),
+            Foreground = GetSystemStyleBrush("text|dialog", "#E8EEF7"),
             ShowInTaskbar = false
         };
 
@@ -824,6 +824,15 @@ public partial class MainWindow : Window
         Resources["SystemButtonPressedBrush"] = PaletteBrush(StyleColor("background|titlebar-pressed", buttonPressedBackground));
         Resources["SystemCloseHoverBrush"] = PaletteBrush(StyleColor("background|close-hover", "#C42B1C"));
         Resources["SystemClosePressedBrush"] = PaletteBrush(StyleColor("background|close-pressed", "#9E2116"));
+
+        var toolTipStyle = new Style(typeof(System.Windows.Controls.ToolTip));
+        toolTipStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,
+            PaletteBrush(StyleColor("background|tooltip", "#17263A"))));
+        toolTipStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
+            PaletteBrush(StyleColor("text|tooltip", "#F4F7FB"))));
+        toolTipStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BorderBrushProperty,
+            PaletteBrush(StyleColor("background|border", "#31516B"))));
+        Application.Current.Resources[typeof(System.Windows.Controls.ToolTip)] = toolTipStyle;
 
         _activePalette = palette;
         ClientSettings.SaveTheme(theme);
