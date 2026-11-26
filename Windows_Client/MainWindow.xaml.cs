@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<System.Windows.Controls.Button, Brush> _systemButtonBaseBackgrounds = new();
     private readonly Dictionary<DependencyObject, Brush> _systemOriginalBackgrounds = new();
     private readonly Dictionary<DependencyObject, Brush> _systemOriginalForegrounds = new();
+    private readonly Dictionary<DependencyObject, Brush> _systemOriginalBorderBrushes = new();
 
     public MainWindow()
     {
@@ -238,21 +239,47 @@ public partial class MainWindow : Window
                 new SystemStyleTarget("system|text|button", "Текст кнопок", true),
                 new SystemStyleTarget("system|text|input", "Текст полей ввода", true),
                 new SystemStyleTarget("system|text|disabled", "Текст неактивных элементов", true),
-                new SystemStyleTarget("system|text|selection", "Текст выделенного элемента", true)
+                new SystemStyleTarget("system|text|selection", "Текст выделенного элемента", true),
+                new SystemStyleTarget("system|text|titlebar", "Текст заголовка окна", true),
+                new SystemStyleTarget("system|text|muted", "Приглушённый и поясняющий текст", true),
+                new SystemStyleTarget("system|text|data", "Текст показателей и значений", true),
+                new SystemStyleTarget("system|text|accent", "Акцентный текст и подписи", true),
+                new SystemStyleTarget("system|text|success", "Текст успешного состояния", true),
+                new SystemStyleTarget("system|text|info", "Информационный текст", true),
+                new SystemStyleTarget("system|text|warning", "Предупреждающий текст", true),
+                new SystemStyleTarget("system|text|error", "Текст ошибки", true),
+                new SystemStyleTarget("system|text|tooltip", "Текст всплывающих подсказок", true),
+                new SystemStyleTarget("system|text|dialog", "Текст системных диалогов", true)
             }
             : new[]
             {
                 new SystemStyleTarget("system|background|window", "Фон главного окна", false),
-                new SystemStyleTarget("system|background|panel", "Фон системных панелей", false),
+                new SystemStyleTarget("system|background|panel", "Фон панелей и карточек", false),
                 new SystemStyleTarget("system|background|menu", "Фон главного меню", false),
                 new SystemStyleTarget("system|background|dropdown", "Фон выпадающих меню и списков", false),
                 new SystemStyleTarget("system|background|menu-selected", "Фон выбранного пункта меню", false),
-                new SystemStyleTarget("system|background|button", "Фон кнопок", false),
+                new SystemStyleTarget("system|background|button", "Фон обычных кнопок", false),
                 new SystemStyleTarget("system|background|button-primary", "Фон основных кнопок", false),
                 new SystemStyleTarget("system|background|button-hover", "Фон кнопок при наведении", false),
                 new SystemStyleTarget("system|background|button-pressed", "Фон нажатых кнопок", false),
                 new SystemStyleTarget("system|background|input", "Фон полей ввода", false),
-                new SystemStyleTarget("system|background|selection", "Фон выделенного элемента", false)
+                new SystemStyleTarget("system|background|selection", "Фон выделенного элемента", false),
+                new SystemStyleTarget("system|background|titlebar", "Фон заголовка окна", false),
+                new SystemStyleTarget("system|background|dialog", "Фон диалоговых окон", false),
+                new SystemStyleTarget("system|background|tooltip", "Фон всплывающих подсказок", false),
+                new SystemStyleTarget("system|background|card", "Фон информационных карточек", false),
+                new SystemStyleTarget("system|background|card-alt", "Дополнительный фон карточек", false),
+                new SystemStyleTarget("system|background|surface-dark", "Тёмный фон внутренних областей", false),
+                new SystemStyleTarget("system|background|border", "Цвет рамок и разделителей", false),
+                new SystemStyleTarget("system|background|accent", "Акцентный фон и индикаторы", false),
+                new SystemStyleTarget("system|background|info", "Информационные элементы", false),
+                new SystemStyleTarget("system|background|success", "Элементы успешного состояния", false),
+                new SystemStyleTarget("system|background|warning", "Предупреждающие элементы", false),
+                new SystemStyleTarget("system|background|error", "Элементы ошибки", false),
+                new SystemStyleTarget("system|background|titlebar-hover", "Кнопки заголовка при наведении", false),
+                new SystemStyleTarget("system|background|titlebar-pressed", "Кнопки заголовка при нажатии", false),
+                new SystemStyleTarget("system|background|close-hover", "Кнопка закрытия при наведении", false),
+                new SystemStyleTarget("system|background|close-pressed", "Кнопка закрытия при нажатии", false)
             };
 
         foreach (var target in targets)
@@ -284,6 +311,16 @@ public partial class MainWindow : Window
                 "system|text|input" => "#E8EEF7",
                 "system|text|disabled" => "#AAB4C0",
                 "system|text|selection" => "#17202D",
+                "system|text|titlebar" => "#F4F7FB",
+                "system|text|muted" => "#8FA2BA",
+                "system|text|data" => "#E8EEF7",
+                "system|text|accent" => "#F5B942",
+                "system|text|success" => "#63D6A2",
+                "system|text|info" => "#63B9F2",
+                "system|text|warning" => "#F5B942",
+                "system|text|error" => "#E45B5B",
+                "system|text|tooltip" => "#F4F7FB",
+                "system|text|dialog" => "#E8EEF7",
                 "system|background|window" => _activePalette?[0] ?? "#0B1220",
                 "system|background|panel" => _activePalette?[1] ?? "#121E30",
                 "system|background|menu" => _activePalette?[7] ?? "#17263A",
@@ -295,6 +332,22 @@ public partial class MainWindow : Window
                 "system|background|button-pressed" => "#405875",
                 "system|background|input" => "#17263A",
                 "system|background|selection" => "#DCE6F2",
+                "system|background|titlebar" => "#17263A",
+                "system|background|dialog" => "#121E30",
+                "system|background|tooltip" => "#17263A",
+                "system|background|card" => "#172B40",
+                "system|background|card-alt" => "#1A3047",
+                "system|background|surface-dark" => "#0B1725",
+                "system|background|border" => "#31516B",
+                "system|background|accent" => "#F5B942",
+                "system|background|info" => "#247DB5",
+                "system|background|success" => "#63D6A2",
+                "system|background|warning" => "#F5B942",
+                "system|background|error" => "#E45B5B",
+                "system|background|titlebar-hover" => "#31445E",
+                "system|background|titlebar-pressed" => "#405875",
+                "system|background|close-hover" => "#C42B1C",
+                "system|background|close-pressed" => "#9E2116",
                 _ => "#FFFFFFFF"
             };
 
@@ -571,8 +624,23 @@ public partial class MainWindow : Window
             ["#FF0B1725"] = palette[1], ["#FF07111D"] = palette[1],
             ["#FF31445E"] = buttonHoverBackground,
             ["#FFDCE6F2"] = menuSelectedBackground,
-            ["#FFF4F7FB"] = menuTextColor,
-            ["#FFAAB4C0"] = disabledTextColor
+            ["#FFF4F7FB"] = StyleColor("text|titlebar", "#F4F7FB"),
+            ["#FFAAB4C0"] = disabledTextColor,
+            ["#FFF0F5FA"] = StyleColor("text|data", "#F0F5FA"),
+            ["#FFAFC1D2"] = StyleColor("text|muted", "#AFC1D2"),
+            ["#FF71849B"] = StyleColor("text|muted", "#71849B"),
+            ["#FF63D6A2"] = StyleColor("text|success", "#63D6A2"),
+            ["#FF63B9F2"] = StyleColor("text|info", "#63B9F2"),
+            ["#FFE45B5B"] = StyleColor("text|error", "#E45B5B"),
+            ["#FF172B40"] = StyleColor("background|card", "#172B40"),
+            ["#FF1A3047"] = StyleColor("background|card-alt", "#1A3047"),
+            ["#FF0B1725"] = StyleColor("background|surface-dark", "#0B1725"),
+            ["#FF07111D"] = StyleColor("background|surface-dark", "#07111D"),
+            ["#FF31516B"] = StyleColor("background|border", "#31516B"),
+            ["#FF45617A"] = StyleColor("background|border", "#45617A"),
+            ["#FF247DB5"] = StyleColor("background|info", "#247DB5"),
+            ["#FFC42B1C"] = StyleColor("background|close-hover", "#C42B1C"),
+            ["#FF9E2116"] = StyleColor("background|close-pressed", "#9E2116")
         };
 
         if (_activePalette is not null)
@@ -733,14 +801,21 @@ public partial class MainWindow : Window
                         _systemOriginalBackgrounds[border] = currentBorderBackground;
                     if (_systemOriginalBackgrounds.TryGetValue(border, out var originalBorderBackground))
                         border.Background = ConvertBrush(originalBorderBackground);
+                    if (border.BorderBrush is SolidColorBrush currentBorderBrush &&
+                        !_systemOriginalBorderBrushes.ContainsKey(border))
+                        _systemOriginalBorderBrushes[border] = currentBorderBrush;
+                    if (_systemOriginalBorderBrushes.TryGetValue(border, out var originalBorderBrush))
+                        border.BorderBrush = ConvertBrush(originalBorderBrush);
                 }
                 Visit(child);
             }
         }
         Visit(this);
 
-        Resources["SystemButtonHoverBrush"] = PaletteBrush(buttonHoverBackground);
-        Resources["SystemButtonPressedBrush"] = PaletteBrush(buttonPressedBackground);
+        Resources["SystemButtonHoverBrush"] = PaletteBrush(StyleColor("background|titlebar-hover", buttonHoverBackground));
+        Resources["SystemButtonPressedBrush"] = PaletteBrush(StyleColor("background|titlebar-pressed", buttonPressedBackground));
+        Resources["SystemCloseHoverBrush"] = PaletteBrush(StyleColor("background|close-hover", "#C42B1C"));
+        Resources["SystemClosePressedBrush"] = PaletteBrush(StyleColor("background|close-pressed", "#9E2116"));
 
         _activePalette = palette;
         ClientSettings.SaveTheme(theme);
