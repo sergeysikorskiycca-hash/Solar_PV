@@ -33,7 +33,7 @@ public partial class MainWindow : Window
     private bool _isAdminMode;
     private readonly Dictionary<string, string> _styleOverrides = ClientSettings.LoadStyleOverrides();
 
-    private sealed record StyleTarget(System.Windows.FrameworkElement Element, string Key, string Label);
+    private sealed record StyleTarget(System.Windows.FrameworkElement Element, string Key, string Label, bool IsText);
 
     public MainWindow()
     {
@@ -276,10 +276,10 @@ public partial class MainWindow : Window
 
                 if (child is System.Windows.FrameworkElement element)
                 {
-                    var key = GetStyleElementKey(element, elementPath);
+                    var key = GetStyleElementKey(element, elementPath, textTargets);
                     var eligible = textTargets ? HasEditableTextColor(element) : HasEditableBackground(element);
                     if (eligible && seen.Add(key))
-                        result.Add(new StyleTarget(element, key, DescribeStyleElement(element, elementPath)));
+                        result.Add(new StyleTarget(element, key, DescribeStyleElement(element, elementPath), textTargets));
                 }
 
                 Walk(child, elementPath);
@@ -291,18 +291,20 @@ public partial class MainWindow : Window
         return result.OrderBy(item => item.Label, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 
-    private string GetStyleElementKey(System.Windows.FrameworkElement element, string fallbackPath)
+    private string GetStyleElementKey(System.Windows.FrameworkElement element, string fallbackPath, bool isText)
     {
+        var prefix = isText ? "text|" : "background|";
         if (element is System.Windows.Controls.Border border &&
             border.Tag is string borderId && _energyMapItems.ContainsKey(borderId))
-            return "energy-map:background:" + borderId;
+            return prefix + (isText ? "energy-map:text:" : "energy-map:background:") + borderId;
 
-        if (element is System.Windows.Controls.TextBlock &&
+        if (isText && element is System.Windows.Controls.TextBlock &&
             System.Windows.LogicalTreeHelper.GetParent(element) is System.Windows.Controls.Border parentBorder &&
             parentBorder.Tag is string textId && _energyMapItems.ContainsKey(textId))
-            return "energy-map:text:" + textId;
+            return prefix + "energy-map:text:" + textId;
 
-        return !string.IsNullOrWhiteSpace(element.Name) ? "name:" + element.Name : fallbackPath;
+        var identity = !string.IsNullOrWhiteSpace(element.Name) ? "name:" + element.Name : fallbackPath;
+        return prefix + identity;
     }
 
     private static bool HasEditableTextColor(System.Windows.FrameworkElement element)
@@ -363,9 +365,7 @@ public partial class MainWindow : Window
         if (sender is not System.Windows.Controls.MenuItem item || item.Tag is not StyleTarget target)
             return;
 
-        var isText = target.Key.Contains(":text:", StringComparison.Ordinal) ||
-                     target.Element is System.Windows.Controls.TextBlock ||
-                     target.Element is System.Windows.Controls.Control;
+        var isText = target.IsText;
         var currentBrush = isText
             ? target.Element switch
             {
@@ -403,19 +403,20 @@ public partial class MainWindow : Window
             }
         }
 
-        if (target.Key.StartsWith("energy-map:text:", StringComparison.Ordinal))
+        if (target.Key.StartsWith("text|energy-map:text:", StringComparison.Ordinal))
         {
-            var id = target.Key["energy-map:text:".Length..];
+            var id = target.Key["text|energy-map:text:".Length..];
             var model = _energyMapElements.FirstOrDefault(element => element.Id == id);
             if (model is not null && target.Element is System.Windows.Controls.TextBlock mapText)
             {
                 model.Foreground = color.ToString();
                 SetEnergyMapText(mapText, model);
+                SaveEnergyMapLayout();
             }
         }
-        else if (target.Key.StartsWith("energy-map:background:", StringComparison.Ordinal))
+        else if (target.Key.StartsWith("background|energy-map:background:", StringComparison.Ordinal))
         {
-            var id = target.Key["energy-map:background:".Length..];
+            var id = target.Key["background|energy-map:background:".Length..];
             var model = _energyMapElements.FirstOrDefault(element => element.Id == id);
             if (model is not null) model.Background = color.ToString();
             SaveEnergyMapLayout();
@@ -560,14 +561,24 @@ public partial class MainWindow : Window
 
                 if (child is System.Windows.FrameworkElement element)
                 {
-                    var key = GetStyleElementKey(element, elementPath);
-                    if (_styleOverrides.TryGetValue(key, out var value))
+                    var textKey = GetStyleElementKey(element, elementPath, true);
+                    var backgroundKey = GetStyleElementKey(element, elementPath, false);
+                    if (_styleOverrides.TryGetValue(textKey, out var textValue))
                     {
                         try
                         {
-                            if (key.Contains(":text:", StringComparison.Ordinal) ||
-                                element is System.Windows.Controls.TextBlock ||
-                                element is System.Windows.Controls.Control)
+                            var brush = new System.Windows.Media.SolidColorBrush(
+                                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(textValue));
+                            if (element is System.Windows.Controls.TextBlock textBlock) textBlock.Foreground = brush;
+                            else if (element is System.Windows.Controls.Control control) control.Foreground = brush;
+                        }
+                        catch { }
+                    }
+                    if (_styleOverrides.TryGetValue(backgroundKey, out var value))
+                    {
+                        try
+                        {
+                            if (backgroundKey.StartsWith("background|", StringComparison.Ordinal))
                             {
                                 var brush = new System.Windows.Media.SolidColorBrush(
                                     (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(value));
