@@ -406,7 +406,7 @@ public partial class MainWindow : Window
         {
             ["#FF0B1220"] = palette[0], ["#FF121E30"] = palette[1],
             ["#FFE8EEF7"] = palette[2], ["#FF8FA2BA"] = palette[3],
-            ["#FFF5B942"] = palette[4], ["#FF17202D"] = palette[0],
+            ["#FFF5B942"] = palette[4], ["#FF17202D"] = menuSelectedTextColor,
             ["#FF17263A"] = palette[7], ["#FF30445E"] = palette[6],
             ["#FF26384D"] = buttonBackground, ["#FF405875"] = buttonPressedBackground,
             ["#FF1A2B3E"] = palette[1],
@@ -488,20 +488,22 @@ public partial class MainWindow : Window
                 var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
                 if (child is System.Windows.Controls.Control control)
                 {
-                    if (control.Background is SolidColorBrush bg) control.Background = ConvertBrush(bg);
-                    if (control.Foreground is SolidColorBrush fg) control.Foreground = ConvertBrush(fg);
-
                     if (control is System.Windows.Controls.TextBox or System.Windows.Controls.PasswordBox)
                     {
                         control.Background = PaletteBrush(inputBackground);
                         control.Foreground = PaletteBrush(inputTextColor);
                     }
-                    else if (control is System.Windows.Controls.Button button &&
-                             button.Foreground is SolidColorBrush buttonForeground &&
-                             (buttonForeground.Color.ToString() == "#FFE8EEF7" ||
-                              buttonForeground.Color.ToString() == "#FFF4F7FB"))
+                    else
                     {
-                        button.Foreground = PaletteBrush(buttonTextColor);
+                        if (control.Background is SolidColorBrush bg) control.Background = ConvertBrush(bg);
+                        if (control.Foreground is SolidColorBrush fg)
+                        {
+                            if (control is System.Windows.Controls.Button &&
+                                (fg.Color.ToString() == "#FFE8EEF7" || fg.Color.ToString() == "#FFF4F7FB"))
+                                control.Foreground = PaletteBrush(buttonTextColor);
+                            else
+                                control.Foreground = ConvertBrush(fg);
+                        }
                     }
                 }
                 if (child is System.Windows.Controls.TextBlock textBlock && textBlock.Foreground is SolidColorBrush textBrush)
