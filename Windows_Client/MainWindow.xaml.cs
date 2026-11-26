@@ -39,6 +39,8 @@ public partial class MainWindow : Window
     private string _activeDesign = "EnergyMap";
     private readonly HashSet<System.Windows.Controls.Button> _systemStyledButtons = new();
     private readonly Dictionary<System.Windows.Controls.Button, Brush> _systemButtonBaseBackgrounds = new();
+    private readonly Dictionary<DependencyObject, Brush> _systemOriginalBackgrounds = new();
+    private readonly Dictionary<DependencyObject, Brush> _systemOriginalForegrounds = new();
 
     public MainWindow()
     {
@@ -674,6 +676,13 @@ public partial class MainWindow : Window
                 var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
                 if (child is System.Windows.Controls.Control control)
                 {
+                    if (control.Background is SolidColorBrush currentBackground &&
+                        !_systemOriginalBackgrounds.ContainsKey(control))
+                        _systemOriginalBackgrounds[control] = currentBackground;
+                    if (control.Foreground is SolidColorBrush currentForeground &&
+                        !_systemOriginalForegrounds.ContainsKey(control))
+                        _systemOriginalForegrounds[control] = currentForeground;
+
                     if (control is System.Windows.Controls.TextBox or System.Windows.Controls.PasswordBox or System.Windows.Controls.ComboBox)
                     {
                         control.Background = PaletteBrush(inputBackground);
@@ -681,7 +690,9 @@ public partial class MainWindow : Window
                     }
                     else
                     {
-                        if (control is System.Windows.Controls.Button button && button.Background is SolidColorBrush buttonBg)
+                        if (control is System.Windows.Controls.Button button &&
+                            _systemOriginalBackgrounds.TryGetValue(button, out var originalButtonBackground) &&
+                            originalButtonBackground is SolidColorBrush buttonBg)
                         {
                             if (buttonBg.Color.ToString() == "#FFF5B942")
                                 button.Background = PaletteBrush(primaryButtonBackground);
@@ -693,23 +704,36 @@ public partial class MainWindow : Window
                             if (button.Style != (TryFindResource("CloseTitleBarButtonStyle") as Style))
                                 RegisterSystemButton(button);
                         }
-                        else if (control.Background is SolidColorBrush bg)
-                            control.Background = ConvertBrush(bg);
+                        else if (_systemOriginalBackgrounds.TryGetValue(control, out var originalBackground))
+                            control.Background = ConvertBrush(originalBackground);
 
-                        if (control.Foreground is SolidColorBrush fg)
+                        if (_systemOriginalForegrounds.TryGetValue(control, out var originalForeground))
                         {
                             if (control is System.Windows.Controls.Button &&
-                                (fg.Color.ToString() == "#FFE8EEF7" || fg.Color.ToString() == "#FFF4F7FB"))
+                                originalForeground is SolidColorBrush buttonForeground &&
+                                (buttonForeground.Color.ToString() == "#FFE8EEF7" || buttonForeground.Color.ToString() == "#FFF4F7FB"))
                                 control.Foreground = PaletteBrush(buttonTextColor);
                             else
-                                control.Foreground = ConvertBrush(fg);
+                                control.Foreground = ConvertBrush(originalForeground);
                         }
                     }
                 }
-                if (child is System.Windows.Controls.TextBlock textBlock && textBlock.Foreground is SolidColorBrush textBrush)
-                    textBlock.Foreground = ConvertBrush(textBrush);
-                if (child is System.Windows.Controls.Border border && border.Background is SolidColorBrush borderBg)
-                    border.Background = ConvertBrush(borderBg);
+                if (child is System.Windows.Controls.TextBlock textBlock)
+                {
+                    if (textBlock.Foreground is SolidColorBrush currentTextForeground &&
+                        !_systemOriginalForegrounds.ContainsKey(textBlock))
+                        _systemOriginalForegrounds[textBlock] = currentTextForeground;
+                    if (_systemOriginalForegrounds.TryGetValue(textBlock, out var originalTextForeground))
+                        textBlock.Foreground = ConvertBrush(originalTextForeground);
+                }
+                if (child is System.Windows.Controls.Border border)
+                {
+                    if (border.Background is SolidColorBrush currentBorderBackground &&
+                        !_systemOriginalBackgrounds.ContainsKey(border))
+                        _systemOriginalBackgrounds[border] = currentBorderBackground;
+                    if (_systemOriginalBackgrounds.TryGetValue(border, out var originalBorderBackground))
+                        border.Background = ConvertBrush(originalBorderBackground);
+                }
                 Visit(child);
             }
         }
