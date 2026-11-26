@@ -794,6 +794,14 @@ public partial class MainWindow : Window
                     if (_systemOriginalForegrounds.TryGetValue(textBlock, out var originalTextForeground))
                         textBlock.Foreground = ConvertBrush(originalTextForeground);
                 }
+                if (child is System.Windows.Controls.Panel panel)
+                {
+                    if (panel.Background is SolidColorBrush currentPanelBackground &&
+                        !_systemOriginalBackgrounds.ContainsKey(panel))
+                        _systemOriginalBackgrounds[panel] = currentPanelBackground;
+                    if (_systemOriginalBackgrounds.TryGetValue(panel, out var originalPanelBackground))
+                        panel.Background = ConvertBrush(originalPanelBackground);
+                }
                 if (child is System.Windows.Controls.Border border)
                 {
                     if (border.Background is SolidColorBrush currentBorderBackground &&
