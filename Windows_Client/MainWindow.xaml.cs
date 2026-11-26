@@ -448,7 +448,7 @@ public partial class MainWindow : Window
         {
             ["#FF0B1220"] = palette[0], ["#FF121E30"] = palette[1],
             ["#FFE8EEF7"] = palette[2], ["#FF8FA2BA"] = palette[3],
-            ["#FFF5B942"] = palette[4], ["#FF17202D"] = menuSelectedTextColor,
+            ["#FFF5B942"] = palette[4],
             ["#FF17263A"] = palette[7], ["#FF30445E"] = palette[6],
             ["#FF26384D"] = buttonBackground, ["#FF405875"] = buttonPressedBackground,
             ["#FF1A2B3E"] = palette[1],
