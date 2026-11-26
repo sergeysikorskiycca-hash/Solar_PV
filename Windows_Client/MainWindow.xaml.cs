@@ -610,7 +610,7 @@ public partial class MainWindow : Window
                             else
                                 button.Background = ConvertBrush(buttonBg);
 
-                            if (button.Style != TryFindResource("CloseTitleBarButtonStyle") as Style)
+                            if (button.Style != (TryFindResource("CloseTitleBarButtonStyle") as Style))
                                 RegisterSystemButton(button);
                         }
                         else if (control.Background is SolidColorBrush bg)
