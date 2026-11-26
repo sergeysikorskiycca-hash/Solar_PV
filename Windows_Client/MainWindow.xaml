@@ -67,7 +67,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Grid Grid.Row="0" Background="#17263A" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+        <Grid x:Name="TitleBarGrid" Grid.Row="0" Background="#17263A" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/><ColumnDefinition Width="46"/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
             <TextBlock x:Name="WindowModeText" Text="Solar_PV" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#F4F7FB"/>
             <Button Grid.Column="1" Content="—" Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeWindow_Click" ToolTip="Свернуть" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
