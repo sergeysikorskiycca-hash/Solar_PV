@@ -745,6 +745,11 @@ public partial class MainWindow : Window
 
         void Visit(DependencyObject parent)
         {
+            // Workspace objects have their own independent color settings.
+            if (ReferenceEquals(parent, EnergyMapObjectHitCanvas) ||
+                ReferenceEquals(parent, EnergyMapItemsCanvas))
+                return;
+
             for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
             {
                 var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
