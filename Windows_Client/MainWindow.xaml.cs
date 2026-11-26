@@ -230,10 +230,14 @@ public partial class MainWindow : Window
 
     private void EnsureDefaultSystemStyleOverrides()
     {
+        if (_styleOverrides.TryGetValue("system|defaults-version", out var version) && version == "1")
+            return;
+
         string[] textKeys = { "primary", "secondary", "menu", "menu-selected", "button", "button-primary", "input", "disabled", "selection", "titlebar", "muted", "data", "accent", "success", "info", "warning", "error", "tooltip", "dialog" };
         string[] backgroundKeys = { "window", "panel", "menu", "dropdown", "menu-selected", "button", "button-primary", "button-hover", "button-pressed", "input", "selection", "titlebar", "dialog", "tooltip", "card", "card-alt", "surface-dark", "border", "accent", "info", "success", "warning", "error", "status-neutral", "titlebar-hover", "titlebar-pressed", "close-hover", "close-pressed" };
         foreach (var key in textKeys) _styleOverrides["system|text|" + key] = "#FFFFFF";
         foreach (var key in backgroundKeys) _styleOverrides["system|background|" + key] = "#3A3A3A";
+        _styleOverrides["system|defaults-version"] = "1";
         ClientSettings.SaveStyleOverrides(_styleOverrides);
     }
 
