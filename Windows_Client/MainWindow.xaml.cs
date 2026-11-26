@@ -236,7 +236,8 @@ public partial class MainWindow : Window
                 new SystemStyleTarget("system|text|secondary", "Вторичный текст и подписи", true),
                 new SystemStyleTarget("system|text|menu", "Текст пунктов меню", true),
                 new SystemStyleTarget("system|text|menu-selected", "Текст выбранного пункта меню", true),
-                new SystemStyleTarget("system|text|button", "Текст кнопок", true),
+                new SystemStyleTarget("system|text|button", "Текст обычных кнопок", true),
+                new SystemStyleTarget("system|text|button-primary", "Текст основных кнопок и контрастных состояний", true),
                 new SystemStyleTarget("system|text|input", "Текст полей ввода", true),
                 new SystemStyleTarget("system|text|disabled", "Текст неактивных элементов", true),
                 new SystemStyleTarget("system|text|selection", "Текст выделенного элемента", true),
@@ -276,6 +277,7 @@ public partial class MainWindow : Window
                 new SystemStyleTarget("system|background|success", "Элементы успешного состояния", false),
                 new SystemStyleTarget("system|background|warning", "Предупреждающие элементы", false),
                 new SystemStyleTarget("system|background|error", "Элементы ошибки", false),
+                new SystemStyleTarget("system|background|status-neutral", "Нейтральные индикаторы состояния", false),
                 new SystemStyleTarget("system|background|titlebar-hover", "Кнопки заголовка при наведении", false),
                 new SystemStyleTarget("system|background|titlebar-pressed", "Кнопки заголовка при нажатии", false),
                 new SystemStyleTarget("system|background|close-hover", "Кнопка закрытия при наведении", false),
@@ -308,6 +310,7 @@ public partial class MainWindow : Window
                 "system|text|menu" => _activePalette?[2] ?? "#E8EEF7",
                 "system|text|menu-selected" => "#17202D",
                 "system|text|button" => "#E8EEF7",
+                "system|text|button-primary" => "#17202D",
                 "system|text|input" => "#E8EEF7",
                 "system|text|disabled" => "#AAB4C0",
                 "system|text|selection" => "#17202D",
@@ -344,6 +347,7 @@ public partial class MainWindow : Window
                 "system|background|success" => "#63D6A2",
                 "system|background|warning" => "#F5B942",
                 "system|background|error" => "#E45B5B",
+                "system|background|status-neutral" => "#64748B",
                 "system|background|titlebar-hover" => "#31445E",
                 "system|background|titlebar-pressed" => "#405875",
                 "system|background|close-hover" => "#C42B1C",
@@ -632,6 +636,8 @@ public partial class MainWindow : Window
             ["#FF63D6A2"] = StyleColor("text|success", "#63D6A2"),
             ["#FF63B9F2"] = StyleColor("text|info", "#63B9F2"),
             ["#FFE45B5B"] = StyleColor("text|error", "#E45B5B"),
+            ["#FF64748B"] = StyleColor("background|status-neutral", "#64748B"),
+            ["#FF17202D"] = StyleColor("text|button-primary", "#17202D"),
             ["#FF172B40"] = StyleColor("background|card", "#172B40"),
             ["#FF1A3047"] = StyleColor("background|card-alt", "#1A3047"),
             ["#FF0B1725"] = StyleColor("background|surface-dark", "#0B1725"),
@@ -862,8 +868,8 @@ public partial class MainWindow : Window
             DashboardContentGrid.ClearValue(System.Windows.FrameworkElement.HeightProperty);
         }
         LegacyDashboard.Visibility = design is "Digital" or "EnergyMap" ? Visibility.Collapsed : Visibility.Visible;
-        var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[4]));
-        var borderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[6]));
+        var accent = GetSystemStyleBrush("text|accent", palette[4]);
+        var borderBrush = GetSystemStyleBrush("background|border", palette[6]);
 
         var cornerRadius = design switch
         {
