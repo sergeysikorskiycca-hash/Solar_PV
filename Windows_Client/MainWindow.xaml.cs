@@ -493,6 +493,8 @@ public partial class MainWindow : Window
             ["#FF17263A"] = palette[7], ["#FF30445E"] = palette[6],
             ["#FF26384D"] = buttonBackground, ["#FF405875"] = buttonPressedBackground,
             ["#FF1A2B3E"] = palette[1],
+            ["#FF172B40"] = palette[1], ["#FF1A3047"] = palette[1],
+            ["#FF0B1725"] = palette[1], ["#FF07111D"] = palette[1],
             ["#FF31445E"] = buttonHoverBackground,
             ["#FFDCE6F2"] = menuSelectedBackground,
             ["#FFF4F7FB"] = menuTextColor,
@@ -559,6 +561,9 @@ public partial class MainWindow : Window
         selectedItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
             PaletteBrush(StyleColor("text|selection", "#17202D"))));
         listItemStyle.Triggers.Add(selectedItem);
+        var disabledListItem = new Trigger { Property = System.Windows.UIElement.IsEnabledProperty, Value = false };
+        disabledListItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(disabledTextColor)));
+        listItemStyle.Triggers.Add(disabledListItem);
         Application.Current.Resources[typeof(System.Windows.Controls.ListBoxItem)] = listItemStyle;
 
         var comboItemStyle = new Style(typeof(System.Windows.Controls.ComboBoxItem));
@@ -574,6 +579,9 @@ public partial class MainWindow : Window
         comboHighlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
             PaletteBrush(StyleColor("text|selection", "#17202D"))));
         comboItemStyle.Triggers.Add(comboHighlighted);
+        var disabledComboItem = new Trigger { Property = System.Windows.UIElement.IsEnabledProperty, Value = false };
+        disabledComboItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(disabledTextColor)));
+        comboItemStyle.Triggers.Add(disabledComboItem);
         Application.Current.Resources[typeof(System.Windows.Controls.ComboBoxItem)] = comboItemStyle;
 
         void ApplyMenuItemStyle(System.Windows.Controls.MenuItem item)
