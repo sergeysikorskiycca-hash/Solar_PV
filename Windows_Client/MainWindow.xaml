@@ -27,12 +27,12 @@
                 <Trigger Property="IsHighlighted" Value="True">
                     <Setter Property="Foreground" Value="#FFFFFF"/>
                     <Setter Property="Background" Value="#3A3A3A"/>
-                    <Setter Property="TextElement.Foreground" Value="#17202D"/>
+                    <Setter Property="TextElement.Foreground" Value="#FFFFFF"/>
                 </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="#17202D"/>
-                    <Setter Property="Background" Value="#DCE6F2"/>
-                    <Setter Property="TextElement.Foreground" Value="#17202D"/>
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                    <Setter Property="Background" Value="#3A3A3A"/>
+                    <Setter Property="TextElement.Foreground" Value="#FFFFFF"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Foreground" Value="#FFFFFF"/>
@@ -45,7 +45,7 @@
             <Setter Property="Padding" Value="0"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#F4F7FB"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Focusable" Value="False"/>
@@ -56,8 +56,8 @@
         </Style>
         <Style x:Key="CloseTitleBarButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource TitleBarButtonStyle}">
             <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SystemCloseHoverBrush}"/><Setter Property="Foreground" Value="#17202D"/></Trigger>
-                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource SystemClosePressedBrush}"/><Setter Property="Foreground" Value="#17202D"/></Trigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SystemCloseHoverBrush}"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource SystemClosePressedBrush}"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
