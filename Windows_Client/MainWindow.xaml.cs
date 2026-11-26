@@ -312,102 +312,173 @@ public partial class MainWindow : Window
         var dialog = new Window
         {
             Title = title,
-            Width = 390,
-            Height = 205,
-            ResizeMode = ResizeMode.NoResize,
+            Width = 520,
+            Height = 500,
+            MinWidth = 520,
+            MinHeight = 500,
+            ResizeMode = ResizeMode.CanMinimize,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,
-            Background = new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(18, 30, 48)),
+            Background = new SolidColorBrush(Color.FromRgb(18, 30, 48)),
             Foreground = Brushes.White,
             ShowInTaskbar = false
         };
 
-        var panel = new System.Windows.Controls.StackPanel { Margin = new Thickness(18) };
-        panel.Children.Add(new System.Windows.Controls.TextBlock
+        string selectedColor = initialColor;
+        var root = new DockPanel { Margin = new Thickness(16) };
+        var bottom = new StackPanel
         {
-            Text = "Цвет в формате #RRGGBB или #AARRGGBB",
-            Margin = new Thickness(0, 0, 0, 8)
-        });
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 14, 0, 0)
+        };
+        DockPanel.SetDock(bottom, Dock.Bottom);
 
-        var colorBox = new System.Windows.Controls.TextBox
+        var previewRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+        var preview = new Border
+        {
+            Width = 72,
+            Height = 34,
+            CornerRadius = new CornerRadius(4),
+            BorderThickness = new Thickness(1),
+            BorderBrush = Brushes.White,
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(initialColor)),
+            Margin = new Thickness(0, 0, 12, 0)
+        };
+        var selectedName = new TextBlock
+        {
+            Text = "Выбранный цвет",
+            VerticalAlignment = VerticalAlignment.Center,
+            FontSize = 14
+        };
+        previewRow.Children.Add(preview);
+        previewRow.Children.Add(selectedName);
+        DockPanel.SetDock(previewRow, Dock.Top);
+
+        var paletteScroll = new ScrollViewer
+        {
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+        };
+        var palette = new WrapPanel { Orientation = Orientation.Horizontal };
+
+        var colors = new (string Name, string Hex)[]
+        {
+            ("Белый", "#FFFFFFFF"), ("Слоновая кость", "#FFFFF8E7"), ("Светло-серый", "#FFD3D3D3"),
+            ("Серый", "#FF808080"), ("Тёмно-серый", "#FF505050"), ("Чёрный", "#FF000000"),
+            ("Красный", "#FFFF0000"), ("Тёмно-красный", "#FF8B0000"), ("Коралловый", "#FFFF7F50"),
+            ("Розовый", "#FFFFC0CB"), ("Малиновый", "#FFC71585"), ("Оранжевый", "#FFFFA500"),
+            ("Янтарный", "#FFFFBF00"), ("Жёлтый", "#FFFFFF00"), ("Золотой", "#FFFFD700"),
+            ("Лаймовый", "#FFBFFF00"), ("Салатовый", "#FF7CFC00"), ("Зелёный", "#FF008000"),
+            ("Тёмно-зелёный", "#FF006400"), ("Мятный", "#FF98FF98"), ("Бирюзовый", "#FF40E0D0"),
+            ("Голубой", "#FF87CEEB"), ("Небесно-синий", "#FF00BFFF"), ("Синий", "#FF0000FF"),
+            ("Тёмно-синий", "#FF00008B"), ("Индиго", "#FF4B0082"), ("Фиолетовый", "#FF800080"),
+            ("Сиреневый", "#FFDDA0DD"), ("Коричневый", "#FFA52A2A"), ("Бежевый", "#FFF5F5DC")
+        };
+
+        foreach (var entry in colors)
+        {
+            var swatch = new Button
+            {
+                Width = 64,
+                Height = 48,
+                Margin = new Thickness(3),
+                Padding = new Thickness(2),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(entry.Hex)),
+                BorderBrush = Brushes.Gray,
+                BorderThickness = new Thickness(1),
+                ToolTip = entry.Name
+            };
+            swatch.Click += (_, _) =>
+            {
+                selectedColor = entry.Hex;
+                preview.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(entry.Hex));
+                selectedName.Text = entry.Name;
+            };
+            palette.Children.Add(swatch);
+        }
+
+        paletteScroll.Content = palette;
+
+        var custom = new Expander
+        {
+            Header = "Другой цвет (дополнительно)",
+            Margin = new Thickness(0, 12, 0, 0),
+            Foreground = Brushes.White
+        };
+        var customPanel = new StackPanel { Orientation = Orientation.Horizontal };
+        var customBox = new TextBox
         {
             Text = initialColor,
-            Height = 32,
-            Padding = new Thickness(8, 5, 8, 5),
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Background = new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(23, 38, 58)),
-            Foreground = Brushes.White,
-            BorderBrush = new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(48, 68, 94))
-        };
-        panel.Children.Add(colorBox);
-
-        var preview = new System.Windows.Controls.Border
-        {
+            Width = 130,
             Height = 28,
-            Margin = new Thickness(0, 10, 0, 14),
-            BorderThickness = new Thickness(1),
-            BorderBrush = Brushes.White
-        };
-        panel.Children.Add(preview);
-
-        void UpdatePreview()
-        {
-            try
-            {
-                var parsed = System.Windows.Media.ColorConverter.ConvertFromString(colorBox.Text);
-                if (parsed is System.Windows.Media.Color color)
-                    preview.Background = new System.Windows.Media.SolidColorBrush(color);
-            }
-            catch { }
-        }
-        colorBox.TextChanged += (_, _) => UpdatePreview();
-        UpdatePreview();
-
-        var buttons = new System.Windows.Controls.StackPanel
-        {
-            Orientation = System.Windows.Controls.Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right
-        };
-        var cancel = new System.Windows.Controls.Button
-        {
-            Content = "Отмена",
-            Width = 92,
-            Height = 30,
+            VerticalContentAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 8, 0)
         };
-        cancel.Click += (_, _) => dialog.DialogResult = false;
-        var apply = new System.Windows.Controls.Button
+        var customApply = new Button
         {
-            Content = "Применить",
-            Width = 100,
-            Height = 30,
-            IsDefault = true
+            Content = "Выбрать",
+            Width = 86,
+            Height = 28
         };
-        apply.Click += (_, _) =>
+        customApply.Click += (_, _) =>
         {
             try
             {
-                if (System.Windows.Media.ColorConverter.ConvertFromString(colorBox.Text) is System.Windows.Media.Color)
-                    dialog.DialogResult = true;
+                if (ColorConverter.ConvertFromString(customBox.Text.Trim()) is Color color)
+                {
+                    selectedColor = color.ToString();
+                    preview.Background = new SolidColorBrush(color);
+                    selectedName.Text = "Пользовательский цвет";
+                }
                 else
-                    MessageBox.Show(dialog, "Укажите корректный цвет.", "Стиль",
+                    MessageBox.Show(dialog, "Не удалось распознать цвет.", "Стиль",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch
             {
-                MessageBox.Show(dialog, "Укажите корректный цвет.", "Стиль",
+                MessageBox.Show(dialog, "Не удалось распознать цвет.", "Стиль",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         };
-        buttons.Children.Add(cancel);
-        buttons.Children.Add(apply);
-        panel.Children.Add(buttons);
-        dialog.Content = panel;
+        customPanel.Children.Add(customBox);
+        customPanel.Children.Add(customApply);
+        custom.Content = customPanel;
 
-        return dialog.ShowDialog() == true ? colorBox.Text.Trim() : null;
+        var cancel = new Button
+        {
+            Content = "Отмена",
+            Width = 92,
+            Height = 32,
+            Margin = new Thickness(0, 0, 8, 0),
+            IsCancel = true
+        };
+        cancel.Click += (_, _) => dialog.DialogResult = false;
+        var apply = new Button
+        {
+            Content = "Применить",
+            Width = 100,
+            Height = 32,
+            IsDefault = true
+        };
+        apply.Click += (_, _) => dialog.DialogResult = true;
+        bottom.Children.Add(cancel);
+        bottom.Children.Add(apply);
+
+        var content = new StackPanel();
+        content.Children.Add(previewRow);
+        content.Children.Add(paletteScroll);
+        content.Children.Add(custom);
+        root.Children.Add(bottom);
+        root.Children.Add(content);
+        dialog.Content = root;
+
+        return dialog.ShowDialog() == true ? selectedColor : null;
     }
 
     private Brush GetSystemStyleBrush(string key, string fallback)
