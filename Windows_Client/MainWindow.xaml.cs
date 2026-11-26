@@ -204,6 +204,7 @@ public partial class MainWindow : Window
         buttons.Children.Add(enterButton);
         panel.Children.Add(buttons);
         loginWindow.Content = panel;
+        loginWindow.Loaded += (_, _) => EnergyMapEditorSystemTheme.Apply(loginWindow);
 
         return loginWindow.ShowDialog() == true;
     }
@@ -373,6 +374,7 @@ public partial class MainWindow : Window
             Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(initialColor)),
             Margin = new Thickness(0, 0, 12, 0)
         };
+        var colorDialogExclusions = new List<DependencyObject> { preview };
         var selectedName = new TextBlock
         {
             Text = "Выбранный цвет",
@@ -424,6 +426,7 @@ public partial class MainWindow : Window
                 selectedName.Text = entry.Name;
             };
             palette.Children.Add(swatch);
+            colorDialogExclusions.Add(swatch);
         }
 
         paletteScroll.Content = palette;
@@ -500,6 +503,7 @@ public partial class MainWindow : Window
         root.Children.Add(bottom);
         root.Children.Add(content);
         dialog.Content = root;
+        dialog.Loaded += (_, _) => EnergyMapEditorSystemTheme.Apply(dialog, colorDialogExclusions.ToArray());
 
         return dialog.ShowDialog() == true ? selectedColor : null;
     }
