@@ -229,11 +229,6 @@ internal static class EnergyMapEditorSystemTheme
                 (MessageBoxResult.No, "Нет", false, false),
                 (MessageBoxResult.Cancel, "Отмена", false, true)
             },
-            MessageBoxButton.RetryCancel => new[]
-            {
-                (MessageBoxResult.Retry, "Повторить", true, false),
-                (MessageBoxResult.Cancel, "Отмена", false, true)
-            },
             _ => new[]
             {
                 (MessageBoxResult.OK, "ОК", true, false)
