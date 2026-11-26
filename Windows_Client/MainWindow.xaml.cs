@@ -500,7 +500,7 @@ public partial class MainWindow : Window
         menuItemStyle.Triggers.Add(hovered);
         var disabledMenuItem = new Trigger
         {
-            Property = System.Windows.Controls.UIElement.IsEnabledProperty,
+            Property = System.Windows.UIElement.IsEnabledProperty,
             Value = false
         };
         disabledMenuItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
