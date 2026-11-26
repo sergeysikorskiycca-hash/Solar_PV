@@ -578,22 +578,13 @@ public partial class MainWindow : Window
                     {
                         try
                         {
-                            if (backgroundKey.StartsWith("background|", StringComparison.Ordinal))
+                            var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(value);
+                            var brush = new System.Windows.Media.SolidColorBrush(color);
+                            switch (element)
                             {
-                                var brush = new System.Windows.Media.SolidColorBrush(
-                                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(value));
-                                if (element is System.Windows.Controls.TextBlock textBlock) textBlock.Foreground = brush;
-                                else if (element is System.Windows.Controls.Control control) control.Foreground = brush;
-                            }
-                            else if (System.Windows.Media.ColorConverter.ConvertFromString(value) is System.Windows.Media.Color color)
-                            {
-                                var brush = new System.Windows.Media.SolidColorBrush(color);
-                                switch (element)
-                                {
-                                    case System.Windows.Controls.Border border: border.Background = brush; break;
-                                    case System.Windows.Controls.Panel panel: panel.Background = brush; break;
-                                    case System.Windows.Controls.Control control: control.Background = brush; break;
-                                }
+                                case System.Windows.Controls.Border border: border.Background = brush; break;
+                                case System.Windows.Controls.Panel panel: panel.Background = brush; break;
+                                case System.Windows.Controls.Control control: control.Background = brush; break;
                             }
                         }
                         catch { }
