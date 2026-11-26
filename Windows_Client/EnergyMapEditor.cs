@@ -157,28 +157,59 @@ internal static class EnergyMapSvgDocument
 
 internal static class EnergyMapEditorSystemTheme
 {
-    private static readonly Brush SurfaceBrush = new SolidColorBrush(Color.FromRgb(58, 58, 58));
+    private static readonly Brush DefaultSurfaceBrush = new SolidColorBrush(Color.FromRgb(58, 58, 58));
 
     public static void Apply(Window window, params DependencyObject[] excluded)
     {
-        window.Background = SurfaceBrush;
-        window.Foreground = Brushes.White;
+        Brush Resource(string key) => window.TryFindResource(key) as Brush ?? DefaultSurfaceBrush;
+        var textBrush = Resource("SystemPrimaryTextBrush");
+        var inputTextBrush = Resource("SystemInputTextBrush");
+        var buttonTextBrush = Resource("SystemButtonTextBrush");
+        var surfaceBrush = Resource("SystemSurfaceBackgroundBrush");
+        var dialogBrush = Resource("SystemDialogBackgroundBrush");
+        var inputBrush = Resource("SystemInputBackgroundBrush");
+        var buttonBrush = Resource("SystemButtonBackgroundBrush");
+
+        window.Background = dialogBrush;
+        window.Foreground = textBrush;
         var skip = new HashSet<DependencyObject>(excluded);
         void Visit(DependencyObject parent)
         {
             if (skip.Contains(parent)) return;
-            if (parent is Control control) { control.Foreground = Brushes.White; control.Background = SurfaceBrush; }
-            if (parent is TextBlock textBlock) textBlock.Foreground = Brushes.White;
-            if (parent is Border border) border.Background = SurfaceBrush;
-            if (parent is Panel panel && panel.Background is not null) panel.Background = SurfaceBrush;
+            if (parent is Button button)
+            {
+                button.Foreground = buttonTextBrush;
+                button.Background = buttonBrush;
+            }
+            else if (parent is TextBox or PasswordBox or ComboBox or ComboBoxItem)
+            {
+                if (parent is Control input)
+                {
+                    input.Foreground = inputTextBrush;
+                    input.Background = inputBrush;
+                }
+            }
+            else if (parent is Control control)
+            {
+                control.Foreground = textBrush;
+                control.Background = surfaceBrush;
+            }
+            if (parent is TextBlock textBlock)
+            {
+                if (textBlock.Foreground is null ||
+                    textBlock.Foreground is SolidColorBrush solid && solid.Color == Colors.White)
+                    textBlock.Foreground = textBrush;
+            }
+            if (parent is Border border) border.Background = surfaceBrush;
+            if (parent is Panel panel && panel.Background is not null) panel.Background = surfaceBrush;
             for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++) Visit(VisualTreeHelper.GetChild(parent, i));
         }
         var itemStyle = new Style(typeof(ComboBoxItem));
-        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, SurfaceBrush));
-        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, inputBrush));
+        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, inputTextBrush));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
-        hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        hover.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
+        hover.Setters.Add(new Setter(Control.ForegroundProperty, inputTextBrush));
         itemStyle.Triggers.Add(hover);
         window.Resources[typeof(ComboBoxItem)] = itemStyle;
         Visit(window);
