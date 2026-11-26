@@ -11,6 +11,7 @@ internal sealed class MainForm : Form
     private readonly TextBox keep = new() { Width = 70 };
     private readonly ComboBox models = new() { Width = 280, DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly TextBox selectedModel = CopyableTextBox(280, 25);
+    private readonly TextBox installedModelsText = CopyableTextBox(420, 70, true);
     private readonly TextBox running = CopyableTextBox(420, 90, true);
     private readonly TextBox log = CopyableTextBox(0, 0, true);
     private readonly TextBox status = CopyableTextBox(180, 25);
@@ -103,6 +104,8 @@ internal sealed class MainForm : Form
         var mid = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Fill };
         mid.Controls.Add(CopyableTextBox(125, 25).Also(x => x.Text = "Выбранная модель:"));
         mid.Controls.Add(selectedModel);
+        mid.Controls.Add(CopyableTextBox(125, 25).Also(x => x.Text = "Все модели:"));
+        mid.Controls.Add(installedModelsText);
         mid.Controls.Add(CopyableTextBox(125, 25).Also(x => x.Text = "Модели в памяти:"));
         mid.Controls.Add(running);
         root.Controls.Add(mid);
@@ -158,6 +161,7 @@ internal sealed class MainForm : Form
 
         models.Items.Clear();
         models.Items.AddRange(installed.Cast<object>().ToArray());
+        installedModelsText.Text = string.Join(Environment.NewLine, installed);
         if (models.Items.Count > 0) models.SelectedIndex = 0;
         else selectedModel.Clear();
 
