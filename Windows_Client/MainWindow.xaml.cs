@@ -313,8 +313,8 @@ public partial class MainWindow : Window
             return !string.IsNullOrWhiteSpace(GetTextBlockContent(textBlock));
         if (element is System.Windows.Controls.TextBox textBox)
             return !string.IsNullOrWhiteSpace(textBox.Text);
-        if (element is System.Windows.Controls.Control control)
-            return control.Content is string content && !string.IsNullOrWhiteSpace(content);
+        if (element is System.Windows.Controls.ContentControl contentControl)
+            return contentControl.Content is string content && !string.IsNullOrWhiteSpace(content);
         return false;
     }
 
@@ -348,7 +348,7 @@ public partial class MainWindow : Window
         {
             System.Windows.Controls.TextBlock textBlock => GetTextBlockContent(textBlock),
             System.Windows.Controls.TextBox textBox => textBox.Text,
-            System.Windows.Controls.Control control when control.Content is string value => value,
+            System.Windows.Controls.ContentControl contentControl when contentControl.Content is string value => value,
             _ => ""
         };
 
@@ -381,8 +381,8 @@ public partial class MainWindow : Window
             }
             else if (child is System.Windows.Controls.TextBox textBox && !string.IsNullOrWhiteSpace(textBox.Text))
                 return textBox.Text;
-            else if (child is System.Windows.Controls.Control control &&
-                     control.Content is string content && !string.IsNullOrWhiteSpace(content))
+            else if (child is System.Windows.Controls.ContentControl contentControl &&
+                     contentControl.Content is string content && !string.IsNullOrWhiteSpace(content))
                 return content;
 
             var nested = FindFirstDescendantText(child);
