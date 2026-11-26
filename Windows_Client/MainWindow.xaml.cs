@@ -344,8 +344,6 @@ public partial class MainWindow : Window
 
     private static string DescribeStyleElement(System.Windows.FrameworkElement element, string path)
     {
-        if (!string.IsNullOrWhiteSpace(element.Name)) return element.Name;
-
         var content = element switch
         {
             System.Windows.Controls.TextBlock textBlock => GetTextBlockContent(textBlock),
@@ -354,12 +352,44 @@ public partial class MainWindow : Window
             _ => ""
         };
 
+        if (string.IsNullOrWhiteSpace(content))
+            content = FindFirstDescendantText(element);
+
         content = content.Replace("\r", " ").Replace("\n", " ").Trim();
         if (content.Length > 42) content = content[..39] + "…";
-        if (!string.IsNullOrWhiteSpace(content)) return content;
+        if (!string.IsNullOrWhiteSpace(content))
+            return string.IsNullOrWhiteSpace(element.Name) ? content : content + " (" + element.Name + ")";
 
+        if (!string.IsNullOrWhiteSpace(element.Name)) return element.Name;
         var segment = path[(path.LastIndexOf('/') + 1)..];
         return element.GetType().Name + " · " + segment;
+    }
+
+    private static string FindFirstDescendantText(DependencyObject parent)
+    {
+        IEnumerable<object> children;
+        try { children = System.Windows.LogicalTreeHelper.GetChildren(parent).Cast<object>().ToArray(); }
+        catch { return ""; }
+
+        foreach (var childObject in children)
+        {
+            if (childObject is not DependencyObject child) continue;
+            if (child is System.Windows.Controls.TextBlock textBlock)
+            {
+                var value = GetTextBlockContent(textBlock);
+                if (!string.IsNullOrWhiteSpace(value)) return value;
+            }
+            else if (child is System.Windows.Controls.TextBox textBox && !string.IsNullOrWhiteSpace(textBox.Text))
+                return textBox.Text;
+            else if (child is System.Windows.Controls.Control control &&
+                     control.Content is string content && !string.IsNullOrWhiteSpace(content))
+                return content;
+
+            var nested = FindFirstDescendantText(child);
+            if (!string.IsNullOrWhiteSpace(nested)) return nested;
+        }
+
+        return "";
     }
 
     private void StyleTarget_Click(object sender, RoutedEventArgs e)
