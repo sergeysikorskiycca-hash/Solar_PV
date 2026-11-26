@@ -69,7 +69,7 @@ public partial class MainWindow
             if (remoteVersion <= currentVersion)
             {
                 WriteUpdateDiagnostic("Обновление не требуется: установленная версия актуальна.");
-                MessageBox.Show("Установлена последняя версия Solar_PV (" + currentVersion.ToString(3) + ").", "Solar_PV — обновление");
+                EnergyMapEditorSystemTheme.ShowMessage(this, "Установлена последняя версия Solar_PV (" + currentVersion.ToString(3) + ").", "Solar_PV — обновление");
                 return;
             }
 
@@ -82,7 +82,7 @@ public partial class MainWindow
             if (string.IsNullOrWhiteSpace(digest) || !digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(url))
                 throw new InvalidDataException("GitHub не предоставил корректную контрольную сумму SHA-256.");
 
-            var answer = MessageBox.Show(
+            var answer = EnergyMapEditorSystemTheme.ShowMessage(this,
                 "Доступна версия " + remoteVersion.ToString(3) + ". Установленная версия: " + currentVersion.ToString(3) + ".\n\nПрименить обновление?",
                 "Solar_PV — обновление", MessageBoxButton.YesNo, MessageBoxImage.Information);
             WriteUpdateDiagnostic("Пользователь выбрал: " + answer);
@@ -94,7 +94,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             WriteUpdateDiagnostic("ОШИБКА проверки/обновления.", ex);
-            MessageBox.Show("Не удалось проверить или применить обновление.\n\n" + ex.Message + "\n\nЖурнал диагностики: " + UpdateDiagnosticLogPath,
+            EnergyMapEditorSystemTheme.ShowMessage(this, "Не удалось проверить или применить обновление.\n\n" + ex.Message + "\n\nЖурнал диагностики: " + UpdateDiagnosticLogPath,
                 "Solar_PV — обновление", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
