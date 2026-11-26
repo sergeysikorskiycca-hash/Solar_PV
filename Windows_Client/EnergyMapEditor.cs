@@ -779,8 +779,9 @@ internal sealed class EnergyMapPropertiesDialog : Window
         {
             "Прямоугольник", "Слегка скруглённый", "Скруглённый", "Капсула"
         });
-        _shapeBox.SelectedIndex = element.CornerRadius <= 1 ? 0 :
+        var initialShapeIndex = element.CornerRadius <= 1 ? 0 :
             element.CornerRadius <= 7 ? 1 : element.CornerRadius <= 15 ? 2 : 3;
+        _shapeBox.SelectedIndex = initialShapeIndex;
 
         AddLabel(fields, "Толщина рамки");
         _borderWidthBox = new TextBox
@@ -811,6 +812,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
             "", "Pv1Power", "Pv1Voltage", "Pv1Current",
             "Pv2Power", "Pv2Voltage", "Pv2Current", "InverterPower"
         });
+        if (!string.IsNullOrEmpty(element.DataSource) && !_dataSourceBox.Items.Contains(element.DataSource))
+            _dataSourceBox.Items.Add(element.DataSource);
         _dataSourceBox.SelectedItem = element.DataSource;
 
         AddLabel(fields, "Предпросмотр");
@@ -878,13 +881,15 @@ internal sealed class EnergyMapPropertiesDialog : Window
             ElementTextScaleY = source.TextScaleY * (height / source.Height);
             ElementFontSize = fontSize;
             ElementBorderWidth = borderWidth;
-            ElementCornerRadius = _shapeBox.SelectedIndex switch
-            {
-                0 => 0,
-                1 => 5,
-                2 => 12,
-                _ => Math.Min(width, height) / 2
-            };
+            ElementCornerRadius = _shapeBox.SelectedIndex == initialShapeIndex
+                ? source.CornerRadius
+                : _shapeBox.SelectedIndex switch
+                {
+                    0 => 0,
+                    1 => 5,
+                    2 => 12,
+                    _ => Math.Min(width, height) / 2
+                };
             ElementText = _textBox.Text;
             ElementBackground = SelectedColor(_backgroundBox, source.Background);
             ElementBorderColor = SelectedColor(_borderBox, source.BorderColor);
