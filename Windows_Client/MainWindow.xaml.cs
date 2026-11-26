@@ -191,6 +191,7 @@ public partial class MainWindow : Window
         var enterButton = new System.Windows.Controls.Button
         {
             Content = "Войти",
+            Tag = "SystemPrimaryButton",
             Width = 90,
             Height = 32,
             Background = GetSystemStyleBrush("background|button-primary", "#F5B942"),
@@ -826,10 +827,12 @@ public partial class MainWindow : Window
         Application.Current.Resources["SystemPrimaryTextBrush"] = PaletteBrush(StyleColor("text|primary", "#FFFFFF"));
         Application.Current.Resources["SystemInputTextBrush"] = PaletteBrush(inputTextColor);
         Application.Current.Resources["SystemButtonTextBrush"] = PaletteBrush(buttonTextColor);
+        Application.Current.Resources["SystemPrimaryButtonTextBrush"] = PaletteBrush(StyleColor("text|button-primary", "#FFFFFF"));
         Application.Current.Resources["SystemSurfaceBackgroundBrush"] = PaletteBrush(StyleColor("background|panel", "#3A3A3A"));
         Application.Current.Resources["SystemDialogBackgroundBrush"] = PaletteBrush(StyleColor("background|dialog", "#3A3A3A"));
         Application.Current.Resources["SystemInputBackgroundBrush"] = PaletteBrush(inputBackground);
         Application.Current.Resources["SystemButtonBackgroundBrush"] = PaletteBrush(buttonBackground);
+        Application.Current.Resources["SystemPrimaryButtonBackgroundBrush"] = PaletteBrush(primaryButtonBackground);
 
         Resources["SystemButtonHoverBrush"] = PaletteBrush(StyleColor("background|titlebar-hover", buttonHoverBackground));
         Resources["SystemButtonPressedBrush"] = PaletteBrush(StyleColor("background|titlebar-pressed", buttonPressedBackground));
