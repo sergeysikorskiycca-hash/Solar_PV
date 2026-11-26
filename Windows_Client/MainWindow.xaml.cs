@@ -31,6 +31,9 @@ public partial class MainWindow : Window
     private string? _selectedEnergyMapObjectId;
 
     private bool _isAdminMode;
+    private readonly Dictionary<string, string> _styleOverrides = ClientSettings.LoadStyleOverrides();
+
+    private sealed record StyleTarget(System.Windows.FrameworkElement Element, string Key, string Label);
 
     public MainWindow()
     {
@@ -104,6 +107,7 @@ public partial class MainWindow : Window
         }
         EnergyMapEditMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapElementsMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        StyleMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapObjectHitCanvas.IsHitTestVisible = enabled && !_energyMapEditMode;
         UpdateEnergyMapHitTesting();
         UpdateEnergyMapSelection();
@@ -211,6 +215,388 @@ public partial class MainWindow : Window
         if (design == "EnergyMap") ApplyDesign("EnergyMap");
     }
 
+    private void StyleSubmenu_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.MenuItem menuItem) return;
+
+        menuItem.Items.Clear();
+        var isText = string.Equals(menuItem.Tag?.ToString(), "Text", StringComparison.Ordinal);
+        foreach (var target in GetStyleTargets(isText))
+        {
+            var entry = new System.Windows.Controls.MenuItem
+            {
+                Header = target.Label,
+                Tag = target,
+                ToolTip = target.Key
+            };
+            entry.Click += StyleTarget_Click;
+            menuItem.Items.Add(entry);
+        }
+
+        if (menuItem.Items.Count == 0)
+        {
+            menuItem.Items.Add(new System.Windows.Controls.MenuItem
+            {
+                Header = "Подходящие элементы не найдены",
+                IsEnabled = false
+            });
+        }
+    }
+
+    private List<StyleTarget> GetStyleTargets(bool textTargets)
+    {
+        var result = new List<StyleTarget>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        void Walk(DependencyObject parent, string parentPath)
+        {
+            IEnumerable<object> children;
+            try { children = System.Windows.LogicalTreeHelper.GetChildren(parent).Cast<object>().ToArray(); }
+            catch { return; }
+
+            var index = 0;
+            foreach (var childObject in children)
+            {
+                if (childObject is not DependencyObject child)
+                {
+                    index++;
+                    continue;
+                }
+
+                if (ReferenceEquals(child, MainMenu))
+                {
+                    index++;
+                    continue;
+                }
+
+                var elementPath = child is System.Windows.FrameworkElement childElement &&
+                                  !string.IsNullOrWhiteSpace(childElement.Name)
+                    ? "name:" + childElement.Name
+                    : parentPath + "/" + child.GetType().Name + "[" + index.ToString(CultureInfo.InvariantCulture) + "]";
+
+                if (child is System.Windows.FrameworkElement element)
+                {
+                    var key = GetStyleElementKey(element, elementPath);
+                    var eligible = textTargets ? HasEditableTextColor(element) : HasEditableBackground(element);
+                    if (eligible && seen.Add(key))
+                        result.Add(new StyleTarget(element, key, DescribeStyleElement(element, elementPath)));
+                }
+
+                Walk(child, elementPath);
+                index++;
+            }
+        }
+
+        Walk(this, "root");
+        return result.OrderBy(item => item.Label, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
+    private string GetStyleElementKey(System.Windows.FrameworkElement element, string fallbackPath)
+    {
+        if (element is System.Windows.Controls.Border border &&
+            border.Tag is string borderId && _energyMapItems.ContainsKey(borderId))
+            return "energy-map:background:" + borderId;
+
+        if (element is System.Windows.Controls.TextBlock &&
+            System.Windows.LogicalTreeHelper.GetParent(element) is System.Windows.Controls.Border parentBorder &&
+            parentBorder.Tag is string textId && _energyMapItems.ContainsKey(textId))
+            return "energy-map:text:" + textId;
+
+        return !string.IsNullOrWhiteSpace(element.Name) ? "name:" + element.Name : fallbackPath;
+    }
+
+    private static bool HasEditableTextColor(System.Windows.FrameworkElement element)
+    {
+        if (element is System.Windows.Controls.TextBlock textBlock)
+            return !string.IsNullOrWhiteSpace(GetTextBlockContent(textBlock));
+        if (element is System.Windows.Controls.TextBox textBox)
+            return !string.IsNullOrWhiteSpace(textBox.Text);
+        if (element is System.Windows.Controls.Control control)
+            return control.Content is string content && !string.IsNullOrWhiteSpace(content);
+        return false;
+    }
+
+    private static bool HasEditableBackground(System.Windows.FrameworkElement element)
+    {
+        var brush = GetElementBackground(element);
+        if (brush is null) return false;
+        return brush is not System.Windows.Media.SolidColorBrush solid || solid.Color.A > 0;
+    }
+
+    private static System.Windows.Media.Brush? GetElementBackground(System.Windows.FrameworkElement element) =>
+        element switch
+        {
+            System.Windows.Controls.Border border => border.Background,
+            System.Windows.Controls.Panel panel => panel.Background,
+            System.Windows.Controls.Control control => control.Background,
+            _ => null
+        };
+
+    private static string GetTextBlockContent(System.Windows.Controls.TextBlock textBlock)
+    {
+        if (!string.IsNullOrWhiteSpace(textBlock.Text)) return textBlock.Text;
+        return string.Concat(textBlock.Inlines.OfType<System.Windows.Documents.Run>().Select(run => run.Text));
+    }
+
+    private static string DescribeStyleElement(System.Windows.FrameworkElement element, string path)
+    {
+        if (!string.IsNullOrWhiteSpace(element.Name)) return element.Name;
+
+        var content = element switch
+        {
+            System.Windows.Controls.TextBlock textBlock => GetTextBlockContent(textBlock),
+            System.Windows.Controls.TextBox textBox => textBox.Text,
+            System.Windows.Controls.Control control when control.Content is string value => value,
+            _ => ""
+        };
+
+        content = content.Replace("\r", " ").Replace("\n", " ").Trim();
+        if (content.Length > 42) content = content[..39] + "…";
+        if (!string.IsNullOrWhiteSpace(content)) return content;
+
+        var segment = path[(path.LastIndexOf('/') + 1)..];
+        return element.GetType().Name + " · " + segment;
+    }
+
+    private void StyleTarget_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.MenuItem item || item.Tag is not StyleTarget target)
+            return;
+
+        var isText = target.Key.Contains(":text:", StringComparison.Ordinal) ||
+                     target.Element is System.Windows.Controls.TextBlock ||
+                     target.Element is System.Windows.Controls.Control;
+        var currentBrush = isText
+            ? target.Element switch
+            {
+                System.Windows.Controls.TextBlock textBlock => textBlock.Foreground,
+                System.Windows.Controls.Control control => control.Foreground,
+                _ => Brushes.White
+            }
+            : GetElementBackground(target.Element);
+
+        var initialColor = currentBrush is System.Windows.Media.SolidColorBrush solid
+            ? solid.Color.ToString()
+            : "#FFFFFFFF";
+        var selectedColor = ShowStyleColorDialog(
+            (isText ? "Цвет текста — " : "Цвет фона — ") + target.Label,
+            initialColor);
+        if (selectedColor is null ||
+            System.Windows.Media.ColorConverter.ConvertFromString(selectedColor) is not System.Windows.Media.Color color)
+            return;
+
+        var brush = new System.Windows.Media.SolidColorBrush(color);
+        if (isText)
+        {
+            if (target.Element is System.Windows.Controls.TextBlock textBlock)
+                textBlock.Foreground = brush;
+            else if (target.Element is System.Windows.Controls.Control control)
+                control.Foreground = brush;
+        }
+        else
+        {
+            switch (target.Element)
+            {
+                case System.Windows.Controls.Border border: border.Background = brush; break;
+                case System.Windows.Controls.Panel panel: panel.Background = brush; break;
+                case System.Windows.Controls.Control control: control.Background = brush; break;
+            }
+        }
+
+        if (target.Key.StartsWith("energy-map:text:", StringComparison.Ordinal))
+        {
+            var id = target.Key["energy-map:text:".Length..];
+            var model = _energyMapElements.FirstOrDefault(element => element.Id == id);
+            if (model is not null && target.Element is System.Windows.Controls.TextBlock mapText)
+            {
+                model.Foreground = color.ToString();
+                SetEnergyMapText(mapText, model);
+            }
+        }
+        else if (target.Key.StartsWith("energy-map:background:", StringComparison.Ordinal))
+        {
+            var id = target.Key["energy-map:background:".Length..];
+            var model = _energyMapElements.FirstOrDefault(element => element.Id == id);
+            if (model is not null) model.Background = color.ToString();
+            SaveEnergyMapLayout();
+        }
+
+        _styleOverrides[target.Key] = color.ToString();
+        ClientSettings.SaveStyleOverrides(_styleOverrides);
+    }
+
+    private string? ShowStyleColorDialog(string title, string initialColor)
+    {
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 390,
+            Height = 205,
+            ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Owner = this,
+            Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(18, 30, 48)),
+            Foreground = Brushes.White,
+            ShowInTaskbar = false
+        };
+
+        var panel = new System.Windows.Controls.StackPanel { Margin = new Thickness(18) };
+        panel.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Цвет в формате #RRGGBB или #AARRGGBB",
+            Margin = new Thickness(0, 0, 0, 8)
+        });
+
+        var colorBox = new System.Windows.Controls.TextBox
+        {
+            Text = initialColor,
+            Height = 32,
+            Padding = new Thickness(8, 5, 8, 5),
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(23, 38, 58)),
+            Foreground = Brushes.White,
+            BorderBrush = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(48, 68, 94))
+        };
+        panel.Children.Add(colorBox);
+
+        var preview = new System.Windows.Controls.Border
+        {
+            Height = 28,
+            Margin = new Thickness(0, 10, 0, 14),
+            BorderThickness = new Thickness(1),
+            BorderBrush = Brushes.White
+        };
+        panel.Children.Add(preview);
+
+        void UpdatePreview()
+        {
+            try
+            {
+                var parsed = System.Windows.Media.ColorConverter.ConvertFromString(colorBox.Text);
+                if (parsed is System.Windows.Media.Color color)
+                    preview.Background = new System.Windows.Media.SolidColorBrush(color);
+            }
+            catch { }
+        }
+        colorBox.TextChanged += (_, _) => UpdatePreview();
+        UpdatePreview();
+
+        var buttons = new System.Windows.Controls.StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        var cancel = new System.Windows.Controls.Button
+        {
+            Content = "Отмена",
+            Width = 92,
+            Height = 30,
+            Margin = new Thickness(0, 0, 8, 0)
+        };
+        cancel.Click += (_, _) => dialog.DialogResult = false;
+        var apply = new System.Windows.Controls.Button
+        {
+            Content = "Применить",
+            Width = 100,
+            Height = 30,
+            IsDefault = true
+        };
+        apply.Click += (_, _) =>
+        {
+            try
+            {
+                if (System.Windows.Media.ColorConverter.ConvertFromString(colorBox.Text) is System.Windows.Media.Color)
+                    dialog.DialogResult = true;
+                else
+                    MessageBox.Show(dialog, "Укажите корректный цвет.", "Стиль",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch
+            {
+                MessageBox.Show(dialog, "Укажите корректный цвет.", "Стиль",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        };
+        buttons.Children.Add(cancel);
+        buttons.Children.Add(apply);
+        panel.Children.Add(buttons);
+        dialog.Content = panel;
+
+        return dialog.ShowDialog() == true ? colorBox.Text.Trim() : null;
+    }
+
+    private void ApplyStyleOverrides()
+    {
+        if (_styleOverrides.Count == 0) return;
+
+        void Walk(DependencyObject parent, string parentPath)
+        {
+            IEnumerable<object> children;
+            try { children = System.Windows.LogicalTreeHelper.GetChildren(parent).Cast<object>().ToArray(); }
+            catch { return; }
+
+            var index = 0;
+            foreach (var childObject in children)
+            {
+                if (childObject is not DependencyObject child)
+                {
+                    index++;
+                    continue;
+                }
+
+                if (ReferenceEquals(child, MainMenu))
+                {
+                    index++;
+                    continue;
+                }
+
+                var elementPath = child is System.Windows.FrameworkElement childElement &&
+                                  !string.IsNullOrWhiteSpace(childElement.Name)
+                    ? "name:" + childElement.Name
+                    : parentPath + "/" + child.GetType().Name + "[" + index.ToString(CultureInfo.InvariantCulture) + "]";
+
+                if (child is System.Windows.FrameworkElement element)
+                {
+                    var key = GetStyleElementKey(element, elementPath);
+                    if (_styleOverrides.TryGetValue(key, out var value))
+                    {
+                        try
+                        {
+                            if (key.Contains(":text:", StringComparison.Ordinal) ||
+                                element is System.Windows.Controls.TextBlock ||
+                                element is System.Windows.Controls.Control)
+                            {
+                                var brush = new System.Windows.Media.SolidColorBrush(
+                                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(value));
+                                if (element is System.Windows.Controls.TextBlock textBlock) textBlock.Foreground = brush;
+                                else if (element is System.Windows.Controls.Control control) control.Foreground = brush;
+                            }
+                            else if (System.Windows.Media.ColorConverter.ConvertFromString(value) is System.Windows.Media.Color color)
+                            {
+                                var brush = new System.Windows.Media.SolidColorBrush(color);
+                                switch (element)
+                                {
+                                    case System.Windows.Controls.Border border: border.Background = brush; break;
+                                    case System.Windows.Controls.Panel panel: panel.Background = brush; break;
+                                    case System.Windows.Controls.Control control: control.Background = brush; break;
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }
+
+                Walk(child, elementPath);
+                index++;
+            }
+        }
+
+        Walk(this, "root");
+    }
+
     private void ApplyTheme(string theme)
     {
         var palette = theme switch
@@ -315,6 +701,7 @@ public partial class MainWindow : Window
         _activePalette = palette;
         ClientSettings.SaveTheme(theme);
         ApplyDesign("EnergyMap");
+        ApplyStyleOverrides();
     }
 
     private void ApplyDesign(string design)
@@ -440,6 +827,7 @@ public partial class MainWindow : Window
         String2Power.Foreground = accent;
 
         ClientSettings.SaveDesign(design);
+        ApplyStyleOverrides();
     }
 
     private void BuildEnergyMapItems()
@@ -620,6 +1008,7 @@ public partial class MainWindow : Window
         }
         UpdateEnergyMapHitTesting();
         UpdateEnergyMapSelection();
+        ApplyStyleOverrides();
     }
 
     private static FontFamily EnergyMapFont(string value)
