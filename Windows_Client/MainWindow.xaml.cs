@@ -548,7 +548,7 @@ public partial class MainWindow : Window
                 var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
                 if (child is System.Windows.Controls.Control control)
                 {
-                    if (control is System.Windows.Controls.TextBox or System.Windows.Controls.PasswordBox)
+                    if (control is System.Windows.Controls.TextBox or System.Windows.Controls.PasswordBox or System.Windows.Controls.ComboBox)
                     {
                         control.Background = PaletteBrush(inputBackground);
                         control.Foreground = PaletteBrush(inputTextColor);
