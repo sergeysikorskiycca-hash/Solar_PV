@@ -78,11 +78,7 @@ internal sealed class MainForm : Form
         Controls.Add(root);
 
         var settings = new ToolStripMenuItem("Настройки");
-        var colors = new ToolStripMenuItem("Цвета");
-        colors.DropDownItems.Add("Цвет фона", null, (_, _) => ChooseBackground());
-        colors.DropDownItems.Add("Цвет текста", null, (_, _) => ChooseTextColor());
-        colors.DropDownItems.Add("Фон под текстом", null, (_, _) => ChooseTextBackground());
-        settings.DropDownItems.Add(colors);
+        settings.DropDownItems.Add("Цвета интерфейса...", null, (_, _) => EditColors());
         menu.Items.Add(settings);
         var system = new ToolStripMenuItem("Система");
         system.DropDownItems.Add("Проверить обновления программы", null, async (_, _) => await UpdateManager.CheckAsync(this));
@@ -165,49 +161,100 @@ internal sealed class MainForm : Form
         }
     }
 
-    private void ChooseBackground()
+    private void EditColors()
     {
-        using var dialog = new ColorDialog
+        var dialog = new Form
         {
-            Color = ColorTranslator.FromHtml(cfg.WindowBackground),
-            FullOpen = true
+            Text = "Цвета интерфейса",
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            StartPosition = FormStartPosition.CenterParent,
+            MinimizeBox = false,
+            MaximizeBox = false,
+            ShowInTaskbar = false,
+            ClientSize = new Size(390, 330),
+            BackColor = ColorTranslator.FromHtml(cfg.WindowBackground),
+            ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary)
         };
 
-        if (dialog.ShowDialog(this) != DialogResult.OK) return;
-
-        var color = ToHtmlColor(dialog.Color);
-        cfg.WindowBackground = color;
-        cfg.PanelBackground = color;
-        cfg.Save();
-        Theme();
-    }
-
-    private void ChooseTextColor()
-    {
-        using var dialog = new ColorDialog
+        var colors = new (string Label, Func<string> Get, Action<string> Set)[]
         {
-            Color = ColorTranslator.FromHtml(cfg.TextPrimary),
-            FullOpen = true
+            ("Фон окна", () => cfg.WindowBackground, value => cfg.WindowBackground = value),
+            ("Фон панелей", () => cfg.PanelBackground, value => cfg.PanelBackground = value),
+            ("Фон полей ввода", () => cfg.InputBackground, value => cfg.InputBackground = value),
+            ("Фон кнопок", () => cfg.ButtonBackground, value => cfg.ButtonBackground = value),
+            ("Фон информационных полей", () => cfg.TextBackground, value => cfg.TextBackground = value),
+            ("Основной цвет текста", () => cfg.TextPrimary, value => cfg.TextPrimary = value)
         };
+        var selectedColors = colors.Select(item => item.Get()).ToArray();
 
-        if (dialog.ShowDialog(this) != DialogResult.OK) return;
-
-        cfg.TextPrimary = ToHtmlColor(dialog.Color);
-        cfg.Save();
-        Theme();
-    }
-
-    private void ChooseTextBackground()
-    {
-        using var dialog = new ColorDialog
+        var layout = new TableLayoutPanel
         {
-            Color = ColorTranslator.FromHtml(cfg.TextBackground),
-            FullOpen = true
+            Dock = DockStyle.Fill,
+            Padding = new Padding(12),
+            ColumnCount = 2,
+            RowCount = colors.Length + 1,
+            BackColor = dialog.BackColor
         };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 115));
+
+        for (var i = 0; i < colors.Length; i++)
+        {
+            var index = i;
+            var label = new Label
+            {
+                Text = colors[index].Label,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                ForeColor = dialog.ForeColor,
+                Margin = new Padding(3, 9, 3, 9)
+            };
+            var colorButton = new Button
+            {
+                Text = selectedColors[index],
+                Width = 105,
+                Height = 28,
+                BackColor = ColorTranslator.FromHtml(selectedColors[index]),
+                ForeColor = dialog.ForeColor,
+                FlatStyle = FlatStyle.Flat,
+                Margin = new Padding(3, 3, 3, 3)
+            };
+            colorButton.Click += (_, _) =>
+            {
+                using var picker = new ColorDialog
+                {
+                    Color = ColorTranslator.FromHtml(selectedColors[index]),
+                    FullOpen = true
+                };
+                if (picker.ShowDialog(dialog) != DialogResult.OK) return;
+                selectedColors[index] = ToHtmlColor(picker.Color);
+                colorButton.Text = selectedColors[index];
+                colorButton.BackColor = picker.Color;
+            };
+            layout.Controls.Add(label);
+            layout.Controls.Add(colorButton);
+        }
+
+        var buttons = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            AutoSize = true,
+            WrapContents = false
+        };
+        var ok = new Button { Text = "Сохранить", DialogResult = DialogResult.OK, AutoSize = true };
+        var cancel = new Button { Text = "Отмена", DialogResult = DialogResult.Cancel, AutoSize = true };
+        buttons.Controls.Add(ok);
+        buttons.Controls.Add(cancel);
+        layout.Controls.Add(buttons, 0, colors.Length);
+        layout.SetColumnSpan(buttons, 2);
+        dialog.Controls.Add(layout);
+        dialog.AcceptButton = ok;
+        dialog.CancelButton = cancel;
 
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
-
-        cfg.TextBackground = ToHtmlColor(dialog.Color);
+        for (var i = 0; i < colors.Length; i++)
+            colors[i].Set(selectedColors[i]);
         cfg.Save();
         Theme();
     }
