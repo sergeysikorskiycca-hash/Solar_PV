@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Http;
+using System.Net;
+using System.Net.NetworkInformation;
 using System.Text.Json;
 
 namespace OllamaControl;
@@ -127,7 +129,7 @@ internal sealed class MonitorForm : Form
             {
                 StopEventStream();
                 lines.Add("Локальный API-сервер OpenCode не обнаружен.");
-                lines.Add("Проверены TCP-порты процессов OpenCode и стандартный адрес localhost:4096.");
+                lines.Add("Проверены все локальные TCP-порты прослушивания, включая localhost:4096.");
                 lines.Add("Процесс OpenCode может работать без запущенного режима сервера.");
             }
             else
@@ -209,69 +211,55 @@ internal sealed class MonitorForm : Form
 
     private async Task<(string Url, string Version)?> FindOpenCodeServerAsync()
     {
-        var candidates = new HashSet<int>();
-        var processIds = new HashSet<int>();
-        foreach (var process in Process.GetProcesses())
+        var ports = new HashSet<int> { 4096 };
+        try
         {
-            try
-            {
-                if (process.ProcessName.Contains("opencode", StringComparison.OrdinalIgnoreCase))
-                    processIds.Add(process.Id);
-            }
-            catch { }
-            finally { process.Dispose(); }
+            foreach (var endpoint in IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners())
+                if (endpoint.Port > 0) ports.Add(endpoint.Port);
+        }
+        catch { }
+
+        var probes = new List<Task<(string Url, string Version)?>>();
+        foreach (var port in ports)
+        {
+            probes.Add(ProbeOpenCodeEndpointAsync("http://127.0.0.1:" + port));
+            probes.Add(ProbeOpenCodeEndpointAsync("http://[::1]:" + port));
         }
 
-        if (processIds.Count > 0)
+        try
         {
-            try
-            {
-                using var netstat = Process.Start(new ProcessStartInfo
-                {
-                    FileName = "netstat",
-                    Arguments = "-ano -p tcp",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                });
-                if (netstat is not null)
-                {
-                    var output = await netstat.StandardOutput.ReadToEndAsync();
-                    await netstat.WaitForExitAsync();
-                    foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                        if (parts.Length < 5 || !parts[^2].Equals("LISTENING", StringComparison.OrdinalIgnoreCase))
-                            continue;
-                        if (!int.TryParse(parts[^1], out var pid) || !processIds.Contains(pid))
-                            continue;
-                        var endpoint = parts[1];
-                        var colon = endpoint.LastIndexOf(':');
-                        if (colon >= 0 && int.TryParse(endpoint[(colon + 1)..], out var port))
-                            candidates.Add(port);
-                    }
-                }
-            }
-            catch { }
+            var results = await Task.WhenAll(probes);
+            return results.FirstOrDefault(result => result is not null);
         }
+        catch
+        {
+            return null;
+        }
+    }
 
-        candidates.Add(4096);
-        foreach (var port in candidates.OrderBy(p => p == 4096 ? 0 : 1))
+    private async Task<(string Url, string Version)?> ProbeOpenCodeEndpointAsync(string url)
+    {
+        try
         {
-            var url = "http://127.0.0.1:" + port;
-            try
-            {
-                using var response = await http.GetAsync(url + "/global/health");
-                if (!response.IsSuccessStatusCode) continue;
-                using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-                if (!json.RootElement.TryGetProperty("healthy", out var healthy) || healthy.ValueKind != JsonValueKind.True)
-                    continue;
-                var version = GetString(json.RootElement, "version") ?? "?";
-                return (url, version);
-            }
-            catch { }
+            using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(900));
+            using var response = await http.GetAsync(
+                url + "/global/health",
+                HttpCompletionOption.ResponseHeadersRead,
+                timeout.Token);
+            if (!response.IsSuccessStatusCode) return null;
+
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(timeout.Token));
+            if (!json.RootElement.TryGetProperty("healthy", out var healthy) ||
+                healthy.ValueKind != JsonValueKind.True)
+                return null;
+
+            var version = GetString(json.RootElement, "version") ?? "?";
+            return (url, version);
         }
-        return null;
+        catch
+        {
+            return null;
+        }
     }
 
     private void StartEventStream(string baseUrl)
