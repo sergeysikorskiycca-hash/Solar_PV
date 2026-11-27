@@ -1079,7 +1079,6 @@ internal sealed class EnergyMapPropertiesDialog : Window
             BorderBrush = InputBorder(), DisplayMemberPath = "Name",
             SelectedValuePath = "Value"
         };
-        ApplyDarkComboBoxItems(combo);
         foreach (var item in Palette)
             combo.Items.Add(new PaletteItem(item.Name, item.Value));
         if (!Palette.Any(item => item.Value.Equals(selected, StringComparison.OrdinalIgnoreCase)))
