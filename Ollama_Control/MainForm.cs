@@ -81,8 +81,12 @@ internal sealed class MainForm : Form
         var colors = new ToolStripMenuItem("Цвета");
         colors.DropDownItems.Add("Цвет фона", null, (_, _) => ChooseBackground());
         colors.DropDownItems.Add("Цвет текста", null, (_, _) => ChooseTextColor());
+        colors.DropDownItems.Add("Фон под текстом", null, (_, _) => ChooseTextBackground());
         settings.DropDownItems.Add(colors);
         menu.Items.Add(settings);
+        var system = new ToolStripMenuItem("Система");
+        system.DropDownItems.Add("Проверить обновления программы", null, async (_, _) => await UpdateManager.CheckAsync(this));
+        menu.Items.Add(system);
         menu.Dock = DockStyle.Fill;
         root.Controls.Add(menu, 0, 0);
 
@@ -108,7 +112,6 @@ internal sealed class MainForm : Form
         actions.Controls.Add(Btn("Выгрузить", StopSelected));
         actions.Controls.Add(Btn("Выгрузить все", StopAll));
         actions.Controls.Add(Btn("OpenCode", LaunchOpenCode));
-        actions.Controls.Add(Btn("Проверить обновления", () => UpdateManager.CheckAsync(this)));
         root.Controls.Add(actions, 0, 2);
 
         var mid = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Fill };
@@ -118,6 +121,7 @@ internal sealed class MainForm : Form
         mid.Controls.Add(installedModelsText);
         mid.Controls.Add(CopyableTextBox(125, 25).Also(x => x.Text = "Модели в памяти:"));
         mid.Controls.Add(running);
+        mid.Controls.Add(Btn("Обновить модели в памяти", RefreshRunning));
         root.Controls.Add(mid, 0, 3);
         log.Dock = DockStyle.Fill;
         root.Controls.Add(log, 0, 4);
@@ -141,7 +145,7 @@ internal sealed class MainForm : Form
         ApplyTheme(this);
         menu.BackColor = ColorTranslator.FromHtml(cfg.WindowBackground);
         menu.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
-        log.BackColor = ColorTranslator.FromHtml(cfg.LogBackground);
+        log.BackColor = ColorTranslator.FromHtml(cfg.TextBackground);
         log.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
         address.BackColor = keep.BackColor = ColorTranslator.FromHtml(cfg.InputBackground);
         address.ForeColor = keep.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
@@ -154,7 +158,8 @@ internal sealed class MainForm : Form
             control.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
             control.BackColor = ColorTranslator.FromHtml(
                 control is Button ? cfg.ButtonBackground :
-                control is TextBox || control is ComboBox ? cfg.InputBackground :
+                control is TextBox textBox ? (textBox.ReadOnly ? cfg.TextBackground : cfg.InputBackground) :
+                control is ComboBox ? cfg.InputBackground :
                 cfg.PanelBackground);
             ApplyTheme(control);
         }
@@ -188,6 +193,21 @@ internal sealed class MainForm : Form
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
 
         cfg.TextPrimary = ToHtmlColor(dialog.Color);
+        cfg.Save();
+        Theme();
+    }
+
+    private void ChooseTextBackground()
+    {
+        using var dialog = new ColorDialog
+        {
+            Color = ColorTranslator.FromHtml(cfg.TextBackground),
+            FullOpen = true
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        cfg.TextBackground = ToHtmlColor(dialog.Color);
         cfg.Save();
         Theme();
     }
