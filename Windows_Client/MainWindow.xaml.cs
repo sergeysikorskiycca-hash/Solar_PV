@@ -257,7 +257,7 @@ public partial class MainWindow : Window
                 if (child is System.Windows.Controls.Border border)
                 {
                     border.CornerRadius = cornerRadius;
-                    border.BorderBrush = design == "Flow" ? accent : borderBrush;
+                    border.BorderBrush = borderBrush;
                     border.BorderThickness = design == "Flow" ? new Thickness(3, 1, 1, 1)
                         : new Thickness(design == "Blueprint" ? 1.2 : 1);
                 }
