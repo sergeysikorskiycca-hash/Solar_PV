@@ -763,6 +763,9 @@ public partial class MainWindow : Window
                         else
                             control.Background = PaletteBrush(StyleColor("background|text", "#3A3A3A"));
 
+                        control.Background = PaletteBrush(control is System.Windows.Controls.Button
+                            ? buttonBackground
+                            : StyleColor("background|text", "#3A3A3A"));
                         control.Foreground = PaletteBrush(control is System.Windows.Controls.Button
                             ? buttonTextColor
                             : StyleColor("text|primary", "#FFFFFF"));
