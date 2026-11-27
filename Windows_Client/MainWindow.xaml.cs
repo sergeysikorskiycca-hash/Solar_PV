@@ -1867,7 +1867,9 @@ internal sealed class HouseStatisticsWindow : Window
         _energyValue.Text = total.ToString("N2", CultureInfo.GetCultureInfo("ru-RU"));
         _voltageValue.Text = last.Voltage.ToString("N1", CultureInfo.GetCultureInfo("ru-RU"));
         _rangeValue.Text = min.ToString("N1", CultureInfo.GetCultureInfo("ru-RU")) + " / " + max.ToString("N1", CultureInfo.GetCultureInfo("ru-RU"));
-        _chartTitle.Text = _metric.SelectedIndex == 1 ? "История выходного напряжения инвертора" : "Потребление электроэнергии";
+        _chartTitle.Text = _style.SelectedIndex == 4
+            ? "Мощность дома и выходное напряжение инвертора"
+            : _metric.SelectedIndex == 1 ? "История выходного напряжения инвертора" : "Потребление электроэнергии";
         _chartFooter.Text = $"{_start:dd.MM.yyyy} — {_end:dd.MM.yyyy}   ·   Минимум: {min:N1} В   ·   Максимум: {max:N1} В";
         DrawChart();
     }
@@ -1911,7 +1913,9 @@ internal sealed class HouseStatisticsWindow : Window
 
         bool voltage = _metric.SelectedIndex == 1;
         bool mixed = _style.SelectedIndex == 4;
-        var values = voltage ? samples.Select(x => x.Voltage).ToArray() : samples.Select(x => x.Energy).ToArray();
+        var values = mixed
+            ? samples.Select(x => x.Power).ToArray()
+            : voltage ? samples.Select(x => x.Voltage).ToArray() : samples.Select(x => x.Energy).ToArray();
         double min = values.Min(), max = values.Max();
         if (Math.Abs(max - min) < 0.001) max = min + 1;
         double X(int i) => left + (samples.Count == 1 ? 0 : plotWidth * i / (samples.Count - 1));
