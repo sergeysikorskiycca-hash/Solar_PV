@@ -1011,8 +1011,8 @@ internal sealed class HouseStatisticsWindow : Window
         MinWidth = 780;
         MinHeight = 560;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58));
-        Foreground = System.Windows.Media.Brushes.White;
+        Background = EnergyMapEditorSystemTheme.BrushFor("background|window");
+        Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
         FontFamily = new System.Windows.Media.FontFamily("Segoe UI");
 
         var root = new System.Windows.Controls.Grid { Margin = new Thickness(22) };
@@ -1027,13 +1027,13 @@ internal sealed class HouseStatisticsWindow : Window
         {
             Text = "ЭНЕРГОПОТРЕБЛЕНИЕ ДОМА",
             FontSize = 20, FontWeight = FontWeights.SemiBold,
-            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 185, 66))
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         });
         heading.Children.Add(new System.Windows.Controls.TextBlock
         {
             Text = "Текущая нагрузка и история выходного напряжения инвертора",
             FontSize = 12, Margin = new Thickness(0, 4, 0, 0),
-            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186))
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         });
         root.Children.Add(heading);
 
@@ -1081,7 +1081,7 @@ internal sealed class HouseStatisticsWindow : Window
         System.Windows.Controls.Grid.SetRow(_chart, 1);
         chartGrid.Children.Add(_chart);
         _chartFooter.Text = "Значения по выбранному периоду";
-        _chartFooter.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186));
+        _chartFooter.Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
         _chartFooter.FontSize = 11;
         _chartFooter.Margin = new Thickness(4, 8, 0, 0);
         System.Windows.Controls.Grid.SetRow(_chartFooter, 2);
@@ -1094,8 +1094,8 @@ internal sealed class HouseStatisticsWindow : Window
         var close = new System.Windows.Controls.Button
         {
             Content = "Закрыть", Width = 110, Height = 34, Padding = new Thickness(12, 5, 12, 5),
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58)),
-            Foreground = System.Windows.Media.Brushes.White, BorderThickness = new Thickness(0),
+            Background = EnergyMapEditorSystemTheme.BrushFor("background|button"),
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"), BorderThickness = new Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Right
         };
         close.Click += (_, _) => Close();
@@ -1115,86 +1115,29 @@ internal sealed class HouseStatisticsWindow : Window
         _style.SelectionChanged += (_, _) => DrawChart();
         _from.SelectedDateChanged += (_, _) => RefreshStatistics();
         _to.SelectedDateChanged += (_, _) => RefreshStatistics();
-        Loaded += (_, _) => ApplySystemAppearance(this);
+        Loaded += (_, _) => EnergyMapEditorSystemTheme.Apply(this, chartBorder);
         UpdateDateVisibility();
         RefreshStatistics();
     }
 
-    private static void ApplySystemAppearance(DependencyObject parent)
-    {
-        var background = new System.Windows.Media.SolidColorBrush(
-            System.Windows.Media.Color.FromRgb(58, 58, 58));
-        var foreground = System.Windows.Media.Brushes.White;
 
-        if (parent is System.Windows.Controls.TextBlock text)
-        {
-            text.Foreground = foreground;
-            text.Background = background;
-        }
-        if (parent is System.Windows.Controls.Control control)
-        {
-            control.Foreground = foreground;
-            control.Background = background;
-        }
-        if (parent is System.Windows.Controls.Border border)
-            border.Background = background;
-        if (parent is System.Windows.Controls.Panel panel)
-            panel.Background = background;
-
-        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
-            ApplySystemAppearance(System.Windows.Media.VisualTreeHelper.GetChild(parent, i));
-    }
 
     private static void AddControl(System.Windows.Controls.WrapPanel panel, string label,
         System.Windows.Controls.ComboBox combo, string[] options, double width)
     {
         var group = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 12, 8) };
-        group.Children.Add(new System.Windows.Controls.TextBlock { Text = label, FontSize = 11, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)), Margin = new Thickness(0, 0, 0, 4) });
+        group.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = label, FontSize = 11,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
+            Background = EnergyMapEditorSystemTheme.BrushFor("background|surface"),
+            Margin = new Thickness(0, 0, 0, 4)
+        });
         combo.Width = width;
         combo.Height = 30;
-        var dropdownBackground = new System.Windows.Media.SolidColorBrush(
-            System.Windows.Media.Color.FromRgb(58, 58, 58));
-        var dropdownForeground = System.Windows.Media.Brushes.White;
-
-        // Popup выпадающего списка имеет отдельное visual tree, поэтому
-        // ApplySystemAppearance не оформляет его содержимое автоматически.
-        combo.Background = dropdownBackground;
-        combo.Foreground = dropdownForeground;
-        combo.Resources[System.Windows.SystemColors.WindowBrushKey] = dropdownBackground;
-        combo.Resources[System.Windows.SystemColors.WindowTextBrushKey] = dropdownForeground;
-        combo.Resources[System.Windows.SystemColors.HighlightBrushKey] = dropdownBackground;
-        combo.Resources[System.Windows.SystemColors.HighlightTextBrushKey] = dropdownForeground;
-        combo.Resources[System.Windows.SystemColors.ControlBrushKey] = dropdownBackground;
-
-        var dropdownItemStyle = new System.Windows.Style(typeof(System.Windows.Controls.ComboBoxItem));
-        dropdownItemStyle.Setters.Add(new System.Windows.Setter(
-            System.Windows.Controls.Control.BackgroundProperty, dropdownBackground));
-        dropdownItemStyle.Setters.Add(new System.Windows.Setter(
-            System.Windows.Controls.Control.ForegroundProperty, dropdownForeground));
-
-        var highlightedItem = new System.Windows.Trigger
-        {
-            Property = System.Windows.Controls.ComboBoxItem.IsHighlightedProperty,
-            Value = true
-        };
-        highlightedItem.Setters.Add(new System.Windows.Setter(
-            System.Windows.Controls.Control.BackgroundProperty, dropdownBackground));
-        highlightedItem.Setters.Add(new System.Windows.Setter(
-            System.Windows.Controls.Control.ForegroundProperty, dropdownForeground));
-        dropdownItemStyle.Triggers.Add(highlightedItem);
-
-        var selectedItem = new System.Windows.Trigger
-        {
-            Property = System.Windows.Controls.ComboBoxItem.IsSelectedProperty,
-            Value = true
-        };
-        selectedItem.Setters.Add(new System.Windows.Setter(
-            System.Windows.Controls.Control.BackgroundProperty, dropdownBackground));
-        selectedItem.Setters.Add(new System.Windows.Setter(
-            System.Windows.Controls.Control.ForegroundProperty, dropdownForeground));
-        dropdownItemStyle.Triggers.Add(selectedItem);
-
-        combo.ItemContainerStyle = dropdownItemStyle;
+        combo.Background = EnergyMapEditorSystemTheme.BrushFor("background|input");
+        combo.Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
+        combo.BorderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border");
         combo.ItemsSource = options;
         combo.SelectedIndex = 0;
         combo.Padding = new Thickness(6, 3, 6, 3);
@@ -1206,11 +1149,17 @@ internal sealed class HouseStatisticsWindow : Window
         System.Windows.Controls.DatePicker picker)
     {
         var group = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 10, 8) };
-        group.Children.Add(new System.Windows.Controls.TextBlock { Text = label, FontSize = 11, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)), Margin = new Thickness(0, 0, 0, 4) });
+        group.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = label, FontSize = 11,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
+            Background = EnergyMapEditorSystemTheme.BrushFor("background|surface"),
+            Margin = new Thickness(0, 0, 0, 4)
+        });
         picker.Width = 125;
         picker.Height = 30;
-        picker.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58));
-        picker.Foreground = System.Windows.Media.Brushes.White;
+        picker.Background = EnergyMapEditorSystemTheme.BrushFor("background|input");
+        picker.Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
         picker.Visibility = Visibility.Collapsed;
         group.Children.Add(picker);
         panel.Children.Add(group);
@@ -1221,19 +1170,27 @@ internal sealed class HouseStatisticsWindow : Window
     {
         var card = new System.Windows.Controls.Border
         {
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(23, 43, 64)),
-            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(49, 81, 107)),
+            Background = EnergyMapEditorSystemTheme.BrushFor("background|surface"),
+            BorderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border"),
             BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
             Padding = new Thickness(12), Margin = new Thickness(0, 0, column == 3 ? 0 : 10, 0)
         };
         var stack = new System.Windows.Controls.StackPanel();
-        stack.Children.Add(new System.Windows.Controls.TextBlock { Text = title, FontSize = 10, FontWeight = FontWeights.Bold, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)) });
+        stack.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = title, FontSize = 10, FontWeight = FontWeights.Bold,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary")
+        });
         value.Text = "—";
         value.FontSize = 23;
         value.FontWeight = FontWeights.SemiBold;
         value.Margin = new Thickness(0, 7, 0, 0);
         stack.Children.Add(value);
-        stack.Children.Add(new System.Windows.Controls.TextBlock { Text = unit, FontSize = 10, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)) });
+        stack.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = unit, FontSize = 10,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary")
+        });
         card.Child = stack;
         System.Windows.Controls.Grid.SetColumn(card, column);
         grid.Children.Add(card);
