@@ -315,9 +315,9 @@ internal static class EnergyMapEditorSystemTheme
             }
             if (parent is TextBlock textBlock)
             {
-                if (textBlock.Foreground is null ||
-                    textBlock.Foreground is SolidColorBrush solid && solid.Color == Colors.White)
-                    textBlock.Foreground = textBrush;
+                // Системные надписи всегда белые, фон непосредственно под ними — тёмно-серый.
+                textBlock.Foreground = textBrush;
+                textBlock.Background = surfaceBrush;
             }
             if (parent is Border border) border.Background = surfaceBrush;
             if (parent is Panel panel && panel.Background is not null) panel.Background = surfaceBrush;
