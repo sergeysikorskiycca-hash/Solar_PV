@@ -303,6 +303,7 @@ internal static class EnergyMapEditorSystemTheme
         var comboItemStyle = new Style(typeof(ComboBoxItem));
         comboItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, background));
         comboItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, foreground));
+        comboItemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var comboHover = new Trigger { Property = ComboBoxItem.IsHighlightedProperty, Value = true };
         comboHover.Setters.Add(new Setter(Control.BackgroundProperty, selection));
         comboHover.Setters.Add(new Setter(Control.ForegroundProperty, foreground));
@@ -316,6 +317,7 @@ internal static class EnergyMapEditorSystemTheme
         var listItemStyle = new Style(typeof(ListBoxItem));
         listItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, background));
         listItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, foreground));
+        listItemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var listHover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         listHover.Setters.Add(new Setter(Control.BackgroundProperty, selection));
         listHover.Setters.Add(new Setter(Control.ForegroundProperty, foreground));
