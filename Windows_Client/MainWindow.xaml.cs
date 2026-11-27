@@ -231,14 +231,17 @@ public partial class MainWindow : Window
 
     private void EnsureDefaultSystemStyleOverrides()
     {
-        if (_styleOverrides.TryGetValue("system|defaults-version", out var version) && version == "1")
-            return;
+        if (!_styleOverrides.TryGetValue("system|defaults-version", out var version) || version != "1")
+        {
+            string[] textKeys = { "primary", "secondary", "menu", "menu-selected", "button", "button-primary", "input", "disabled", "selection", "titlebar", "muted", "data", "accent", "success", "info", "warning", "error", "tooltip", "dialog" };
+            string[] backgroundKeys = { "window", "panel", "menu", "dropdown", "menu-selected", "button", "button-primary", "button-hover", "button-pressed", "input", "selection", "titlebar", "dialog", "tooltip", "card", "card-alt", "surface-dark", "border", "accent", "info", "success", "warning", "error", "status-neutral", "titlebar-hover", "titlebar-pressed", "close-hover", "close-pressed" };
+            foreach (var key in textKeys) _styleOverrides["system|text|" + key] = "#FFFFFF";
+            foreach (var key in backgroundKeys) _styleOverrides["system|background|" + key] = "#3A3A3A";
+            _styleOverrides["system|defaults-version"] = "1";
+        }
 
-        string[] textKeys = { "primary", "secondary", "menu", "menu-selected", "button", "button-primary", "input", "disabled", "selection", "titlebar", "muted", "data", "accent", "success", "info", "warning", "error", "tooltip", "dialog" };
-        string[] backgroundKeys = { "window", "panel", "menu", "dropdown", "menu-selected", "button", "button-primary", "button-hover", "button-pressed", "input", "selection", "titlebar", "dialog", "tooltip", "card", "card-alt", "surface-dark", "border", "accent", "info", "success", "warning", "error", "status-neutral", "titlebar-hover", "titlebar-pressed", "close-hover", "close-pressed" };
-        foreach (var key in textKeys) _styleOverrides["system|text|" + key] = "#FFFFFF";
-        foreach (var key in backgroundKeys) _styleOverrides["system|background|" + key] = "#3A3A3A";
-        _styleOverrides["system|defaults-version"] = "1";
+        // Фон непосредственно под системным текстом. TryAdd сохраняет пользовательскую настройку.
+        _styleOverrides.TryAdd("system|background|text", "#3A3A3A");
         ClientSettings.SaveStyleOverrides(_styleOverrides);
     }
 
@@ -781,8 +784,9 @@ public partial class MainWindow : Window
                     if (textBlock.Background is SolidColorBrush currentTextBackground &&
                         !_systemOriginalTextBlockBackgrounds.ContainsKey(textBlock))
                         _systemOriginalTextBlockBackgrounds[textBlock] = currentTextBackground;
-                    if (_systemOriginalTextBlockBackgrounds.TryGetValue(textBlock, out var originalTextBackground))
-                        textBlock.Background = ConvertBrush(originalTextBackground);
+                    // У системного текста всегда есть собственный тёмно-серый фон.
+                    textBlock.Background = PaletteBrush(StyleColor("background|text", "#3A3A3A"));
+                    textBlock.Foreground = PaletteBrush(StyleColor("text|primary", "#FFFFFF"));
                 }
                 if (child is System.Windows.Shapes.Shape shape)
                 {
@@ -1259,6 +1263,8 @@ public partial class MainWindow : Window
 
     private void UpdateEnergyMapHitTesting()
     {
+        // Прозрачные цели объектов доступны в рабочем режиме; при переносе отключаются.
+        EnergyMapObjectHitCanvas.IsHitTestVisible = !_energyMapEditMode;
         EnergyMapItemsCanvas.IsHitTestVisible = _isAdminMode;
         foreach (var pair in _energyMapItems)
         {
@@ -1650,7 +1656,7 @@ internal sealed class HouseStatisticsWindow : Window
         MinWidth = 780;
         MinHeight = 560;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(11, 23, 37));
+        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58));
         Foreground = System.Windows.Media.Brushes.White;
         FontFamily = new System.Windows.Media.FontFamily("Segoe UI");
 
@@ -1733,7 +1739,7 @@ internal sealed class HouseStatisticsWindow : Window
         var close = new System.Windows.Controls.Button
         {
             Content = "Закрыть", Width = 110, Height = 34, Padding = new Thickness(12, 5, 12, 5),
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(38, 56, 77)),
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58)),
             Foreground = System.Windows.Media.Brushes.White, BorderThickness = new Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Right
         };
@@ -1754,8 +1760,34 @@ internal sealed class HouseStatisticsWindow : Window
         _style.SelectionChanged += (_, _) => DrawChart();
         _from.SelectedDateChanged += (_, _) => RefreshStatistics();
         _to.SelectedDateChanged += (_, _) => RefreshStatistics();
+        Loaded += (_, _) => ApplySystemAppearance(this);
         UpdateDateVisibility();
         RefreshStatistics();
+    }
+
+    private static void ApplySystemAppearance(DependencyObject parent)
+    {
+        var background = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(58, 58, 58));
+        var foreground = System.Windows.Media.Brushes.White;
+
+        if (parent is System.Windows.Controls.TextBlock text)
+        {
+            text.Foreground = foreground;
+            text.Background = background;
+        }
+        if (parent is System.Windows.Controls.Control control)
+        {
+            control.Foreground = foreground;
+            control.Background = background;
+        }
+        if (parent is System.Windows.Controls.Border border)
+            border.Background = background;
+        if (parent is System.Windows.Controls.Panel panel)
+            panel.Background = background;
+
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            ApplySystemAppearance(System.Windows.Media.VisualTreeHelper.GetChild(parent, i));
     }
 
     private static void AddControl(System.Windows.Controls.WrapPanel panel, string label,
@@ -1765,6 +1797,13 @@ internal sealed class HouseStatisticsWindow : Window
         group.Children.Add(new System.Windows.Controls.TextBlock { Text = label, FontSize = 11, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)), Margin = new Thickness(0, 0, 0, 4) });
         combo.Width = width;
         combo.Height = 30;
+        combo.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58));
+        combo.Foreground = System.Windows.Media.Brushes.White;
+        combo.ItemContainerStyle = new System.Windows.Style(typeof(System.Windows.Controls.ComboBoxItem));
+        combo.ItemContainerStyle.Setters.Add(new System.Windows.Setter(System.Windows.Controls.Control.BackgroundProperty,
+            new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58))));
+        combo.ItemContainerStyle.Setters.Add(new System.Windows.Setter(System.Windows.Controls.Control.ForegroundProperty,
+            System.Windows.Media.Brushes.White));
         combo.ItemsSource = options;
         combo.SelectedIndex = 0;
         combo.Padding = new Thickness(6, 3, 6, 3);
@@ -1779,6 +1818,8 @@ internal sealed class HouseStatisticsWindow : Window
         group.Children.Add(new System.Windows.Controls.TextBlock { Text = label, FontSize = 11, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)), Margin = new Thickness(0, 0, 0, 4) });
         picker.Width = 125;
         picker.Height = 30;
+        picker.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58));
+        picker.Foreground = System.Windows.Media.Brushes.White;
         picker.Visibility = Visibility.Collapsed;
         group.Children.Add(picker);
         panel.Children.Add(group);
