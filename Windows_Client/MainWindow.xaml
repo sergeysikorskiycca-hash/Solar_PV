@@ -155,7 +155,7 @@
                 <Viewbox Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <Canvas Width="1409" Height="905">
                         <Canvas x:Name="EnergyMapSvgHost" Width="1409" Height="905"/>
-                        <Canvas x:Name="EnergyMapObjectHitCanvas" Width="1409" Height="905" IsHitTestVisible="False"/>
+                        <Canvas x:Name="EnergyMapObjectHitCanvas" Width="1409" Height="905" IsHitTestVisible="True"/>
                         <Canvas x:Name="EnergyMapItemsCanvas" Width="1409" Height="905"/>
                     </Canvas>
                 </Viewbox>
