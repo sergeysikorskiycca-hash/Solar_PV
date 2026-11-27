@@ -51,6 +51,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         EnsureDefaultSystemStyleOverrides();
         BuildEnergyMapItems();
+        UpdateEnergyMapHitTesting();
         UpdateWindowStateButton();
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"Solar_PV Desktop {version}";
