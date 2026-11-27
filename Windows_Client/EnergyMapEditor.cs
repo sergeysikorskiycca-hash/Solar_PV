@@ -200,7 +200,7 @@ internal static class EnergyMapEditorSystemTheme
                 FontSize = 22,
                 Margin = new Thickness(0, 0, 14, 0),
                 VerticalAlignment = VerticalAlignment.Top,
-                Foreground = Brushes.White
+                Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary")
             });
         messageRow.Children.Add(new TextBlock
         {
@@ -473,7 +473,7 @@ internal sealed class EnergyMapEditorWindow : Window
         delete.Click += (_, _) => DeleteSelected();
         var save = MakeButton("Сохранить");
         save.Background = EnergyMapEditorSystemTheme.BrushFor("background|button");
-        save.Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        save.Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
         save.FontWeight = FontWeights.Bold;
         save.Click += (_, _) =>
         {
@@ -543,7 +543,7 @@ internal sealed class EnergyMapEditorWindow : Window
         foreach (var item in new[] { "", "Pv1Power", "Pv1Voltage", "Pv1Current", "Pv2Power", "Pv2Voltage", "Pv2Current", "InverterPower" })
             _dataSource.Items.Add(item);
         _dataSource.Background = EnergyMapEditorSystemTheme.BrushFor("background|surface");
-        _dataSource.Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        _dataSource.Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
         _dataSource.BorderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border");
         editor.Children.Add(_dataSource);
         editorScroll.Content = editor;
