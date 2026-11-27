@@ -7,6 +7,7 @@ internal sealed class MainForm : Form
 {
     private readonly AppSettings cfg = AppSettings.Load();
     private readonly OllamaClient api = new();
+    private readonly MenuStrip menu = new();
     private readonly TextBox address = new() { Width = 220 };
     private readonly TextBox keep = new() { Width = 70 };
     private readonly ComboBox models = new() { Width = 280, DropDownStyle = ComboBoxStyle.DropDownList };
@@ -48,10 +49,10 @@ internal sealed class MainForm : Form
             TabStop = true
         };
 
-        var menu = new ContextMenuStrip();
-        menu.Items.Add("Копировать", null, (_, _) => box.Copy());
-        menu.Items.Add("Выделить всё", null, (_, _) => { box.Focus(); box.SelectAll(); });
-        box.ContextMenuStrip = menu;
+        var contextMenu = new ContextMenuStrip();
+        contextMenu.Items.Add("Копировать", null, (_, _) => box.Copy());
+        contextMenu.Items.Add("Выделить всё", null, (_, _) => { box.Focus(); box.SelectAll(); });
+        box.ContextMenuStrip = contextMenu;
         box.KeyDown += (_, e) =>
         {
             if (e.Control && e.KeyCode == Keys.A) { box.SelectAll(); e.SuppressKeyPress = true; }
@@ -67,20 +68,30 @@ internal sealed class MainForm : Form
             Dock = DockStyle.Fill,
             Padding = new Padding(12),
             ColumnCount = 1,
-            RowCount = 4
+            RowCount = 5
         };
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         Controls.Add(root);
 
+        var settings = new ToolStripMenuItem("Настройки");
+        var colors = new ToolStripMenuItem("Цвета");
+        colors.DropDownItems.Add("Цвет фона", null, (_, _) => ChooseBackground());
+        colors.DropDownItems.Add("Цвет текста", null, (_, _) => ChooseTextColor());
+        settings.DropDownItems.Add(colors);
+        menu.Items.Add(settings);
+        menu.Dock = DockStyle.Fill;
+        root.Controls.Add(menu, 0, 0);
+
         var top = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Fill };
         top.Controls.Add(CopyableTextBox(105, 25).Also(x => x.Text = "Адрес Ollama:"));
         top.Controls.Add(address);
         top.Controls.Add(Btn("Проверить", RefreshAll));
         top.Controls.Add(status);
-        root.Controls.Add(top);
+        root.Controls.Add(top, 0, 1);
 
         var actions = new FlowLayoutPanel
         {
@@ -97,9 +108,8 @@ internal sealed class MainForm : Form
         actions.Controls.Add(Btn("Выгрузить", StopSelected));
         actions.Controls.Add(Btn("Выгрузить все", StopAll));
         actions.Controls.Add(Btn("OpenCode", LaunchOpenCode));
-        actions.Controls.Add(Btn("Цвета", ChooseColors));
         actions.Controls.Add(Btn("Проверить обновления", () => UpdateManager.CheckAsync(this)));
-        root.Controls.Add(actions);
+        root.Controls.Add(actions, 0, 2);
 
         var mid = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Fill };
         mid.Controls.Add(CopyableTextBox(125, 25).Also(x => x.Text = "Выбранная модель:"));
@@ -108,9 +118,9 @@ internal sealed class MainForm : Form
         mid.Controls.Add(installedModelsText);
         mid.Controls.Add(CopyableTextBox(125, 25).Also(x => x.Text = "Модели в памяти:"));
         mid.Controls.Add(running);
-        root.Controls.Add(mid);
+        root.Controls.Add(mid, 0, 3);
         log.Dock = DockStyle.Fill;
-        root.Controls.Add(log);
+        root.Controls.Add(log, 0, 4);
     }
 
     private Button Btn(string caption, Func<Task> action)
@@ -129,6 +139,8 @@ internal sealed class MainForm : Form
         BackColor = ColorTranslator.FromHtml(cfg.WindowBackground);
         ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
         ApplyTheme(this);
+        menu.BackColor = ColorTranslator.FromHtml(cfg.WindowBackground);
+        menu.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
         log.BackColor = ColorTranslator.FromHtml(cfg.LogBackground);
         log.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
         address.BackColor = keep.BackColor = ColorTranslator.FromHtml(cfg.InputBackground);
@@ -147,6 +159,41 @@ internal sealed class MainForm : Form
             ApplyTheme(control);
         }
     }
+
+    private void ChooseBackground()
+    {
+        using var dialog = new ColorDialog
+        {
+            Color = ColorTranslator.FromHtml(cfg.WindowBackground),
+            FullOpen = true
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        var color = ToHtmlColor(dialog.Color);
+        cfg.WindowBackground = color;
+        cfg.PanelBackground = color;
+        cfg.Save();
+        Theme();
+    }
+
+    private void ChooseTextColor()
+    {
+        using var dialog = new ColorDialog
+        {
+            Color = ColorTranslator.FromHtml(cfg.TextPrimary),
+            FullOpen = true
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        cfg.TextPrimary = ToHtmlColor(dialog.Color);
+        cfg.Save();
+        Theme();
+    }
+
+    private static string ToHtmlColor(Color color) =>
+        "#" + color.R.ToString("X2") + color.G.ToString("X2") + color.B.ToString("X2");
 
     private async Task RefreshAll()
     {
@@ -210,32 +257,6 @@ internal sealed class MainForm : Form
     {
         Process.Start(new ProcessStartInfo("opencode") { UseShellExecute = true });
         Write("Запуск OpenCode.");
-        return Task.CompletedTask;
-    }
-
-    private Task ChooseColors()
-    {
-        var choices = new (string, Func<string>, Action<string>)[]
-        {
-            ("Текст", () => cfg.TextPrimary, v => cfg.TextPrimary = v),
-            ("Вторичный текст", () => cfg.TextSecondary, v => cfg.TextSecondary = v),
-            ("Окно", () => cfg.WindowBackground, v => cfg.WindowBackground = v),
-            ("Панели", () => cfg.PanelBackground, v => cfg.PanelBackground = v),
-            ("Поля", () => cfg.InputBackground, v => cfg.InputBackground = v),
-            ("Кнопки", () => cfg.ButtonBackground, v => cfg.ButtonBackground = v),
-            ("Журнал", () => cfg.LogBackground, v => cfg.LogBackground = v)
-        };
-
-        foreach (var choice in choices)
-        {
-            using var dialog = new ColorDialog { Color = ColorTranslator.FromHtml(choice.Item2()) };
-            if (dialog.ShowDialog(this) == DialogResult.OK)
-                choice.Item3("#" + dialog.Color.R.ToString("X2") +
-                    dialog.Color.G.ToString("X2") + dialog.Color.B.ToString("X2"));
-        }
-
-        cfg.Save();
-        Theme();
         return Task.CompletedTask;
     }
 
