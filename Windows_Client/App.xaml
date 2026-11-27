@@ -3,19 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <Color x:Key="WindowColor">#3A3A3A</Color>
-        <Color x:Key="PanelColor">#3A3A3A</Color>
-        <Color x:Key="AccentColor">#F5B942</Color>
-        <SolidColorBrush x:Key="WindowBrush" Color="{StaticResource WindowColor}"/>
-        <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource PanelColor}"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+        <SolidColorBrush x:Key="WindowBrush" Color="#3A3A3A"/>
+        <SolidColorBrush x:Key="PanelBrush" Color="#3A3A3A"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#0078D4"/>
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Background" Value="#3A3A3A"/>
+            <Setter Property="Foreground" Value="{DynamicResource SystemTextBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SystemBackgroundBrush}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
         <Style x:Key="MetricCard" TargetType="Border">
-            <Setter Property="Background" Value="#3A3A3A"/>
+            <Setter Property="Background" Value="{DynamicResource SystemBackgroundBrush}"/>
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="18"/>
             <Setter Property="Margin" Value="0,0,12,12"/>
