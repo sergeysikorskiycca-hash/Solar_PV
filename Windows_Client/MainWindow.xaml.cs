@@ -22,7 +22,6 @@ public partial class MainWindow : Window
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Solar_PV", "connection.log");
     private string _baseAddress = "";
-    private string[]? _activePalette;
     private readonly Dictionary<string, System.Windows.Controls.Border> _energyMapItems = new();
     private Dictionary<string, string> _energyMapObjectBindings = ClientSettings.LoadEnergyMapObjectBindings();
     private List<EnergyMapElement> _energyMapElements = new();
@@ -32,35 +31,22 @@ public partial class MainWindow : Window
     private string? _selectedEnergyMapObjectId;
 
     private bool _isAdminMode;
-    private readonly Dictionary<string, string> _styleOverrides = ClientSettings.LoadStyleOverrides();
 
-    private sealed record SystemStyleTarget(string Key, string Label, bool IsText);
-    private string _activeTheme = "Dark";
     private string _activeDesign = "EnergyMap";
-    private readonly HashSet<System.Windows.Controls.Button> _systemStyledButtons = new();
-    private readonly Dictionary<System.Windows.Controls.Button, Brush> _systemButtonBaseBackgrounds = new();
-    private readonly Dictionary<DependencyObject, Brush> _systemOriginalBackgrounds = new();
-    private readonly Dictionary<DependencyObject, Brush> _systemOriginalForegrounds = new();
-    private readonly Dictionary<DependencyObject, Brush> _systemOriginalBorderBrushes = new();
-    private readonly Dictionary<DependencyObject, Brush> _systemOriginalTextBlockBackgrounds = new();
-    private readonly Dictionary<DependencyObject, Brush> _systemOriginalShapeFills = new();
-    private readonly Dictionary<DependencyObject, Brush> _systemOriginalShapeStrokes = new();
 
     public MainWindow()
     {
         InitializeComponent();
-        EnsureDefaultSystemStyleOverrides();
         BuildEnergyMapItems();
         UpdateEnergyMapHitTesting();
         UpdateWindowStateButton();
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"Solar_PV Desktop {version}";
         AddressBox.Text = ClientSettings.LoadControllerAddress() ?? AddressBox.Text;
-        var savedTheme = ClientSettings.LoadTheme() ?? "Dark";
         var savedDesign = "EnergyMap";
         Loaded += (_, _) =>
         {
-            ApplyTheme(savedTheme);
+            ApplyTheme();
             ApplyDesign(savedDesign);
         };
         _pollTimer.Tick += async (_, _) => await PollAsync();
@@ -120,7 +106,6 @@ public partial class MainWindow : Window
         }
         EnergyMapEditMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapElementsMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
-        StyleMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapObjectHitCanvas.IsHitTestVisible = !_energyMapEditMode;
         UpdateEnergyMapHitTesting();
         UpdateEnergyMapSelection();
@@ -218,633 +203,15 @@ public partial class MainWindow : Window
             "О программе", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
-    private void Theme_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.MenuItem item || item.Tag is not string theme) return;
-        ApplyTheme(theme);
-    }
-
-    private void Design_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.MenuItem item || item.Tag is not string design) return;
-        if (design == "EnergyMap") ApplyDesign("EnergyMap");
-    }
-
-    private void EnsureDefaultSystemStyleOverrides()
-    {
-        // Сохранённые старые системные цвета больше не влияют на общую тему.
-    }
-
-    private void StyleSubmenu_Opened(object sender, RoutedEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.MenuItem menuItem) return;
-
-        menuItem.Items.Clear();
-        var isText = string.Equals(menuItem.Tag?.ToString(), "Text", StringComparison.Ordinal);
-        var targets = isText
-            ? new[]
-            {
-                new SystemStyleTarget("system|text|primary", "Основной текст интерфейса", true),
-                new SystemStyleTarget("system|text|secondary", "Вторичный текст и подписи", true),
-                new SystemStyleTarget("system|text|menu", "Текст пунктов меню", true),
-                new SystemStyleTarget("system|text|menu-selected", "Текст выбранного пункта меню", true),
-                new SystemStyleTarget("system|text|button", "Текст обычных кнопок", true),
-                new SystemStyleTarget("system|text|button-primary", "Текст основных кнопок и контрастных состояний", true),
-                new SystemStyleTarget("system|text|input", "Текст полей ввода", true),
-                new SystemStyleTarget("system|text|disabled", "Текст неактивных элементов", true),
-                new SystemStyleTarget("system|text|selection", "Текст выделенного элемента", true),
-                new SystemStyleTarget("system|text|titlebar", "Текст заголовка окна", true),
-                new SystemStyleTarget("system|text|muted", "Приглушённый и поясняющий текст", true),
-                new SystemStyleTarget("system|text|data", "Текст показателей и значений", true),
-                new SystemStyleTarget("system|text|accent", "Акцентный текст и подписи", true),
-                new SystemStyleTarget("system|text|success", "Текст успешного состояния", true),
-                new SystemStyleTarget("system|text|info", "Информационный текст", true),
-                new SystemStyleTarget("system|text|warning", "Предупреждающий текст", true),
-                new SystemStyleTarget("system|text|error", "Текст ошибки", true),
-                new SystemStyleTarget("system|text|tooltip", "Текст всплывающих подсказок", true),
-                new SystemStyleTarget("system|text|dialog", "Текст системных диалогов", true)
-            }
-            : new[]
-            {
-                new SystemStyleTarget("system|background|window", "Фон главного окна", false),
-                new SystemStyleTarget("system|background|panel", "Фон панелей и карточек", false),
-                new SystemStyleTarget("system|background|menu", "Фон главного меню", false),
-                new SystemStyleTarget("system|background|dropdown", "Фон выпадающих меню и списков", false),
-                new SystemStyleTarget("system|background|menu-selected", "Фон выбранного пункта меню", false),
-                new SystemStyleTarget("system|background|button", "Фон обычных кнопок", false),
-                new SystemStyleTarget("system|background|button-primary", "Фон основных кнопок", false),
-                new SystemStyleTarget("system|background|button-hover", "Фон кнопок при наведении", false),
-                new SystemStyleTarget("system|background|button-pressed", "Фон нажатых кнопок", false),
-                new SystemStyleTarget("system|background|input", "Фон полей ввода", false),
-                new SystemStyleTarget("system|background|selection", "Фон выделенного элемента", false),
-                new SystemStyleTarget("system|background|titlebar", "Фон заголовка окна", false),
-                new SystemStyleTarget("system|background|dialog", "Фон диалоговых окон", false),
-                new SystemStyleTarget("system|background|tooltip", "Фон всплывающих подсказок", false),
-                new SystemStyleTarget("system|background|card", "Фон информационных карточек", false),
-                new SystemStyleTarget("system|background|card-alt", "Дополнительный фон карточек", false),
-                new SystemStyleTarget("system|background|surface-dark", "Тёмный фон внутренних областей", false),
-                new SystemStyleTarget("system|background|border", "Цвет рамок и разделителей", false),
-                new SystemStyleTarget("system|background|accent", "Акцентный фон и индикаторы", false),
-                new SystemStyleTarget("system|background|info", "Информационные элементы", false),
-                new SystemStyleTarget("system|background|success", "Элементы успешного состояния", false),
-                new SystemStyleTarget("system|background|warning", "Предупреждающие элементы", false),
-                new SystemStyleTarget("system|background|error", "Элементы ошибки", false),
-                new SystemStyleTarget("system|background|status-neutral", "Нейтральные индикаторы состояния", false),
-                new SystemStyleTarget("system|background|titlebar-hover", "Кнопки заголовка при наведении", false),
-                new SystemStyleTarget("system|background|titlebar-pressed", "Кнопки заголовка при нажатии", false),
-                new SystemStyleTarget("system|background|close-hover", "Кнопка закрытия при наведении", false),
-                new SystemStyleTarget("system|background|close-pressed", "Кнопка закрытия при нажатии", false)
-            };
-
-        foreach (var target in targets)
-        {
-            var entry = new System.Windows.Controls.MenuItem
-            {
-                Header = target.Label,
-                Tag = target
-            };
-            entry.Click += StyleTarget_Click;
-            menuItem.Items.Add(entry);
-        }
-    }
-
-    private void StyleTarget_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.MenuItem item || item.Tag is not SystemStyleTarget target)
-            return;
-
-        var initialColor = _styleOverrides.TryGetValue(target.Key, out var savedColor)
-            ? savedColor
-            : target.IsText ? "#FFFFFF" : "#3A3A3A";
-
-        var selectedColor = ShowStyleColorDialog(
-            (target.IsText ? "Цвет текста — " : "Цвет фона — ") + target.Label,
-            initialColor);
-        if (selectedColor is null ||
-            System.Windows.Media.ColorConverter.ConvertFromString(selectedColor) is not System.Windows.Media.Color)
-            return;
-
-        _styleOverrides[target.Key] = selectedColor;
-        ClientSettings.SaveStyleOverrides(_styleOverrides);
-        ApplyTheme(_activeTheme);
-    }
-
-    private string? ShowStyleColorDialog(string title, string initialColor)
-    {
-        var dialog = new Window
-        {
-            Title = title,
-            Width = 520,
-            Height = 500,
-            MinWidth = 520,
-            MinHeight = 500,
-            ResizeMode = ResizeMode.CanMinimize,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Owner = this,
-            Background = GetSystemStyleBrush("background|dialog", "#121E30"),
-            Foreground = GetSystemStyleBrush("text|dialog", "#E8EEF7"),
-            ShowInTaskbar = false
-        };
-
-        string selectedColor = initialColor;
-        var root = new DockPanel { Margin = new Thickness(16) };
-        var bottom = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 14, 0, 0)
-        };
-        DockPanel.SetDock(bottom, Dock.Bottom);
-
-        var previewRow = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 12)
-        };
-        var preview = new Border
-        {
-            Width = 72,
-            Height = 34,
-            CornerRadius = new CornerRadius(4),
-            BorderThickness = new Thickness(1),
-            BorderBrush = Brushes.White,
-            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(initialColor)),
-            Margin = new Thickness(0, 0, 12, 0)
-        };
-        var colorDialogExclusions = new List<DependencyObject> { preview };
-        var selectedName = new TextBlock
-        {
-            Text = "Выбранный цвет",
-            VerticalAlignment = VerticalAlignment.Center,
-            FontSize = 14
-        };
-        previewRow.Children.Add(preview);
-        previewRow.Children.Add(selectedName);
-        DockPanel.SetDock(previewRow, Dock.Top);
-
-        var paletteScroll = new ScrollViewer
-        {
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-        };
-        var palette = new WrapPanel { Orientation = Orientation.Horizontal };
-
-        var colors = new (string Name, string Hex)[]
-        {
-            ("Белый", "#FFFFFFFF"), ("Слоновая кость", "#FFFFF8E7"), ("Светло-серый", "#FFD3D3D3"),
-            ("Серый", "#FF808080"), ("Тёмно-серый", "#FF505050"), ("Чёрный", "#FF000000"),
-            ("Красный", "#FFFF0000"), ("Тёмно-красный", "#FF8B0000"), ("Коралловый", "#FFFF7F50"),
-            ("Розовый", "#FFFFC0CB"), ("Малиновый", "#FFC71585"), ("Оранжевый", "#FFFFA500"),
-            ("Янтарный", "#FFFFBF00"), ("Жёлтый", "#FFFFFF00"), ("Золотой", "#FFFFD700"),
-            ("Лаймовый", "#FFBFFF00"), ("Салатовый", "#FF7CFC00"), ("Зелёный", "#FF008000"),
-            ("Тёмно-зелёный", "#FF006400"), ("Мятный", "#FF98FF98"), ("Бирюзовый", "#FF40E0D0"),
-            ("Голубой", "#FF87CEEB"), ("Небесно-синий", "#FF00BFFF"), ("Синий", "#FF0000FF"),
-            ("Тёмно-синий", "#FF00008B"), ("Индиго", "#FF4B0082"), ("Фиолетовый", "#FF800080"),
-            ("Сиреневый", "#FFDDA0DD"), ("Коричневый", "#FFA52A2A"), ("Бежевый", "#FFF5F5DC")
-        };
-
-        foreach (var entry in colors)
-        {
-            var swatch = new Button
-            {
-                Width = 64,
-                Height = 48,
-                Margin = new Thickness(3),
-                Padding = new Thickness(2),
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(entry.Hex)),
-                BorderBrush = Brushes.Gray,
-                BorderThickness = new Thickness(1),
-                ToolTip = entry.Name
-            };
-            swatch.Click += (_, _) =>
-            {
-                selectedColor = entry.Hex;
-                preview.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(entry.Hex));
-                selectedName.Text = entry.Name;
-            };
-            palette.Children.Add(swatch);
-            colorDialogExclusions.Add(swatch);
-        }
-
-        paletteScroll.Content = palette;
-
-        var custom = new Expander
-        {
-            Header = "Другой цвет (дополнительно)",
-            Margin = new Thickness(0, 12, 0, 0),
-            Foreground = Brushes.White
-        };
-        var customPanel = new StackPanel { Orientation = Orientation.Horizontal };
-        var customBox = new TextBox
-        {
-            Text = initialColor,
-            Width = 130,
-            Height = 28,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 8, 0)
-        };
-        var customApply = new Button
-        {
-            Content = "Выбрать",
-            Width = 86,
-            Height = 28
-        };
-        customApply.Click += (_, _) =>
-        {
-            try
-            {
-                if (ColorConverter.ConvertFromString(customBox.Text.Trim()) is Color color)
-                {
-                    selectedColor = color.ToString();
-                    preview.Background = new SolidColorBrush(color);
-                    selectedName.Text = "Пользовательский цвет";
-                }
-                else
-                    EnergyMapEditorSystemTheme.ShowMessage(dialog, "Не удалось распознать цвет.", "Стиль",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            catch
-            {
-                EnergyMapEditorSystemTheme.ShowMessage(dialog, "Не удалось распознать цвет.", "Стиль",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        };
-        customPanel.Children.Add(customBox);
-        customPanel.Children.Add(customApply);
-        custom.Content = customPanel;
-
-        var cancel = new Button
-        {
-            Content = "Отмена",
-            Width = 92,
-            Height = 32,
-            Margin = new Thickness(0, 0, 8, 0),
-            IsCancel = true
-        };
-        cancel.Click += (_, _) => dialog.DialogResult = false;
-        var apply = new Button
-        {
-            Content = "Применить",
-            Width = 100,
-            Height = 32,
-            IsDefault = true
-        };
-        apply.Click += (_, _) => dialog.DialogResult = true;
-        bottom.Children.Add(cancel);
-        bottom.Children.Add(apply);
-
-        var content = new StackPanel();
-        content.Children.Add(previewRow);
-        content.Children.Add(paletteScroll);
-        content.Children.Add(custom);
-        root.Children.Add(bottom);
-        root.Children.Add(content);
-        dialog.Content = root;
-        dialog.Loaded += (_, _) => EnergyMapEditorSystemTheme.Apply(dialog, colorDialogExclusions.ToArray());
-
-        return dialog.ShowDialog() == true ? selectedColor : null;
-    }
-
     private Brush GetSystemStyleBrush(string key, string fallback) =>
         EnergyMapEditorSystemTheme.BrushFor(key);
 
-    private void RegisterSystemButton(System.Windows.Controls.Button button)
+    private void ApplyTheme()
     {
-        _systemButtonBaseBackgrounds[button] = button.Background;
-        if (!_systemStyledButtons.Add(button)) return;
-
-        button.MouseEnter += (_, _) =>
-        {
-            if (button.IsEnabled)
-                button.Background = GetSystemStyleBrush("background|button-hover", "#3A3A3A");
-        };
-        button.MouseLeave += (_, _) =>
-        {
-            if (_systemButtonBaseBackgrounds.TryGetValue(button, out var background))
-                button.Background = background;
-        };
-        button.PreviewMouseLeftButtonDown += (_, _) =>
-        {
-            if (button.IsEnabled)
-                button.Background = GetSystemStyleBrush("background|button-pressed", "#3A3A3A");
-        };
-        button.PreviewMouseLeftButtonUp += (_, _) =>
-        {
-            if (!button.IsEnabled) return;
-            button.Background = button.IsMouseOver
-                ? GetSystemStyleBrush("background|button-hover", "#31445E")
-                : _systemButtonBaseBackgrounds[button];
-        };
-    }
-
-    private void ApplyStyleOverrides()
-    {
-        // System color overrides are applied centrally by ApplyTheme.
-        // Workspace objects keep their own independent appearance settings.
-    }
-
-    private void ApplyTheme(string theme)
-    {
-        _activeTheme = theme;
-        var palette = theme switch
-        {
-            "Light" => new[] { "#F2F2F2", "#FFFFFF", "#252525", "#666666", "#555555", "#E8EEF7", "#D6D6D6", "#E5E5E5" },
-            "Office" => new[] { "#DCE6F1", "#F3F6FA", "#1F3864", "#526780", "#0078D4", "#E8EEF7", "#B4C7E7", "#C9D9EC" },
-            "Graphite" => new[] { "#202326", "#2B3035", "#F0F2F4", "#AAB2BC", "#E0A43A", "#E8EEF7", "#454D56", "#343B43" },
-            "Blue" => new[] { "#10243D", "#183451", "#F0F6FC", "#A9C0D8", "#49A6E9", "#E8EEF7", "#315675", "#214565" },
-            _ => new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" }
-        };
-
-        // Единая точка определения цветов системного интерфейса.
-        string StyleColor(string key, string fallback) => EnergyMapEditorSystemTheme.ColorFor(key);
-
-        palette[0] = StyleColor("background|window", "#3A3A3A");
-        palette[1] = StyleColor("background|panel", "#3A3A3A");
-        palette[2] = StyleColor("text|primary", "#FFFFFF");
-        palette[3] = StyleColor("text|secondary", "#FFFFFF");
-        palette[4] = StyleColor("text|accent", "#FFFFFF");
-        palette[6] = StyleColor("background|border", "#555555");
-        palette[7] = StyleColor("background|menu", "#3A3A3A");
-
-        var menuTextColor = StyleColor("text|menu", "#FFFFFF");
-        var menuSelectedTextColor = StyleColor("text|menu-selected", "#FFFFFF");
-        var menuSelectedBackground = StyleColor("background|menu-selected", "#3A3A3A");
-        var dropdownBackground = StyleColor("background|dropdown", "#3A3A3A");
-        var buttonTextColor = StyleColor("text|button", "#FFFFFF");
-        var inputTextColor = StyleColor("text|input", "#FFFFFF");
-        var disabledTextColor = StyleColor("text|disabled", "#FFFFFF");
-        var buttonBackground = StyleColor("background|button", "#3A3A3A");
-        var primaryButtonBackground = StyleColor("background|button-primary", "#3A3A3A");
-        var buttonHoverBackground = StyleColor("background|button-hover", "#3A3A3A");
-        var buttonPressedBackground = StyleColor("background|button-pressed", "#3A3A3A");
-        var inputBackground = StyleColor("background|input", "#3A3A3A");
-
-        var map = new Dictionary<string, string>
-        {
-            ["#FF0B1220"] = palette[0], ["#FF121E30"] = palette[1],
-            ["#FFE8EEF7"] = palette[2], ["#FF8FA2BA"] = palette[3],
-            ["#FFF5B942"] = StyleColor("text|accent", "#FFFFFF"),
-            ["#FF17263A"] = StyleColor("background|dropdown", "#3A3A3A"),
-            ["#FF24364D"] = StyleColor("background|menu", "#3A3A3A"),
-            ["#FF30445E"] = palette[6],
-            ["#FF26384D"] = buttonBackground, ["#FF405875"] = buttonPressedBackground,
-            ["#FF1A2B3E"] = palette[1],
-            ["#FF31445E"] = buttonHoverBackground,
-            ["#FFDCE6F2"] = menuSelectedBackground,
-            ["#FFF4F7FB"] = StyleColor("text|titlebar", "#FFFFFF"),
-            ["#FFAAB4C0"] = disabledTextColor,
-            ["#FFF0F5FA"] = StyleColor("text|data", "#FFFFFF"),
-            ["#FFAFC1D2"] = StyleColor("text|muted", "#FFFFFF"),
-            ["#FF71849B"] = StyleColor("text|muted", "#FFFFFF"),
-            ["#FF63D6A2"] = StyleColor("text|success", "#FFFFFF"),
-            ["#FF63B9F2"] = StyleColor("text|info", "#FFFFFF"),
-            ["#FFE45B5B"] = StyleColor("text|error", "#FFFFFF"),
-            ["#FF64748B"] = StyleColor("background|status-neutral", "#3A3A3A"),
-            ["#FF17202D"] = StyleColor("text|button-primary", "#FFFFFF"),
-            ["#FF172B40"] = StyleColor("background|card", "#3A3A3A"),
-            ["#FF1A3047"] = StyleColor("background|card-alt", "#3A3A3A"),
-            ["#FF0B1725"] = StyleColor("background|surface-dark", "#3A3A3A"),
-            ["#FF07111D"] = StyleColor("background|surface-dark", "#3A3A3A"),
-            ["#FF31516B"] = StyleColor("background|border", "#555555"),
-            ["#FF45617A"] = StyleColor("background|border", "#555555"),
-            ["#FF247DB5"] = StyleColor("background|info", "#3A3A3A"),
-            ["#FFC42B1C"] = StyleColor("background|close-hover", "#3A3A3A"),
-            ["#FF9E2116"] = StyleColor("background|close-pressed", "#3A3A3A")
-        };
-
-        if (_activePalette is not null)
-        {
-            int[] paletteSlots = { 0, 1, 2, 3, 4, 6, 7 };
-            foreach (var slot in paletteSlots)
-                map["#FF" + _activePalette[slot].TrimStart('#')] = palette[slot];
-        }
-
-        Brush ConvertBrush(Brush brush)
-        {
-            if (brush is SolidColorBrush solid && map.TryGetValue(solid.Color.ToString(), out var replacementColor))
-                return new SolidColorBrush((Color)ColorConverter.ConvertFromString(replacementColor));
-            return brush;
-        }
-
-        SolidColorBrush PaletteBrush(string value) =>
-            new((Color)ColorConverter.ConvertFromString(value));
-
-        Background = PaletteBrush(palette[0]);
-        Foreground = PaletteBrush(palette[2]);
-        MainMenu.Background = PaletteBrush(palette[7]);
-        MainMenu.Foreground = PaletteBrush(palette[2]);
-
-        var menuItemStyle = new Style(typeof(System.Windows.Controls.MenuItem));
-        menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(dropdownBackground)));
-        menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(menuTextColor)));
-        menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.MenuItem.HeaderTemplateProperty,
-            (DataTemplate)FindResource("MenuItemHeaderTemplate")));
-        menuItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.PaddingProperty, new Thickness(10, 6, 10, 6)));
-        var highlighted = new Trigger { Property = System.Windows.Controls.MenuItem.IsHighlightedProperty, Value = true };
-        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(menuSelectedBackground)));
-        highlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(menuSelectedTextColor)));
-        menuItemStyle.Triggers.Add(highlighted);
-        var hovered = new Trigger { Property = System.Windows.UIElement.IsMouseOverProperty, Value = true };
-        hovered.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(menuSelectedBackground)));
-        hovered.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(menuSelectedTextColor)));
-        menuItemStyle.Triggers.Add(hovered);
-        var disabledMenuItem = new Trigger
-        {
-            Property = System.Windows.UIElement.IsEnabledProperty,
-            Value = false
-        };
-        disabledMenuItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
-            PaletteBrush(disabledTextColor)));
-        menuItemStyle.Triggers.Add(disabledMenuItem);
-        MainMenu.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
-        Application.Current.Resources[typeof(System.Windows.Controls.MenuItem)] = menuItemStyle;
-        MainMenu.ItemContainerStyle = menuItemStyle;
-
-        var listItemStyle = new Style(typeof(System.Windows.Controls.ListBoxItem));
-        listItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(palette[2])));
-        var selectedItem = new Trigger
-        {
-            Property = System.Windows.Controls.ListBoxItem.IsSelectedProperty,
-            Value = true
-        };
-        selectedItem.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,
-            PaletteBrush(StyleColor("background|selection", "#3A3A3A"))));
-        selectedItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
-            PaletteBrush(StyleColor("text|selection", "#FFFFFF"))));
-        listItemStyle.Triggers.Add(selectedItem);
-        var disabledListItem = new Trigger { Property = System.Windows.UIElement.IsEnabledProperty, Value = false };
-        disabledListItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(disabledTextColor)));
-        listItemStyle.Triggers.Add(disabledListItem);
-        Application.Current.Resources[typeof(System.Windows.Controls.ListBoxItem)] = listItemStyle;
-
-        var comboItemStyle = new Style(typeof(System.Windows.Controls.ComboBoxItem));
-        comboItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, PaletteBrush(dropdownBackground)));
-        comboItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(inputTextColor)));
-        var comboHighlighted = new Trigger
-        {
-            Property = System.Windows.UIElement.IsMouseOverProperty,
-            Value = true
-        };
-        comboHighlighted.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,
-            PaletteBrush(StyleColor("background|selection", "#3A3A3A"))));
-        comboHighlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
-            PaletteBrush(StyleColor("text|selection", "#FFFFFF"))));
-        comboItemStyle.Triggers.Add(comboHighlighted);
-        var disabledComboItem = new Trigger { Property = System.Windows.UIElement.IsEnabledProperty, Value = false };
-        disabledComboItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(disabledTextColor)));
-        comboItemStyle.Triggers.Add(disabledComboItem);
-        Application.Current.Resources[typeof(System.Windows.Controls.ComboBoxItem)] = comboItemStyle;
-
-        void ApplyMenuItemStyle(System.Windows.Controls.MenuItem item)
-        {
-            item.Style = menuItemStyle;
-            foreach (var child in item.Items)
-                if (child is System.Windows.Controls.MenuItem childMenuItem)
-                    ApplyMenuItemStyle(childMenuItem);
-        }
-        foreach (var menuEntry in MainMenu.Items)
-            if (menuEntry is System.Windows.Controls.MenuItem menuItem)
-                ApplyMenuItemStyle(menuItem);
-
-        void Visit(DependencyObject parent)
-        {
-            // Workspace objects have their own independent color settings.
-            if (ReferenceEquals(parent, EnergyMapDashboard))
-                return;
-
-            for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
-                if (child is System.Windows.Controls.Control control)
-                {
-                    if (control.Background is SolidColorBrush currentBackground &&
-                        !_systemOriginalBackgrounds.ContainsKey(control))
-                        _systemOriginalBackgrounds[control] = currentBackground;
-                    if (control.Foreground is SolidColorBrush currentForeground &&
-                        !_systemOriginalForegrounds.ContainsKey(control))
-                        _systemOriginalForegrounds[control] = currentForeground;
-
-                    if (control is System.Windows.Controls.TextBox or System.Windows.Controls.PasswordBox or System.Windows.Controls.ComboBox or System.Windows.Controls.DatePicker)
-                    {
-                        control.Background = PaletteBrush(inputBackground);
-                        control.Foreground = PaletteBrush(inputTextColor);
-                    }
-                    else
-                    {
-                        if (control is System.Windows.Controls.Button button &&
-                            _systemOriginalBackgrounds.TryGetValue(button, out var originalButtonBackground) &&
-                            originalButtonBackground is SolidColorBrush buttonBg)
-                        {
-                            if (buttonBg.Color.ToString() == "#FFF5B942")
-                                button.Background = PaletteBrush(primaryButtonBackground);
-                            else if (buttonBg.Color.ToString() == "#FF26384D")
-                                button.Background = PaletteBrush(buttonBackground);
-                            else
-                                button.Background = ConvertBrush(buttonBg);
-
-                            if (button.Style != (TryFindResource("CloseTitleBarButtonStyle") as Style))
-                                RegisterSystemButton(button);
-                        }
-                        else
-                            control.Background = PaletteBrush(StyleColor("background|text", "#3A3A3A"));
-
-                        control.Background = PaletteBrush(control is System.Windows.Controls.Button
-                            ? buttonBackground
-                            : StyleColor("background|text", "#3A3A3A"));
-                        control.Foreground = PaletteBrush(control is System.Windows.Controls.Button
-                            ? buttonTextColor
-                            : StyleColor("text|primary", "#FFFFFF"));
-                    }
-                }
-                if (child is System.Windows.Controls.TextBlock textBlock)
-                {
-                    if (textBlock.Foreground is SolidColorBrush currentTextForeground &&
-                        !_systemOriginalForegrounds.ContainsKey(textBlock))
-                        _systemOriginalForegrounds[textBlock] = currentTextForeground;
-                    textBlock.Foreground = PaletteBrush(StyleColor("text|primary", "#FFFFFF"));
-
-                    if (textBlock.Background is SolidColorBrush currentTextBackground &&
-                        !_systemOriginalTextBlockBackgrounds.ContainsKey(textBlock))
-                        _systemOriginalTextBlockBackgrounds[textBlock] = currentTextBackground;
-                    // У системного текста всегда есть собственный тёмно-серый фон.
-                    textBlock.Background = PaletteBrush(StyleColor("background|text", "#3A3A3A"));
-                }
-                if (child is System.Windows.Shapes.Shape shape)
-                {
-                    if (shape.Fill is SolidColorBrush currentFill &&
-                        !_systemOriginalShapeFills.ContainsKey(shape))
-                        _systemOriginalShapeFills[shape] = currentFill;
-                    if (_systemOriginalShapeFills.TryGetValue(shape, out var originalFill))
-                        shape.Fill = ConvertBrush(originalFill);
-
-                    if (shape.Stroke is SolidColorBrush currentStroke &&
-                        !_systemOriginalShapeStrokes.ContainsKey(shape))
-                        _systemOriginalShapeStrokes[shape] = currentStroke;
-                    if (_systemOriginalShapeStrokes.TryGetValue(shape, out var originalStroke))
-                        shape.Stroke = ConvertBrush(originalStroke);
-                }
-                if (child is System.Windows.Controls.Panel panel)
-                {
-                    if (panel.Background is SolidColorBrush currentPanelBackground &&
-                        !_systemOriginalBackgrounds.ContainsKey(panel))
-                        _systemOriginalBackgrounds[panel] = currentPanelBackground;
-                    if (_systemOriginalBackgrounds.TryGetValue(panel, out var originalPanelBackground))
-                        panel.Background = ConvertBrush(originalPanelBackground);
-                }
-                if (child is System.Windows.Controls.Border border)
-                {
-                    if (border.Background is SolidColorBrush currentBorderBackground &&
-                        !_systemOriginalBackgrounds.ContainsKey(border))
-                        _systemOriginalBackgrounds[border] = currentBorderBackground;
-                    if (_systemOriginalBackgrounds.TryGetValue(border, out var originalBorderBackground))
-                        border.Background = ConvertBrush(originalBorderBackground);
-                    if (border.BorderBrush is SolidColorBrush currentBorderBrush &&
-                        !_systemOriginalBorderBrushes.ContainsKey(border))
-                        _systemOriginalBorderBrushes[border] = currentBorderBrush;
-                    if (_systemOriginalBorderBrushes.TryGetValue(border, out var originalBorderBrush))
-                        border.BorderBrush = ConvertBrush(originalBorderBrush);
-                }
-                Visit(child);
-            }
-        }
-        Visit(this);
-
-        Application.Current.Resources["SystemPrimaryTextBrush"] = PaletteBrush(StyleColor("text|primary", "#FFFFFF"));
-        Application.Current.Resources["SystemInputTextBrush"] = PaletteBrush(inputTextColor);
-        Application.Current.Resources["SystemButtonTextBrush"] = PaletteBrush(buttonTextColor);
-        Application.Current.Resources["SystemPrimaryButtonTextBrush"] = PaletteBrush(StyleColor("text|button-primary", "#FFFFFF"));
-        Application.Current.Resources["SystemSurfaceBackgroundBrush"] = PaletteBrush(StyleColor("background|panel", "#3A3A3A"));
-        Application.Current.Resources["SystemDialogBackgroundBrush"] = PaletteBrush(StyleColor("background|dialog", "#3A3A3A"));
-        Application.Current.Resources["SystemInputBackgroundBrush"] = PaletteBrush(inputBackground);
-        Application.Current.Resources["SystemButtonBackgroundBrush"] = PaletteBrush(buttonBackground);
-        Application.Current.Resources["SystemPrimaryButtonBackgroundBrush"] = PaletteBrush(primaryButtonBackground);
-
-        Resources["SystemButtonHoverBrush"] = PaletteBrush(StyleColor("background|titlebar-hover", buttonHoverBackground));
-        Resources["SystemButtonPressedBrush"] = PaletteBrush(StyleColor("background|titlebar-pressed", buttonPressedBackground));
-        Resources["SystemCloseHoverBrush"] = PaletteBrush(StyleColor("background|close-hover", "#3A3A3A"));
-        Resources["SystemClosePressedBrush"] = PaletteBrush(StyleColor("background|close-pressed", "#3A3A3A"));
-
-        var toolTipStyle = new Style(typeof(System.Windows.Controls.ToolTip));
-        toolTipStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,
-            PaletteBrush(StyleColor("background|tooltip", "#17263A"))));
-        toolTipStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
-            PaletteBrush(StyleColor("text|tooltip", "#F4F7FB"))));
-        toolTipStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BorderBrushProperty,
-            PaletteBrush(StyleColor("background|border", "#31516B"))));
-        Application.Current.Resources[typeof(System.Windows.Controls.ToolTip)] = toolTipStyle;
-
-        _activePalette = palette;
-        ClientSettings.SaveTheme(theme);
-        ApplyDesign(_activeDesign);
-
-        // ApplyDesign adjusts card borders and the window background; apply user color
-        // overrides once more so the selected system colors take precedence immediately.
-        Visit(this);
-        TitleBarGrid.Background = PaletteBrush(StyleColor("background|titlebar", "#3A3A3A"));
-        MainMenu.Background = PaletteBrush(StyleColor("background|menu", "#3A3A3A"));
-
-        ApplyStyleOverrides();
+        EnergyMapEditorSystemTheme.Apply(this, EnergyMapDashboard, DigitalDashboard, LegacyDashboard);
+        Background = EnergyMapEditorSystemTheme.BrushFor("background|window");
+        TitleBarGrid.Background = EnergyMapEditorSystemTheme.BrushFor("background|titlebar");
+        MainMenu.Background = EnergyMapEditorSystemTheme.BrushFor("background|menu");
     }
 
     private void ApplyDesign(string design)
@@ -853,7 +220,10 @@ public partial class MainWindow : Window
             design = "Digital";
         _activeDesign = design;
 
-        var palette = _activePalette ?? new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" };
+        var systemBackground = EnergyMapEditorSystemTheme.BackgroundColor;
+        var palette = new[] { systemBackground, systemBackground, EnergyMapEditorSystemTheme.TextColor,
+            EnergyMapEditorSystemTheme.TextColor, "#F5B942", EnergyMapEditorSystemTheme.TextColor,
+            systemBackground, systemBackground };
         DigitalDashboard.Visibility = design == "Digital" ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapDashboard.Visibility = design == "EnergyMap" ? Visibility.Visible : Visibility.Collapsed;
         if (design == "EnergyMap")
@@ -869,8 +239,8 @@ public partial class MainWindow : Window
             DashboardContentGrid.ClearValue(System.Windows.FrameworkElement.HeightProperty);
         }
         LegacyDashboard.Visibility = design is "Digital" or "EnergyMap" ? Visibility.Collapsed : Visibility.Visible;
-        var accent = GetSystemStyleBrush("text|accent", palette[4]);
-        var borderBrush = GetSystemStyleBrush("background|border", palette[6]);
+        var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[4]));
+        var borderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border");
 
         var cornerRadius = design switch
         {
@@ -881,7 +251,10 @@ public partial class MainWindow : Window
 
         void StyleCards(DependencyObject parent)
         {
-            if (ReferenceEquals(parent, EnergyMapObjectHitCanvas) ||
+            if (ReferenceEquals(parent, EnergyMapDashboard) ||
+                ReferenceEquals(parent, DigitalDashboard) ||
+                ReferenceEquals(parent, LegacyDashboard) ||
+                ReferenceEquals(parent, EnergyMapObjectHitCanvas) ||
                 ReferenceEquals(parent, EnergyMapItemsCanvas))
                 return;
 
@@ -933,7 +306,7 @@ public partial class MainWindow : Window
             lines.Children.Add(new LineGeometry(new Point(0, 0), new Point(0, 32)));
             var drawing = new DrawingGroup();
             drawing.Children.Add(new GeometryDrawing(
-                new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[0])),
+                EnergyMapEditorSystemTheme.BrushFor("background|window"),
                 null,
                 new RectangleGeometry(new Rect(0, 0, 32, 32))));
             drawing.Children.Add(new GeometryDrawing(null, new Pen(borderBrush, 0.45), lines));
@@ -949,7 +322,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[0]));
+            Background = EnergyMapEditorSystemTheme.BrushFor("background|window");
         }
 
         var valueFont = design switch
@@ -971,7 +344,7 @@ public partial class MainWindow : Window
         String2Power.Foreground = accent;
 
         ClientSettings.SaveDesign(design);
-        ApplyStyleOverrides();
+
     }
 
     private void BuildEnergyMapItems()
@@ -1160,7 +533,7 @@ public partial class MainWindow : Window
         }
         UpdateEnergyMapHitTesting();
         UpdateEnergyMapSelection();
-        ApplyStyleOverrides();
+
     }
 
     private static FontFamily EnergyMapFont(string value)
