@@ -1793,8 +1793,49 @@ internal sealed class HouseStatisticsWindow : Window
         group.Children.Add(new System.Windows.Controls.TextBlock { Text = label, FontSize = 11, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)), Margin = new Thickness(0, 0, 0, 4) });
         combo.Width = width;
         combo.Height = 30;
-        combo.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58));
-        combo.Foreground = System.Windows.Media.Brushes.White;
+        var dropdownBackground = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(58, 58, 58));
+        var dropdownForeground = System.Windows.Media.Brushes.White;
+
+        // Popup выпадающего списка имеет отдельное visual tree, поэтому
+        // ApplySystemAppearance не оформляет его содержимое автоматически.
+        combo.Background = dropdownBackground;
+        combo.Foreground = dropdownForeground;
+        combo.Resources[System.Windows.SystemColors.WindowBrushKey] = dropdownBackground;
+        combo.Resources[System.Windows.SystemColors.WindowTextBrushKey] = dropdownForeground;
+        combo.Resources[System.Windows.SystemColors.HighlightBrushKey] = dropdownBackground;
+        combo.Resources[System.Windows.SystemColors.HighlightTextBrushKey] = dropdownForeground;
+        combo.Resources[System.Windows.SystemColors.ControlBrushKey] = dropdownBackground;
+
+        var dropdownItemStyle = new System.Windows.Style(typeof(System.Windows.Controls.ComboBoxItem));
+        dropdownItemStyle.Setters.Add(new System.Windows.Setter(
+            System.Windows.Controls.Control.BackgroundProperty, dropdownBackground));
+        dropdownItemStyle.Setters.Add(new System.Windows.Setter(
+            System.Windows.Controls.Control.ForegroundProperty, dropdownForeground));
+
+        var highlightedItem = new System.Windows.Trigger
+        {
+            Property = System.Windows.Controls.ComboBoxItem.IsHighlightedProperty,
+            Value = true
+        };
+        highlightedItem.Setters.Add(new System.Windows.Setter(
+            System.Windows.Controls.Control.BackgroundProperty, dropdownBackground));
+        highlightedItem.Setters.Add(new System.Windows.Setter(
+            System.Windows.Controls.Control.ForegroundProperty, dropdownForeground));
+        dropdownItemStyle.Triggers.Add(highlightedItem);
+
+        var selectedItem = new System.Windows.Trigger
+        {
+            Property = System.Windows.Controls.ComboBoxItem.IsSelectedProperty,
+            Value = true
+        };
+        selectedItem.Setters.Add(new System.Windows.Setter(
+            System.Windows.Controls.Control.BackgroundProperty, dropdownBackground));
+        selectedItem.Setters.Add(new System.Windows.Setter(
+            System.Windows.Controls.Control.ForegroundProperty, dropdownForeground));
+        dropdownItemStyle.Triggers.Add(selectedItem);
+
+        combo.ItemContainerStyle = dropdownItemStyle;
         combo.ItemsSource = options;
         combo.SelectedIndex = 0;
         combo.Padding = new Thickness(6, 3, 6, 3);
