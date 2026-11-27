@@ -5,7 +5,7 @@
         Title="Solar_PV — Панель станции" Height="790" Width="1180"
         MinHeight="680" MinWidth="980" WindowStartupLocation="CenterScreen"
         WindowStyle="None" ResizeMode="CanResize"
-        Background="{StaticResource WindowBrush}" StateChanged="MainWindow_StateChanged">
+        Background="{DynamicResource SystemBackgroundBrush}" StateChanged="MainWindow_StateChanged">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="34" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
@@ -15,30 +15,6 @@
                        Foreground="{Binding RelativeSource={RelativeSource AncestorType={x:Type MenuItem}}, Path=Foreground}"
                        TextOptions.TextFormattingMode="Display"/>
         </DataTemplate>
-        <SolidColorBrush x:Key="SystemButtonHoverBrush" Color="#0078D4"/>
-        <SolidColorBrush x:Key="SystemButtonPressedBrush" Color="#0078D4"/>
-        <Style TargetType="{x:Type MenuItem}">
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Background" Value="#3A3A3A"/>
-            <Setter Property="Padding" Value="12,7"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Style.Triggers>
-                <Trigger Property="IsHighlighted" Value="True">
-                    <Setter Property="Foreground" Value="#FFFFFF"/>
-                    <Setter Property="Background" Value="#3A3A3A"/>
-                    <Setter Property="TextElement.Foreground" Value="#FFFFFF"/>
-                </Trigger>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="#FFFFFF"/>
-                    <Setter Property="Background" Value="#3A3A3A"/>
-                    <Setter Property="TextElement.Foreground" Value="#FFFFFF"/>
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Foreground" Value="#FFFFFF"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
         <Style x:Key="TitleBarButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Width" Value="46"/>
             <Setter Property="Height" Value="34"/>
@@ -50,14 +26,14 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Focusable" Value="False"/>
             <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SystemButtonHoverBrush}"/></Trigger>
-                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource SystemButtonPressedBrush}"/></Trigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SystemSelectionBrush}"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource SystemSelectionBrush}"/></Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="CloseTitleBarButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource TitleBarButtonStyle}">
             <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SystemCloseHoverBrush}"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
-                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource SystemClosePressedBrush}"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SystemSelectionBrush}"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource SystemSelectionBrush}"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
@@ -67,26 +43,18 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Grid x:Name="TitleBarGrid" Grid.Row="0" Background="#17263A" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+        <Grid x:Name="TitleBarGrid" Grid.Row="0" Background="{DynamicResource SystemBackgroundBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/><ColumnDefinition Width="46"/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
             <TextBlock x:Name="WindowModeText" Text="Solar_PV" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#F4F7FB"/>
             <Button Grid.Column="1" Content="—" Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeWindow_Click" ToolTip="Свернуть" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
             <Button x:Name="MaximizeRestoreButton" Grid.Column="2" Content="□" Style="{StaticResource TitleBarButtonStyle}" Click="MaximizeRestoreWindow_Click" ToolTip="Развернуть" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
             <Button Grid.Column="3" Content="×" FontSize="20" Style="{StaticResource CloseTitleBarButtonStyle}" Click="CloseWindow_Click" ToolTip="Закрыть" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
         </Grid>
-        <Menu x:Name="MainMenu" Grid.Row="1" Padding="8,3" Background="#17263A" Foreground="#F4F7FB" IsMainMenu="True">
+        <Menu x:Name="MainMenu" Grid.Row="1" Padding="8,3" Background="{DynamicResource SystemBackgroundBrush}" Foreground="{DynamicResource SystemTextBrush}" IsMainMenu="True">
             <MenuItem Header="Файл">
                 <MenuItem Header="Выход" Click="Exit_Click"/>
             </MenuItem>
             <MenuItem Header="Вид">
-                <MenuItem Header="Тема">
-                    <MenuItem Header="Светлая" Tag="Light" Click="Theme_Click"/>
-                    <MenuItem Header="Office" Tag="Office" Click="Theme_Click"/>
-                    <Separator/>
-                    <MenuItem Header="Тёмная" Tag="Dark" Click="Theme_Click"/>
-                    <MenuItem Header="Графитовая" Tag="Graphite" Click="Theme_Click"/>
-                    <MenuItem Header="Синяя" Tag="Blue" Click="Theme_Click"/>
-                </MenuItem>
                 <MenuItem Header="Рабочая область">
                     <MenuItem Header="Энергосхема" Tag="EnergyMap" Click="Design_Click"/>
                 </MenuItem>
@@ -114,14 +82,6 @@
             </MenuItem>
             <MenuItem x:Name="EnergyMapEditMenuItem" Header="Перемещать" Visibility="Collapsed" Click="EnergyMapEdit_Click"/>
             <MenuItem x:Name="EnergyMapElementsMenuItem" Header="Объекты" Visibility="Collapsed" Click="EnergyMapElements_Click"/>
-            <MenuItem x:Name="StyleMenuItem" Header="Стиль" Visibility="Collapsed">
-                <MenuItem Header="Текст" Tag="Text" SubmenuOpened="StyleSubmenu_Opened">
-                    <MenuItem Header="Загрузка списка…" IsEnabled="False"/>
-                </MenuItem>
-                <MenuItem Header="Фон" Tag="Background" SubmenuOpened="StyleSubmenu_Opened">
-                    <MenuItem Header="Загрузка списка…" IsEnabled="False"/>
-                </MenuItem>
-            </MenuItem>
         </Menu>
 
         <Grid Grid.Row="2" Margin="26,18,26,18">
@@ -138,11 +98,11 @@
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <TextBox x:Name="AddressBox" Width="190" Text="http://192.168.4.1" Padding="10,8"
-                         Background="#17263A" Foreground="#E8EEF7" BorderBrush="#30445E" VerticalContentAlignment="Center"/>
+                         Background="{DynamicResource SystemBackgroundBrush}" Foreground="{DynamicResource SystemTextBrush}" BorderBrush="{DynamicResource SystemBackgroundBrush}" VerticalContentAlignment="Center"/>
                 <Button x:Name="ConnectButton" Content="Подключить ESP32" Click="Connect_Click" Margin="9,0,0,0"
-                        Padding="15,8" Background="#F5B942" Foreground="#17202D" BorderThickness="0" FontWeight="SemiBold"/>
+                        Padding="15,8" Background="{DynamicResource SystemBackgroundBrush}" Foreground="{DynamicResource SystemTextBrush}" BorderThickness="0" FontWeight="SemiBold"/>
                 <Button Content="Демо" Click="Demo_Click" Margin="8,0,0,0" Padding="15,8"
-                        Background="#26384D" Foreground="#E8EEF7" BorderThickness="0"/>
+                        Background="{DynamicResource SystemBackgroundBrush}" Foreground="{DynamicResource SystemTextBrush}" BorderThickness="0"/>
 
             </StackPanel>
         </Grid>
