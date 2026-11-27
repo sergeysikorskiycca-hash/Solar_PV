@@ -517,18 +517,6 @@ internal sealed class EnergyMapEditorWindow : Window
         _list.Background = EnergyMapEditorSystemTheme.BrushFor("background|surface");
         _list.Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
         _list.BorderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border");
-        var listItemStyle = new Style(typeof(ListBoxItem));
-        listItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("background|surface")));
-        listItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, EnergyMapEditorSystemTheme.BrushFor("text|primary")));
-        listItemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
-        var listHover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        listHover.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("state|hover")));
-        listItemStyle.Triggers.Add(listHover);
-        var listSelected = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
-        listSelected.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("state|selected")));
-        listSelected.Setters.Add(new Setter(Control.ForegroundProperty, EnergyMapEditorSystemTheme.BrushFor("text|primary")));
-        listItemStyle.Triggers.Add(listSelected);
-        _list.ItemContainerStyle = listItemStyle;
         _list.SelectionChanged += (_, _) =>
         {
             ApplyFields();
