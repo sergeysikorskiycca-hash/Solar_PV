@@ -11,6 +11,7 @@
         <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="#3A3A3A"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
         <Style x:Key="MetricCard" TargetType="Border">
