@@ -1702,7 +1702,7 @@ internal sealed class HouseStatisticsWindow : Window
 
         var chartBorder = new System.Windows.Controls.Border
         {
-            Grid.Row = 1, Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(17, 34, 52)),
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(17, 34, 52)),
             BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(48, 68, 94)),
             BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10), Padding = new Thickness(12)
         };
@@ -1726,6 +1726,7 @@ internal sealed class HouseStatisticsWindow : Window
         System.Windows.Controls.Grid.SetRow(_chartFooter, 2);
         chartGrid.Children.Add(_chartFooter);
         chartBorder.Child = chartGrid;
+        System.Windows.Controls.Grid.SetRow(chartBorder, 1);
         contentGrid.Children.Add(chartBorder);
 
         var bottom = new System.Windows.Controls.DockPanel { Margin = new Thickness(0, 12, 0, 0) };
