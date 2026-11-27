@@ -221,15 +221,10 @@ internal sealed class MainForm : Form
             };
             colorButton.Click += (_, _) =>
             {
-                using var picker = new ColorDialog
-                {
-                    Color = ColorTranslator.FromHtml(selectedColors[index]),
-                    FullOpen = true
-                };
-                if (picker.ShowDialog(dialog) != DialogResult.OK) return;
-                selectedColors[index] = ToHtmlColor(picker.Color);
+                if (!PickColor(dialog, ColorTranslator.FromHtml(selectedColors[index]), out var pickedColor)) return;
+                selectedColors[index] = ToHtmlColor(pickedColor);
                 colorButton.Text = selectedColors[index];
-                colorButton.BackColor = picker.Color;
+                colorButton.BackColor = pickedColor;
             };
             layout.Controls.Add(label);
             layout.Controls.Add(colorButton);
@@ -257,6 +252,29 @@ internal sealed class MainForm : Form
             colors[i].Set(selectedColors[i]);
         cfg.Save();
         Theme();
+    }
+
+    private bool PickColor(IWin32Window owner, Color initialColor, out Color selectedColor)
+    {
+        using var picker = new ColorDialog
+        {
+            Color = initialColor,
+            FullOpen = true,
+            CustomColors = cfg.CustomColors
+        };
+
+        var result = picker.ShowDialog(owner);
+
+        // Сохраняем палитру даже если пользователь закрыл выбор цвета кнопкой «Отмена».
+        var updatedPalette = picker.CustomColors ?? Array.Empty<int>();
+        if (!cfg.CustomColors.SequenceEqual(updatedPalette))
+        {
+            cfg.CustomColors = updatedPalette.ToArray();
+            cfg.Save();
+        }
+
+        selectedColor = picker.Color;
+        return result == DialogResult.OK;
     }
 
     private static string ToHtmlColor(Color color) =>
