@@ -217,10 +217,7 @@ public partial class MainWindow : Window
             design = "Digital";
         _activeDesign = design;
 
-        var systemBackground = EnergyMapEditorSystemTheme.BackgroundColor;
-        var palette = new[] { systemBackground, systemBackground, EnergyMapEditorSystemTheme.TextColor,
-            EnergyMapEditorSystemTheme.TextColor, "#F5B942", EnergyMapEditorSystemTheme.TextColor,
-            systemBackground, systemBackground };
+        var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F5B942"));
         DigitalDashboard.Visibility = design == "Digital" ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapDashboard.Visibility = design == "EnergyMap" ? Visibility.Visible : Visibility.Collapsed;
         if (design == "EnergyMap")
@@ -236,7 +233,6 @@ public partial class MainWindow : Window
             DashboardContentGrid.ClearValue(System.Windows.FrameworkElement.HeightProperty);
         }
         LegacyDashboard.Visibility = design is "Digital" or "EnergyMap" ? Visibility.Collapsed : Visibility.Visible;
-        var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(palette[4]));
         var borderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border");
 
         var cornerRadius = design switch
