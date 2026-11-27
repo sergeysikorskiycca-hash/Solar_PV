@@ -9,6 +9,7 @@ internal sealed class AppSettings
     public string PanelBackground { get; set; } = "#383838";
     public string InputBackground { get; set; } = "#252525";
     public string ButtonBackground { get; set; } = "#454545";
+    public string ButtonBorderColor { get; set; } = "#707070";
     public string TextBackground { get; set; } = "#202020";
     public int[] CustomColors { get; set; } = Array.Empty<int>();
     private static string Dir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OllamaControl");

@@ -81,7 +81,7 @@ internal sealed class MainForm : Form
         settings.DropDownItems.Add("Цвета интерфейса...", null, (_, _) => EditColors());
         menu.Items.Add(settings);
         var monitor = new ToolStripMenuItem("Мониторинг");
-        monitor.DropDownItems.Add("Открыть мониторинг ИИ", null, (_, _) => new MonitorForm(address.Text.Trim()).Show(this));
+        monitor.DropDownItems.Add("Открыть мониторинг ИИ", null, (_, _) => new MonitorForm(address.Text.Trim(), cfg).Show(this));
         menu.Items.Add(monitor);
         var system = new ToolStripMenuItem("Система");
         system.DropDownItems.Add("Проверить обновления программы", null, async (_, _) => await UpdateManager.CheckAsync(this));
@@ -160,6 +160,12 @@ internal sealed class MainForm : Form
                 control is TextBox textBox ? (textBox.ReadOnly ? cfg.TextBackground : cfg.InputBackground) :
                 control is ComboBox ? cfg.InputBackground :
                 cfg.PanelBackground);
+            if (control is Button button)
+            {
+                button.FlatStyle = FlatStyle.Flat;
+                button.FlatAppearance.BorderColor = ColorTranslator.FromHtml(cfg.ButtonBorderColor);
+                button.FlatAppearance.BorderSize = 1;
+            }
             ApplyTheme(control);
         }
     }
@@ -174,7 +180,7 @@ internal sealed class MainForm : Form
             MinimizeBox = false,
             MaximizeBox = false,
             ShowInTaskbar = false,
-            ClientSize = new Size(390, 330),
+            ClientSize = new Size(390, 365),
             BackColor = ColorTranslator.FromHtml(cfg.WindowBackground),
             ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary)
         };
@@ -185,6 +191,7 @@ internal sealed class MainForm : Form
             ("Фон панелей", () => cfg.PanelBackground, value => cfg.PanelBackground = value),
             ("Фон полей ввода", () => cfg.InputBackground, value => cfg.InputBackground = value),
             ("Фон кнопок", () => cfg.ButtonBackground, value => cfg.ButtonBackground = value),
+            ("Контур кнопок", () => cfg.ButtonBorderColor, value => cfg.ButtonBorderColor = value),
             ("Фон информационных полей", () => cfg.TextBackground, value => cfg.TextBackground = value),
             ("Основной цвет текста", () => cfg.TextPrimary, value => cfg.TextPrimary = value)
         };

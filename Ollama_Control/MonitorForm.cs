@@ -7,6 +7,7 @@ namespace OllamaControl;
 internal sealed class MonitorForm : Form
 {
     private readonly string ollamaUrl;
+    private readonly AppSettings cfg;
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(4) };
     private readonly TextBox report = new()
     {
@@ -21,9 +22,10 @@ internal sealed class MonitorForm : Form
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 3000 };
     private readonly Dictionary<int, (TimeSpan Cpu, DateTime Sample)> cpuSamples = new();
 
-    public MonitorForm(string apiUrl)
+    public MonitorForm(string apiUrl, AppSettings settings)
     {
         ollamaUrl = apiUrl.TrimEnd('/');
+        cfg = settings;
         Text = "Мониторинг ИИ";
         Width = 850;
         Height = 620;
@@ -38,6 +40,15 @@ internal sealed class MonitorForm : Form
             AutoSize = true,
             Padding = new Padding(8, 7, 0, 0)
         });
+        refreshButton.FlatStyle = FlatStyle.Flat;
+        refreshButton.BackColor = ColorTranslator.FromHtml(cfg.ButtonBackground);
+        refreshButton.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
+        refreshButton.FlatAppearance.BorderColor = ColorTranslator.FromHtml(cfg.ButtonBorderColor);
+        refreshButton.FlatAppearance.BorderSize = 1;
+        BackColor = ColorTranslator.FromHtml(cfg.WindowBackground);
+        ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
+        report.BackColor = ColorTranslator.FromHtml(cfg.TextBackground);
+        report.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
         Controls.Add(report);
         Controls.Add(top);
 
