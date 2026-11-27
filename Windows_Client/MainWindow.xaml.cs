@@ -129,8 +129,8 @@ public partial class MainWindow : Window
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ResizeMode = ResizeMode.NoResize,
             Owner = this,
-            Background = GetSystemStyleBrush("background|dialog", "#121E30"),
-            Foreground = GetSystemStyleBrush("text|dialog", "#E8EEF7")
+            Background = EnergyMapEditorSystemTheme.BrushFor("background|dialog"),
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|dialog")
         };
 
         var panel = new System.Windows.Controls.StackPanel { Margin = new Thickness(22) };
@@ -140,7 +140,7 @@ public partial class MainWindow : Window
             FontSize = 16,
             FontWeight = FontWeights.Bold,
             Margin = new Thickness(0, 0, 0, 16),
-            Foreground = GetSystemStyleBrush("text|accent", "#F5B942")
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|accent")
         });
 
         panel.Children.Add(new System.Windows.Controls.TextBlock { Text = "Логин", Margin = new Thickness(0, 0, 0, 4) });
@@ -180,8 +180,8 @@ public partial class MainWindow : Window
             Tag = "SystemPrimaryButton",
             Width = 90,
             Height = 32,
-            Background = GetSystemStyleBrush("background|button-primary", "#F5B942"),
-            Foreground = GetSystemStyleBrush("text|button", "#17202D"),
+            Background = EnergyMapEditorSystemTheme.BrushFor("background|button-primary"),
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|button"),
             FontWeight = FontWeights.SemiBold,
             IsDefault = true
         };
@@ -202,9 +202,6 @@ public partial class MainWindow : Window
         EnergyMapEditorSystemTheme.ShowMessage(this, $"Solar_PV Desktop {version}\nКлиент мониторинга солнечной станции\nWindows 10 / 11",
             "О программе", MessageBoxButton.OK, MessageBoxImage.Information);
     }
-
-    private Brush GetSystemStyleBrush(string key, string fallback) =>
-        EnergyMapEditorSystemTheme.BrushFor(key);
 
     private void ApplyTheme()
     {
