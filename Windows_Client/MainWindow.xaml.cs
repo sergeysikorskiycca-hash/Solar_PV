@@ -232,18 +232,7 @@ public partial class MainWindow : Window
 
     private void EnsureDefaultSystemStyleOverrides()
     {
-        if (!_styleOverrides.TryGetValue("system|defaults-version", out var version) || version != "1")
-        {
-            string[] textKeys = { "primary", "secondary", "menu", "menu-selected", "button", "button-primary", "input", "disabled", "selection", "titlebar", "muted", "data", "accent", "success", "info", "warning", "error", "tooltip", "dialog" };
-            string[] backgroundKeys = { "window", "panel", "menu", "dropdown", "menu-selected", "button", "button-primary", "button-hover", "button-pressed", "input", "selection", "titlebar", "dialog", "tooltip", "card", "card-alt", "surface-dark", "border", "accent", "info", "success", "warning", "error", "status-neutral", "titlebar-hover", "titlebar-pressed", "close-hover", "close-pressed" };
-            foreach (var key in textKeys) _styleOverrides["system|text|" + key] = "#FFFFFF";
-            foreach (var key in backgroundKeys) _styleOverrides["system|background|" + key] = "#3A3A3A";
-            _styleOverrides["system|defaults-version"] = "1";
-        }
-
-        // Фон непосредственно под системным текстом. TryAdd сохраняет пользовательскую настройку.
-        _styleOverrides.TryAdd("system|background|text", "#3A3A3A");
-        ClientSettings.SaveStyleOverrides(_styleOverrides);
+        // Сохранённые старые системные цвета больше не влияют на общую тему.
     }
 
     private void StyleSubmenu_Opened(object sender, RoutedEventArgs e)
@@ -517,11 +506,8 @@ public partial class MainWindow : Window
         return dialog.ShowDialog() == true ? selectedColor : null;
     }
 
-    private Brush GetSystemStyleBrush(string key, string fallback)
-    {
-        var value = _styleOverrides.TryGetValue("system|" + key, out var saved) ? saved : fallback;
-        return new SolidColorBrush((Color)ColorConverter.ConvertFromString(value));
-    }
+    private Brush GetSystemStyleBrush(string key, string fallback) =>
+        EnergyMapEditorSystemTheme.BrushFor(key);
 
     private void RegisterSystemButton(System.Windows.Controls.Button button)
     {
@@ -570,8 +556,8 @@ public partial class MainWindow : Window
             _ => new[] { "#0B1220", "#121E30", "#E8EEF7", "#8FA2BA", "#F5B942", "#E8EEF7", "#30445E", "#17263A" }
         };
 
-        string StyleColor(string key, string fallback) =>
-            _styleOverrides.TryGetValue("system|" + key, out var value) ? value : fallback;
+        // Единая точка определения цветов системного интерфейса.
+        string StyleColor(string key, string fallback) => EnergyMapEditorSystemTheme.ColorFor(key);
 
         palette[0] = StyleColor("background|window", "#3A3A3A");
         palette[1] = StyleColor("background|panel", "#3A3A3A");
