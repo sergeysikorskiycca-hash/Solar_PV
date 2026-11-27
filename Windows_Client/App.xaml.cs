@@ -10,6 +10,5 @@ public partial class App : System.Windows.Application
         Resources["SystemSelectionBrush"] = EnergyMapEditorSystemTheme.BrushFor("state|selected");
         Resources["WindowBrush"] = EnergyMapEditorSystemTheme.BrushFor("background|window");
         Resources["PanelBrush"] = EnergyMapEditorSystemTheme.BrushFor("background|panel");
-        Resources["AccentBrush"] = EnergyMapEditorSystemTheme.BrushFor("state|selected");
     }
 }
