@@ -10,7 +10,7 @@ internal sealed class MainForm : Form
     private readonly MenuStrip menu = new();
     private readonly TextBox address = new() { Width = 220 };
     private readonly TextBox keep = new() { Width = 70 };
-    private readonly ComboBox models = new() { Width = 280, DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox models = new() { Width = 280, DropDownStyle = ComboBoxStyle.DropDownList, DrawMode = DrawMode.OwnerDrawFixed };
     private readonly TextBox selectedModel = CopyableTextBox(280, 25);
     private readonly TextBox installedModelsText = CopyableTextBox(420, 70, true);
     private readonly TextBox running = CopyableTextBox(420, 90, true);
@@ -32,6 +32,7 @@ internal sealed class MainForm : Form
         BuildUi();
         Theme();
         models.SelectedIndexChanged += (_, _) => selectedModel.Text = models.SelectedItem?.ToString() ?? "";
+        models.DrawItem += DrawModelItem;
         Shown += async (_, _) => await RefreshAll();
     }
 
@@ -147,10 +148,11 @@ internal sealed class MainForm : Form
         log.BackColor = ColorTranslator.FromHtml(cfg.TextBackground);
         log.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
         address.BackColor = keep.BackColor = ColorTranslator.FromHtml(cfg.InputBackground);
+        selectedModel.BackColor = ColorTranslator.FromHtml(cfg.SelectedModelBackground);
         address.ForeColor = keep.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
     }
 
-    private void ApplyTheme(Control parent)
+    private void DrawModelItem(object? sender, DrawItemEventArgs e)\n    {\n        e.DrawBackground();\n        if (e.Index >= 0)\n        {\n            using var background = new SolidBrush(ColorTranslator.FromHtml(cfg.ModelListBackground));\n            using var foreground = new SolidBrush(ColorTranslator.FromHtml(cfg.TextPrimary));\n            e.Graphics.FillRectangle(background, e.Bounds);\n            var value = models.Items[e.Index]?.ToString() ?? "";\n            TextRenderer.DrawText(e.Graphics, value, e.Font, e.Bounds, foreground.Color,\n                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);\n        }\n        e.DrawFocusRectangle();\n    }\n\n    private void ApplyTheme(Control parent)
     {
         foreach (Control control in parent.Controls)
         {
@@ -180,7 +182,7 @@ internal sealed class MainForm : Form
             MinimizeBox = false,
             MaximizeBox = false,
             ShowInTaskbar = false,
-            ClientSize = new Size(390, 365),
+            ClientSize = new Size(390, 435),
             BackColor = ColorTranslator.FromHtml(cfg.WindowBackground),
             ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary)
         };
@@ -189,7 +191,7 @@ internal sealed class MainForm : Form
         {
             ("Фон окна", () => cfg.WindowBackground, value => cfg.WindowBackground = value),
             ("Фон панелей", () => cfg.PanelBackground, value => cfg.PanelBackground = value),
-            ("Фон полей ввода", () => cfg.InputBackground, value => cfg.InputBackground = value),
+            ("Фон полей ввода", () => cfg.InputBackground, value => cfg.InputBackground = value),\n            ("Фон списка моделей", () => cfg.ModelListBackground, value => cfg.ModelListBackground = value),\n            ("Фон выбранной модели", () => cfg.SelectedModelBackground, value => cfg.SelectedModelBackground = value),
             ("Фон кнопок", () => cfg.ButtonBackground, value => cfg.ButtonBackground = value),
             ("Контур кнопок", () => cfg.ButtonBorderColor, value => cfg.ButtonBorderColor = value),
             ("Фон информационных полей", () => cfg.TextBackground, value => cfg.TextBackground = value),
