@@ -531,7 +531,7 @@ public partial class MainWindow : Window
         button.MouseEnter += (_, _) =>
         {
             if (button.IsEnabled)
-                button.Background = GetSystemStyleBrush("background|button-hover", "#31445E");
+                button.Background = GetSystemStyleBrush("background|button-hover", "#3A3A3A");
         };
         button.MouseLeave += (_, _) =>
         {
@@ -541,7 +541,7 @@ public partial class MainWindow : Window
         button.PreviewMouseLeftButtonDown += (_, _) =>
         {
             if (button.IsEnabled)
-                button.Background = GetSystemStyleBrush("background|button-pressed", "#405875");
+                button.Background = GetSystemStyleBrush("background|button-pressed", "#3A3A3A");
         };
         button.PreviewMouseLeftButtonUp += (_, _) =>
         {
@@ -683,9 +683,9 @@ public partial class MainWindow : Window
             Value = true
         };
         selectedItem.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,
-            PaletteBrush(StyleColor("background|selection", "#DCE6F2"))));
+            PaletteBrush(StyleColor("background|selection", "#3A3A3A"))));
         selectedItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
-            PaletteBrush(StyleColor("text|selection", "#17202D"))));
+            PaletteBrush(StyleColor("text|selection", "#FFFFFF"))));
         listItemStyle.Triggers.Add(selectedItem);
         var disabledListItem = new Trigger { Property = System.Windows.UIElement.IsEnabledProperty, Value = false };
         disabledListItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(disabledTextColor)));
@@ -701,9 +701,9 @@ public partial class MainWindow : Window
             Value = true
         };
         comboHighlighted.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,
-            PaletteBrush(StyleColor("background|selection", "#DCE6F2"))));
+            PaletteBrush(StyleColor("background|selection", "#3A3A3A"))));
         comboHighlighted.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,
-            PaletteBrush(StyleColor("text|selection", "#17202D"))));
+            PaletteBrush(StyleColor("text|selection", "#FFFFFF"))));
         comboItemStyle.Triggers.Add(comboHighlighted);
         var disabledComboItem = new Trigger { Property = System.Windows.UIElement.IsEnabledProperty, Value = false };
         disabledComboItem.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, PaletteBrush(disabledTextColor)));
@@ -739,7 +739,7 @@ public partial class MainWindow : Window
                         !_systemOriginalForegrounds.ContainsKey(control))
                         _systemOriginalForegrounds[control] = currentForeground;
 
-                    if (control is System.Windows.Controls.TextBox or System.Windows.Controls.PasswordBox or System.Windows.Controls.ComboBox)
+                    if (control is System.Windows.Controls.TextBox or System.Windows.Controls.PasswordBox or System.Windows.Controls.ComboBox or System.Windows.Controls.DatePicker)
                     {
                         control.Background = PaletteBrush(inputBackground);
                         control.Foreground = PaletteBrush(inputTextColor);
@@ -760,18 +760,12 @@ public partial class MainWindow : Window
                             if (button.Style != (TryFindResource("CloseTitleBarButtonStyle") as Style))
                                 RegisterSystemButton(button);
                         }
-                        else if (_systemOriginalBackgrounds.TryGetValue(control, out var originalBackground))
-                            control.Background = ConvertBrush(originalBackground);
+                        else
+                            control.Background = PaletteBrush(StyleColor("background|text", "#3A3A3A"));
 
-                        if (_systemOriginalForegrounds.TryGetValue(control, out var originalForeground))
-                        {
-                            if (control is System.Windows.Controls.Button &&
-                                originalForeground is SolidColorBrush buttonForeground &&
-                                (buttonForeground.Color.ToString() == "#FFE8EEF7" || buttonForeground.Color.ToString() == "#FFF4F7FB"))
-                                control.Foreground = PaletteBrush(buttonTextColor);
-                            else
-                                control.Foreground = ConvertBrush(originalForeground);
-                        }
+                        control.Foreground = PaletteBrush(control is System.Windows.Controls.Button
+                            ? buttonTextColor
+                            : StyleColor("text|primary", "#FFFFFF"));
                     }
                 }
                 if (child is System.Windows.Controls.TextBlock textBlock)
@@ -779,8 +773,7 @@ public partial class MainWindow : Window
                     if (textBlock.Foreground is SolidColorBrush currentTextForeground &&
                         !_systemOriginalForegrounds.ContainsKey(textBlock))
                         _systemOriginalForegrounds[textBlock] = currentTextForeground;
-                    if (_systemOriginalForegrounds.TryGetValue(textBlock, out var originalTextForeground))
-                        textBlock.Foreground = ConvertBrush(originalTextForeground);
+                    textBlock.Foreground = PaletteBrush(StyleColor("text|primary", "#FFFFFF"));
 
                     if (textBlock.Background is SolidColorBrush currentTextBackground &&
                         !_systemOriginalTextBlockBackgrounds.ContainsKey(textBlock))
