@@ -787,8 +787,6 @@ public partial class MainWindow : Window
                         _systemOriginalTextBlockBackgrounds[textBlock] = currentTextBackground;
                     // У системного текста всегда есть собственный тёмно-серый фон.
                     textBlock.Background = PaletteBrush(StyleColor("background|text", "#3A3A3A"));
-                    if (_systemOriginalForegrounds.TryGetValue(textBlock, out var originalTextForeground))
-                        textBlock.Foreground = ConvertBrush(originalTextForeground);
                 }
                 if (child is System.Windows.Shapes.Shape shape)
                 {
