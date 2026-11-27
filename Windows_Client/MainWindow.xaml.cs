@@ -120,7 +120,7 @@ public partial class MainWindow : Window
         EnergyMapEditMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         EnergyMapElementsMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         StyleMenuItem.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
-        EnergyMapObjectHitCanvas.IsHitTestVisible = enabled && !_energyMapEditMode;
+        EnergyMapObjectHitCanvas.IsHitTestVisible = !_energyMapEditMode;
         UpdateEnergyMapHitTesting();
         UpdateEnergyMapSelection();
         if (!enabled)
@@ -1094,10 +1094,18 @@ public partial class MainWindow : Window
 
     private void EnergyMapObject_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (!_isAdminMode || _energyMapEditMode || sender is not System.Windows.FrameworkElement target ||
+        if (_energyMapEditMode || sender is not System.Windows.FrameworkElement target ||
             target.Tag is not string id)
             return;
 
+        if (id == "house")
+        {
+            new HouseStatisticsWindow { Owner = this }.Show();
+            e.Handled = true;
+            return;
+        }
+
+        if (!_isAdminMode) return;
         _selectedEnergyMapObjectId = id;
         if (e.ClickCount == 2)
         {
@@ -1217,7 +1225,7 @@ public partial class MainWindow : Window
     {
         _energyMapEditMode = !_energyMapEditMode;
         EnergyMapEditMenuItem.Header = _energyMapEditMode ? "Завершить перенос" : "Перемещать";
-        EnergyMapObjectHitCanvas.IsHitTestVisible = _isAdminMode && !_energyMapEditMode;
+        EnergyMapObjectHitCanvas.IsHitTestVisible = !_energyMapEditMode;
         UpdateEnergyMapHitTesting();
         UpdateEnergyMapSelection();
         foreach (var pair in _energyMapItems)
@@ -1612,3 +1620,385 @@ public partial class MainWindow : Window
         }
     }
 }
+
+/// <summary>
+/// Окно статистики домашнего энергопотребления и выходного напряжения инвертора.
+/// Пока использует встроенный виртуальный набор измерений.
+/// </summary>
+internal sealed class HouseStatisticsWindow : Window
+{
+    private readonly System.Windows.Controls.ComboBox _period = new();
+    private readonly System.Windows.Controls.ComboBox _metric = new();
+    private readonly System.Windows.Controls.ComboBox _style = new();
+    private readonly System.Windows.Controls.DatePicker _from = new();
+    private readonly System.Windows.Controls.DatePicker _to = new();
+    private readonly System.Windows.Controls.TextBlock _powerValue = new();
+    private readonly System.Windows.Controls.TextBlock _energyValue = new();
+    private readonly System.Windows.Controls.TextBlock _voltageValue = new();
+    private readonly System.Windows.Controls.TextBlock _rangeValue = new();
+    private readonly System.Windows.Controls.Canvas _chart = new();
+    private readonly System.Windows.Controls.TextBlock _chartTitle = new();
+    private readonly System.Windows.Controls.TextBlock _chartFooter = new();
+    private DateTime _start;
+    private DateTime _end;
+
+    public HouseStatisticsWindow()
+    {
+        Title = "Solar_PV — Статистика дома";
+        Width = 1060;
+        Height = 720;
+        MinWidth = 780;
+        MinHeight = 560;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(11, 23, 37));
+        Foreground = System.Windows.Media.Brushes.White;
+        FontFamily = new System.Windows.Media.FontFamily("Segoe UI");
+
+        var root = new System.Windows.Controls.Grid { Margin = new Thickness(22) };
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        Content = root;
+
+        var heading = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 0, 18) };
+        heading.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "ЭНЕРГОПОТРЕБЛЕНИЕ ДОМА",
+            FontSize = 20, FontWeight = FontWeights.SemiBold,
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 185, 66))
+        });
+        heading.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Текущая нагрузка и история выходного напряжения инвертора",
+            FontSize = 12, Margin = new Thickness(0, 4, 0, 0),
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186))
+        });
+        root.Children.Add(heading);
+
+        var controls = new System.Windows.Controls.WrapPanel { Margin = new Thickness(0, 0, 0, 16), VerticalAlignment = VerticalAlignment.Center };
+        AddControl(controls, "Период", _period, new[] { "Сутки", "Неделя", "Месяц", "Год", "Произвольный" }, 105);
+        AddControl(controls, "Показатель", _metric, new[] { "Потребление, кВт·ч", "Напряжение, В" }, 175);
+        AddControl(controls, "Вид графика", _style, new[] { "Линейный", "Столбчатый", "Область", "Ступенчатый", "Мощность + напряжение" }, 190);
+        AddDateControl(controls, "С", _from);
+        AddDateControl(controls, "По", _to);
+        System.Windows.Controls.Grid.SetRow(controls, 1);
+        root.Children.Add(controls);
+
+        var contentGrid = new System.Windows.Controls.Grid();
+        contentGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        contentGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        contentGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        System.Windows.Controls.Grid.SetRow(contentGrid, 2);
+        root.Children.Add(contentGrid);
+
+        var cards = new System.Windows.Controls.Grid { Margin = new Thickness(0, 0, 0, 14) };
+        for (int i = 0; i < 4; i++) cards.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
+        AddCard(cards, 0, "ТЕКУЩАЯ МОЩНОСТЬ", _powerValue, "кВт");
+        AddCard(cards, 1, "ПОТРЕБЛЕНИЕ ЗА ПЕРИОД", _energyValue, "кВт·ч");
+        AddCard(cards, 2, "НАПРЯЖЕНИЕ СЕТИ", _voltageValue, "В");
+        AddCard(cards, 3, "МИНИМУМ / МАКСИМУМ", _rangeValue, "В");
+        contentGrid.Children.Add(cards);
+
+        var chartBorder = new System.Windows.Controls.Border
+        {
+            Grid.Row = 1, Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(17, 34, 52)),
+            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(48, 68, 94)),
+            BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10), Padding = new Thickness(12)
+        };
+        var chartGrid = new System.Windows.Controls.Grid();
+        chartGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        chartGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        chartGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        _chartTitle.Text = "История потребления";
+        _chartTitle.FontSize = 14;
+        _chartTitle.FontWeight = FontWeights.SemiBold;
+        _chartTitle.Margin = new Thickness(4, 0, 0, 8);
+        chartGrid.Children.Add(_chartTitle);
+        _chart.Background = System.Windows.Media.Brushes.Transparent;
+        _chart.SizeChanged += (_, _) => DrawChart();
+        System.Windows.Controls.Grid.SetRow(_chart, 1);
+        chartGrid.Children.Add(_chart);
+        _chartFooter.Text = "Значения по выбранному периоду";
+        _chartFooter.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186));
+        _chartFooter.FontSize = 11;
+        _chartFooter.Margin = new Thickness(4, 8, 0, 0);
+        System.Windows.Controls.Grid.SetRow(_chartFooter, 2);
+        chartGrid.Children.Add(_chartFooter);
+        chartBorder.Child = chartGrid;
+        contentGrid.Children.Add(chartBorder);
+
+        var bottom = new System.Windows.Controls.DockPanel { Margin = new Thickness(0, 12, 0, 0) };
+        var close = new System.Windows.Controls.Button
+        {
+            Content = "Закрыть", Width = 110, Height = 34, Padding = new Thickness(12, 5, 12, 5),
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(38, 56, 77)),
+            Foreground = System.Windows.Media.Brushes.White, BorderThickness = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        close.Click += (_, _) => Close();
+        System.Windows.Controls.DockPanel.SetDock(close, Dock.Right);
+        bottom.Children.Add(close);
+        System.Windows.Controls.Grid.SetRow(bottom, 3);
+        root.Children.Add(bottom);
+
+        _period.SelectedIndex = 2;
+        _metric.SelectedIndex = 0;
+        _style.SelectedIndex = 0;
+        var today = DateTime.Today;
+        _from.SelectedDate = new DateTime(today.Year, today.Month, 1);
+        _to.SelectedDate = today;
+        _period.SelectionChanged += (_, _) => ApplyPeriod();
+        _metric.SelectionChanged += (_, _) => RefreshStatistics();
+        _style.SelectionChanged += (_, _) => DrawChart();
+        _from.SelectedDateChanged += (_, _) => RefreshStatistics();
+        _to.SelectedDateChanged += (_, _) => RefreshStatistics();
+        UpdateDateVisibility();
+        RefreshStatistics();
+    }
+
+    private static void AddControl(System.Windows.Controls.WrapPanel panel, string label,
+        System.Windows.Controls.ComboBox combo, string[] options, double width)
+    {
+        var group = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 12, 8) };
+        group.Children.Add(new System.Windows.Controls.TextBlock { Text = label, FontSize = 11, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)), Margin = new Thickness(0, 0, 0, 4) });
+        combo.Width = width;
+        combo.Height = 30;
+        combo.ItemsSource = options;
+        combo.SelectedIndex = 0;
+        combo.Padding = new Thickness(6, 3, 6, 3);
+        group.Children.Add(combo);
+        panel.Children.Add(group);
+    }
+
+    private static void AddDateControl(System.Windows.Controls.WrapPanel panel, string label,
+        System.Windows.Controls.DatePicker picker)
+    {
+        var group = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 10, 8) };
+        group.Children.Add(new System.Windows.Controls.TextBlock { Text = label, FontSize = 11, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)), Margin = new Thickness(0, 0, 0, 4) });
+        picker.Width = 125;
+        picker.Height = 30;
+        picker.Visibility = Visibility.Collapsed;
+        group.Children.Add(picker);
+        panel.Children.Add(group);
+    }
+
+    private static void AddCard(System.Windows.Controls.Grid grid, int column, string title,
+        System.Windows.Controls.TextBlock value, string unit)
+    {
+        var card = new System.Windows.Controls.Border
+        {
+            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(23, 43, 64)),
+            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(49, 81, 107)),
+            BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(12), Margin = new Thickness(0, 0, column == 3 ? 0 : 10, 0)
+        };
+        var stack = new System.Windows.Controls.StackPanel();
+        stack.Children.Add(new System.Windows.Controls.TextBlock { Text = title, FontSize = 10, FontWeight = FontWeights.Bold, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)) });
+        value.Text = "—";
+        value.FontSize = 23;
+        value.FontWeight = FontWeights.SemiBold;
+        value.Margin = new Thickness(0, 7, 0, 0);
+        stack.Children.Add(value);
+        stack.Children.Add(new System.Windows.Controls.TextBlock { Text = unit, FontSize = 10, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 162, 186)) });
+        card.Child = stack;
+        System.Windows.Controls.Grid.SetColumn(card, column);
+        grid.Children.Add(card);
+    }
+
+    private void ApplyPeriod()
+    {
+        var today = DateTime.Today;
+        switch (_period.SelectedIndex)
+        {
+            case 0: _start = today; _end = today; break;
+            case 1: _start = today.AddDays(-6); _end = today; break;
+            case 2: _start = new DateTime(today.Year, today.Month, 1); _end = today; break;
+            case 3: _start = new DateTime(today.Year, 1, 1); _end = today; break;
+            default:
+                if (_from.SelectedDate is DateTime from) _start = from.Date;
+                if (_to.SelectedDate is DateTime to) _end = to.Date;
+                break;
+        }
+        UpdateDateVisibility();
+        if (_period.SelectedIndex != 4)
+        {
+            _from.SelectedDate = _start;
+            _to.SelectedDate = _end;
+        }
+        RefreshStatistics();
+    }
+
+    private void UpdateDateVisibility()
+    {
+        var custom = _period.SelectedIndex == 4;
+        _from.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
+        _to.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
+        if (custom && _from.SelectedDate is DateTime from && _to.SelectedDate is DateTime to)
+        {
+            _start = from.Date;
+            _end = to.Date;
+        }
+    }
+
+    private void RefreshStatistics()
+    {
+        if (_period.SelectedIndex == 4)
+        {
+            _start = (_from.SelectedDate ?? DateTime.Today).Date;
+            _end = (_to.SelectedDate ?? DateTime.Today).Date;
+            if (_end < _start) _end = _start;
+        }
+        else if (_period.SelectedIndex >= 0)
+        {
+            var today = DateTime.Today;
+            if (_period.SelectedIndex == 0) { _start = today; _end = today; }
+            else if (_period.SelectedIndex == 1) { _start = today.AddDays(-6); _end = today; }
+            else if (_period.SelectedIndex == 2) { _start = new DateTime(today.Year, today.Month, 1); _end = today; }
+            else { _start = new DateTime(today.Year, 1, 1); _end = today; }
+        }
+
+        var samples = CreateSamples();
+        var total = samples.Sum(x => x.Energy);
+        var min = samples.Min(x => x.Voltage);
+        var max = samples.Max(x => x.Voltage);
+        var last = samples[^1];
+        _powerValue.Text = last.Power.ToString("N2", CultureInfo.GetCultureInfo("ru-RU"));
+        _energyValue.Text = total.ToString("N2", CultureInfo.GetCultureInfo("ru-RU"));
+        _voltageValue.Text = last.Voltage.ToString("N1", CultureInfo.GetCultureInfo("ru-RU"));
+        _rangeValue.Text = min.ToString("N1", CultureInfo.GetCultureInfo("ru-RU")) + " / " + max.ToString("N1", CultureInfo.GetCultureInfo("ru-RU"));
+        _chartTitle.Text = _metric.SelectedIndex == 1 ? "История выходного напряжения инвертора" : "Потребление электроэнергии";
+        _chartFooter.Text = $"{_start:dd.MM.yyyy} — {_end:dd.MM.yyyy}   ·   Минимум: {min:N1} В   ·   Максимум: {max:N1} В";
+        DrawChart();
+    }
+
+    private List<(double Energy, double Power, double Voltage)> CreateSamples()
+    {
+        var days = Math.Max(1, (_end - _start).Days + 1);
+        var count = _period.SelectedIndex == 0 ? 24 :
+            _period.SelectedIndex == 3 ? 12 : Math.Clamp(days, 7, 240);
+        var result = new List<(double Energy, double Power, double Voltage)>(count);
+        for (int i = 0; i < count; i++)
+        {
+            var phase = i * 0.73 + _start.DayOfYear * 0.17;
+            var power = 0.55 + 1.35 * Math.Max(0, Math.Sin(phase)) + 0.25 * Math.Sin(phase * 2.1);
+            power = Math.Max(0.18, power);
+            var energy = _period.SelectedIndex == 0 ? power * 0.72 : power * (i % 5 == 0 ? 1.8 : 1.15);
+            var voltage = 230 + 5.2 * Math.Sin(phase * 0.41) + 2.1 * Math.Sin(phase * 1.7);
+            if (i % 19 == 7) voltage -= 8.5;
+            if (i % 23 == 11) voltage += 4.2;
+            result.Add((energy, power, voltage));
+        }
+        return result;
+    }
+
+    private void DrawChart()
+    {
+        if (_chart.ActualWidth < 80 || _chart.ActualHeight < 80) return;
+        _chart.Children.Clear();
+        var samples = CreateSamples();
+        double width = _chart.ActualWidth, height = _chart.ActualHeight;
+        const double left = 48, right = 18, top = 16, bottom = 28;
+        double plotWidth = width - left - right, plotHeight = height - top - bottom;
+        if (plotWidth <= 0 || plotHeight <= 0) return;
+
+        var gridBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(48, 68, 94));
+        for (int i = 0; i <= 4; i++)
+        {
+            double y = top + plotHeight * i / 4;
+            _chart.Children.Add(new System.Windows.Shapes.Line { X1 = left, X2 = width - right, Y1 = y, Y2 = y, Stroke = gridBrush, StrokeThickness = 1, StrokeDashArray = new System.Windows.Media.DoubleCollection { 2, 3 } });
+        }
+
+        bool voltage = _metric.SelectedIndex == 1;
+        bool mixed = _style.SelectedIndex == 4;
+        var values = voltage ? samples.Select(x => x.Voltage).ToArray() : samples.Select(x => x.Energy).ToArray();
+        double min = values.Min(), max = values.Max();
+        if (Math.Abs(max - min) < 0.001) max = min + 1;
+        double X(int i) => left + (samples.Count == 1 ? 0 : plotWidth * i / (samples.Count - 1));
+        double Y(double value, double low, double high) => top + plotHeight - (value - low) / (high - low) * plotHeight;
+        var primary = voltage
+            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(99, 185, 242))
+            : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(99, 214, 162));
+
+        if (_style.SelectedIndex == 1 && !mixed)
+        {
+            double barWidth = Math.Max(2, plotWidth / samples.Count * 0.62);
+            for (int i = 0; i < samples.Count; i++)
+            {
+                double y = Y(values[i], min, max);
+                _chart.Children.Add(new System.Windows.Shapes.Rectangle
+                {
+                    Width = barWidth, Height = Math.Max(2, top + plotHeight - y),
+                    Fill = primary, RadiusX = 2, RadiusY = 2,
+                    Opacity = 0.82
+                });
+                System.Windows.Controls.Canvas.SetLeft(_chart.Children[^1], X(i) - barWidth / 2);
+                System.Windows.Controls.Canvas.SetTop(_chart.Children[^1], y);
+            }
+        }
+        else
+        {
+            var points = new System.Windows.Media.PointCollection();
+            for (int i = 0; i < samples.Count; i++) points.Add(new System.Windows.Point(X(i), Y(values[i], min, max)));
+            if (_style.SelectedIndex == 2 && !mixed)
+            {
+                var areaPoints = new System.Windows.Media.PointCollection { new System.Windows.Point(X(0), top + plotHeight) };
+                foreach (var point in points) areaPoints.Add(point);
+                areaPoints.Add(new System.Windows.Point(X(samples.Count - 1), top + plotHeight));
+                _chart.Children.Add(new System.Windows.Shapes.Polygon { Points = areaPoints, Fill = primary, Opacity = 0.22, StrokeThickness = 0 });
+            }
+            if (_style.SelectedIndex == 3 && !mixed)
+            {
+                var stepPoints = new System.Windows.Media.PointCollection();
+                for (int i = 0; i < points.Count; i++)
+                {
+                    if (i > 0) stepPoints.Add(new System.Windows.Point(points[i].X, points[i - 1].Y));
+                    stepPoints.Add(points[i]);
+                }
+                points = stepPoints;
+            }
+            _chart.Children.Add(new System.Windows.Shapes.Polyline { Points = points, Stroke = primary, StrokeThickness = 2.4, StrokeLineJoin = System.Windows.Media.PenLineJoin.Round });
+        }
+
+        if (mixed)
+        {
+            var voltageValues = samples.Select(x => x.Voltage).ToArray();
+            double vMin = voltageValues.Min(), vMax = voltageValues.Max();
+            if (vMax - vMin < 0.001) vMax = vMin + 1;
+            var voltagePoints = new System.Windows.Media.PointCollection();
+            for (int i = 0; i < samples.Count; i++) voltagePoints.Add(new System.Windows.Point(X(i), Y(voltageValues[i], vMin, vMax)));
+            _chart.Children.Add(new System.Windows.Shapes.Polyline
+            {
+                Points = voltagePoints,
+                Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 185, 66)),
+                StrokeThickness = 2, StrokeDashArray = new System.Windows.Media.DoubleCollection { 5, 3 }
+            });
+        }
+
+        var topLabel = new System.Windows.Controls.TextBlock
+        {
+            Text = max.ToString("N1", CultureInfo.GetCultureInfo("ru-RU")),
+            Foreground = System.Windows.Media.Brushes.White, FontSize = 10
+        };
+        _chart.Children.Add(topLabel);
+        System.Windows.Controls.Canvas.SetLeft(topLabel, 2);
+        System.Windows.Controls.Canvas.SetTop(topLabel, top - 6);
+        var bottomLabel = new System.Windows.Controls.TextBlock
+        {
+            Text = min.ToString("N1", CultureInfo.GetCultureInfo("ru-RU")),
+            Foreground = System.Windows.Media.Brushes.White, FontSize = 10
+        };
+        _chart.Children.Add(bottomLabel);
+        System.Windows.Controls.Canvas.SetLeft(bottomLabel, 2);
+        System.Windows.Controls.Canvas.SetTop(bottomLabel, top + plotHeight - 6);
+        var startLabel = new System.Windows.Controls.TextBlock { Text = _start.ToString("dd.MM"), Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 10 };
+        _chart.Children.Add(startLabel);
+        System.Windows.Controls.Canvas.SetLeft(startLabel, left);
+        System.Windows.Controls.Canvas.SetTop(startLabel, height - 22);
+        var endLabel = new System.Windows.Controls.TextBlock { Text = _end.ToString("dd.MM"), Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 10 };
+        _chart.Children.Add(endLabel);
+        System.Windows.Controls.Canvas.SetLeft(endLabel, width - right - 40);
+        System.Windows.Controls.Canvas.SetTop(endLabel, height - 22);
+    }
+}
+
