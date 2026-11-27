@@ -271,20 +271,35 @@ internal static class EnergyMapEditorSystemTheme
             : result;
     }
 
-    private static readonly Brush DefaultSurfaceBrush = new SolidColorBrush(Color.FromRgb(58, 58, 58));
+    // ЕДИНСТВЕННОЕ МЕСТО НАСТРОЙКИ СИСТЕМНЫХ ЦВЕТОВ ПРОГРАММЫ.
+    public const string TextColor = "#FFFFFF";
+    public const string BackgroundColor = "#3A3A3A";
+    public const string SelectionColor = "#0078D4";
+
+    public static string ColorFor(string key)
+    {
+        var normalized = key.ToLowerInvariant();
+        if (normalized.Contains("text")) return TextColor;
+        if (normalized.Contains("hover") || normalized.Contains("pressed") ||
+            normalized.Contains("selected") || normalized.Contains("selection") ||
+            normalized.Contains("highlight")) return SelectionColor;
+        return BackgroundColor;
+    }
+
+    public static Brush BrushFor(string key) =>
+        new SolidColorBrush((Color)ColorConverter.ConvertFromString(ColorFor(key)));
 
     public static void Apply(Window window, params DependencyObject[] excluded)
     {
-        Brush Resource(string key) => window.TryFindResource(key) as Brush ?? DefaultSurfaceBrush;
-        var textBrush = Resource("SystemPrimaryTextBrush");
-        var inputTextBrush = Resource("SystemInputTextBrush");
-        var buttonTextBrush = Resource("SystemButtonTextBrush");
-        var primaryButtonTextBrush = Resource("SystemPrimaryButtonTextBrush");
-        var surfaceBrush = Resource("SystemSurfaceBackgroundBrush");
-        var dialogBrush = Resource("SystemDialogBackgroundBrush");
-        var inputBrush = Resource("SystemInputBackgroundBrush");
-        var buttonBrush = Resource("SystemButtonBackgroundBrush");
-        var primaryButtonBrush = Resource("SystemPrimaryButtonBackgroundBrush");
+        var textBrush = BrushFor("text|primary");
+        var inputTextBrush = textBrush;
+        var buttonTextBrush = textBrush;
+        var primaryButtonTextBrush = textBrush;
+        var surfaceBrush = BrushFor("background|surface");
+        var dialogBrush = surfaceBrush;
+        var inputBrush = surfaceBrush;
+        var buttonBrush = surfaceBrush;
+        var primaryButtonBrush = surfaceBrush;
 
         window.Background = dialogBrush;
         window.Foreground = textBrush;
@@ -327,11 +342,11 @@ internal static class EnergyMapEditorSystemTheme
         itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, inputBrush));
         itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, inputTextBrush));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        hover.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
+        hover.Setters.Add(new Setter(Control.BackgroundProperty, BrushFor("state|hover")));
         hover.Setters.Add(new Setter(Control.ForegroundProperty, inputTextBrush));
         itemStyle.Triggers.Add(hover);
         var highlighted = new Trigger { Property = ComboBoxItem.IsHighlightedProperty, Value = true };
-        highlighted.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
+        highlighted.Setters.Add(new Setter(Control.BackgroundProperty, BrushFor("state|selected")));
         highlighted.Setters.Add(new Setter(Control.ForegroundProperty, inputTextBrush));
         itemStyle.Triggers.Add(highlighted);
         window.Resources[typeof(ComboBoxItem)] = itemStyle;
@@ -340,11 +355,11 @@ internal static class EnergyMapEditorSystemTheme
         listItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
         listItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, textBrush));
         var selected = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
-        selected.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
+        selected.Setters.Add(new Setter(Control.BackgroundProperty, BrushFor("state|selected")));
         selected.Setters.Add(new Setter(Control.ForegroundProperty, textBrush));
         listItemStyle.Triggers.Add(selected);
         var listHover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        listHover.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
+        listHover.Setters.Add(new Setter(Control.BackgroundProperty, BrushFor("state|hover")));
         listHover.Setters.Add(new Setter(Control.ForegroundProperty, textBrush));
         listItemStyle.Triggers.Add(listHover);
         window.Resources[typeof(ListBoxItem)] = listItemStyle;
