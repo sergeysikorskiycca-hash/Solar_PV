@@ -279,7 +279,7 @@ internal static class EnergyMapEditorSystemTheme
     public static string ColorFor(string key)
     {
         var normalized = key.ToLowerInvariant();
-        if (normalized.Contains("text")) return TextColor;
+        if (normalized.StartsWith("text|")) return TextColor;
         if (normalized.Contains("hover") || normalized.Contains("pressed") ||
             normalized.Contains("selected") || normalized.Contains("selection") ||
             normalized.Contains("highlight")) return SelectionColor;
