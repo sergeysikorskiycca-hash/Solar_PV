@@ -5,7 +5,7 @@
     <Application.Resources>
         <SolidColorBrush x:Key="WindowBrush" Color="#3A3A3A"/>
         <SolidColorBrush x:Key="PanelBrush" Color="#3A3A3A"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#0078D4"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#F5B942"/>
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource SystemTextBrush}"/>
             <Setter Property="Background" Value="{DynamicResource SystemBackgroundBrush}"/>
