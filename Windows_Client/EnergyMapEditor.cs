@@ -423,14 +423,14 @@ internal sealed class EnergyMapEditorWindow : Window
         _list.Foreground = Brushes.White;
         _list.BorderBrush = new SolidColorBrush(Color.FromRgb(73, 98, 124));
         var listItemStyle = new Style(typeof(ListBoxItem));
-        listItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.Transparent));
+        listItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(58, 58, 58))));
         listItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
         listItemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var listHover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        listHover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
+        listHover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(58, 58, 58))));
         listItemStyle.Triggers.Add(listHover);
         var listSelected = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
-        listSelected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
+        listSelected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(58, 58, 58))));
         listSelected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
         listItemStyle.Triggers.Add(listSelected);
         _list.ItemContainerStyle = listItemStyle;
@@ -486,7 +486,7 @@ internal sealed class EnergyMapEditorWindow : Window
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
+        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(58, 58, 58))));
         itemStyle.Triggers.Add(hover);
         var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
         selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
@@ -1070,7 +1070,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(74, 74, 74))));
+        hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(58, 58, 58))));
         itemStyle.Triggers.Add(hover);
         var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
         selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
