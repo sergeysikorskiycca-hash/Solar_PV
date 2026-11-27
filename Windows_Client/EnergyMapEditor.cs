@@ -545,7 +545,6 @@ internal sealed class EnergyMapEditorWindow : Window
         _dataSource.Background = EnergyMapEditorSystemTheme.BrushFor("background|surface");
         _dataSource.Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255));
         _dataSource.BorderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border");
-        ApplyDarkComboBoxItems(_dataSource);
         editor.Children.Add(_dataSource);
         editorScroll.Content = editor;
         Grid.SetColumn(editorScroll, 1);
@@ -558,35 +557,7 @@ internal sealed class EnergyMapEditorWindow : Window
         if (_elements.Count > 0) _list.SelectedIndex = 0;
     }
 
-    private static void ApplyDarkComboBoxItems(ComboBox combo)
-    {
-        var itemStyle = new Style(typeof(ComboBoxItem));
-        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("background|surface")));
-        itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
-        var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        hover.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("state|hover")));
-        itemStyle.Triggers.Add(hover);
-        var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
-        selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        selected.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("state|selected")));
-        itemStyle.Triggers.Add(selected);
-        combo.ItemContainerStyle = itemStyle;
 
-        // App.xaml задаёт глобальный Foreground для TextBlock. Локальный стиль
-        // позволяет тексту наследовать цвет от ComboBox/ComboBoxItem:
-        // выбранное значение остаётся светлым, пункты списка — светлыми.
-        combo.Resources[typeof(TextBlock)] = new Style(typeof(TextBlock));
-
-        combo.Resources[SystemColors.WindowBrushKey] = EnergyMapEditorSystemTheme.BrushFor("background|surface");
-        combo.Resources[SystemColors.WindowTextBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.ControlBrushKey] = EnergyMapEditorSystemTheme.BrushFor("background|surface");
-        combo.Resources[SystemColors.ControlTextBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.HighlightBrushKey] = EnergyMapEditorSystemTheme.BrushFor("background|surface");
-        combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
-
-    }
 
     private static Button MakeButton(string text) => new()
     {
@@ -1095,7 +1066,6 @@ internal sealed class EnergyMapPropertiesDialog : Window
             Height = 30, Background = InputBackground(), Foreground = Brushes.White,
             BorderBrush = InputBorder()
         };
-        ApplyDarkComboBoxItems(combo);
         foreach (var value in values) combo.Items.Add(value);
         parent.Children.Add(combo);
         return combo;
@@ -1141,39 +1111,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         public override string ToString() => Name;
     }
 
-    private static void ApplyDarkComboBoxItems(ComboBox combo)
-    {
-        // Тёмный фон списка сочетается со светлым текстом, заданным глобальной темой.
-        var itemStyle = new Style(typeof(ComboBoxItem));
-        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, InputBackground()));
-        itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
-        var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        hover.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        hover.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("state|hover")));
-        itemStyle.Triggers.Add(hover);
-        var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
-        selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        selected.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("state|selected")));
-        itemStyle.Triggers.Add(selected);
-        combo.ItemContainerStyle = itemStyle;
 
-        combo.Resources[SystemColors.WindowBrushKey] = InputBackground();
-        combo.Resources[SystemColors.WindowTextBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.ControlBrushKey] = InputBackground();
-        combo.Resources[SystemColors.ControlTextBrushKey] = Brushes.White;
-        combo.Resources[SystemColors.HighlightBrushKey] = EnergyMapEditorSystemTheme.BrushFor("background|surface");
-        combo.Resources[SystemColors.HighlightTextBrushKey] = Brushes.White;
-
-        // Цвет текста выбранного значения в закрытом ComboBox.
-        combo.Resources[typeof(TextBlock)] = new Style(typeof(TextBlock))
-        {
-            Setters =
-            {
-                new Setter(TextBlock.ForegroundProperty, Brushes.White)
-            }
-        };
-    }
 }
 
 internal sealed class EnergyMapObjectPropertiesDialog : Window
