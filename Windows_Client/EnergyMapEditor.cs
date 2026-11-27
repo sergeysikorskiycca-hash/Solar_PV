@@ -330,7 +330,24 @@ internal static class EnergyMapEditorSystemTheme
         hover.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
         hover.Setters.Add(new Setter(Control.ForegroundProperty, inputTextBrush));
         itemStyle.Triggers.Add(hover);
+        var highlighted = new Trigger { Property = ComboBoxItem.IsHighlightedProperty, Value = true };
+        highlighted.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
+        highlighted.Setters.Add(new Setter(Control.ForegroundProperty, inputTextBrush));
+        itemStyle.Triggers.Add(highlighted);
         window.Resources[typeof(ComboBoxItem)] = itemStyle;
+
+        var listItemStyle = new Style(typeof(ListBoxItem));
+        listItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
+        listItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, textBrush));
+        var selected = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
+        selected.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
+        selected.Setters.Add(new Setter(Control.ForegroundProperty, textBrush));
+        listItemStyle.Triggers.Add(selected);
+        var listHover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+        listHover.Setters.Add(new Setter(Control.BackgroundProperty, surfaceBrush));
+        listHover.Setters.Add(new Setter(Control.ForegroundProperty, textBrush));
+        listItemStyle.Triggers.Add(listHover);
+        window.Resources[typeof(ListBoxItem)] = listItemStyle;
         Visit(window);
     }
 }
