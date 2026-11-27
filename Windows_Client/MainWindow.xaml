@@ -21,7 +21,7 @@
             <Setter Property="Padding" Value="0"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="{DynamicResource SystemTextBrush}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Focusable" Value="False"/>
@@ -45,7 +45,7 @@
         </Grid.RowDefinitions>
         <Grid x:Name="TitleBarGrid" Grid.Row="0" Background="{DynamicResource SystemBackgroundBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/><ColumnDefinition Width="46"/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
-            <TextBlock x:Name="WindowModeText" Text="Solar_PV" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#F4F7FB"/>
+            <TextBlock x:Name="WindowModeText" Text="Solar_PV" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource SystemTextBrush}"/>
             <Button Grid.Column="1" Content="—" Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeWindow_Click" ToolTip="Свернуть" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
             <Button x:Name="MaximizeRestoreButton" Grid.Column="2" Content="□" Style="{StaticResource TitleBarButtonStyle}" Click="MaximizeRestoreWindow_Click" ToolTip="Развернуть" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
             <Button Grid.Column="3" Content="×" FontSize="20" Style="{StaticResource CloseTitleBarButtonStyle}" Click="CloseWindow_Click" ToolTip="Закрыть" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
