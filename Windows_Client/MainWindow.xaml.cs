@@ -786,7 +786,8 @@ public partial class MainWindow : Window
                         _systemOriginalTextBlockBackgrounds[textBlock] = currentTextBackground;
                     // У системного текста всегда есть собственный тёмно-серый фон.
                     textBlock.Background = PaletteBrush(StyleColor("background|text", "#3A3A3A"));
-                    textBlock.Foreground = PaletteBrush(StyleColor("text|primary", "#FFFFFF"));
+                    if (_systemOriginalForegrounds.TryGetValue(textBlock, out var originalTextForeground))
+                        textBlock.Foreground = ConvertBrush(originalTextForeground);
                 }
                 if (child is System.Windows.Shapes.Shape shape)
                 {
@@ -1799,11 +1800,6 @@ internal sealed class HouseStatisticsWindow : Window
         combo.Height = 30;
         combo.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58));
         combo.Foreground = System.Windows.Media.Brushes.White;
-        combo.ItemContainerStyle = new System.Windows.Style(typeof(System.Windows.Controls.ComboBoxItem));
-        combo.ItemContainerStyle.Setters.Add(new System.Windows.Setter(System.Windows.Controls.Control.BackgroundProperty,
-            new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58))));
-        combo.ItemContainerStyle.Setters.Add(new System.Windows.Setter(System.Windows.Controls.Control.ForegroundProperty,
-            System.Windows.Media.Brushes.White));
         combo.ItemsSource = options;
         combo.SelectedIndex = 0;
         combo.Padding = new Thickness(6, 3, 6, 3);
