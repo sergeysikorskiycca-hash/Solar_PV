@@ -80,6 +80,9 @@ internal sealed class MainForm : Form
         var settings = new ToolStripMenuItem("Настройки");
         settings.DropDownItems.Add("Цвета интерфейса...", null, (_, _) => EditColors());
         menu.Items.Add(settings);
+        var monitor = new ToolStripMenuItem("Мониторинг");
+        monitor.DropDownItems.Add("Открыть мониторинг ИИ", null, (_, _) => new MonitorForm(address.Text.Trim()).Show(this));
+        menu.Items.Add(monitor);
         var system = new ToolStripMenuItem("Система");
         system.DropDownItems.Add("Проверить обновления программы", null, async (_, _) => await UpdateManager.CheckAsync(this));
         menu.Items.Add(system);
