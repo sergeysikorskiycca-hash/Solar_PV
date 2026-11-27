@@ -208,7 +208,7 @@ internal static class EnergyMapEditorSystemTheme
             TextWrapping = TextWrapping.Wrap,
             MaxWidth = 620,
             VerticalAlignment = VerticalAlignment.Center,
-            Foreground = Brushes.White
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         });
 
         var choices = buttons switch
@@ -439,7 +439,7 @@ internal sealed class EnergyMapEditorWindow : Window
     private readonly Dictionary<string, TextBox> _fields = new();
     private readonly ComboBox _dataSource = new() { MinWidth = 220, Height = 28 };
     private EnergyMapElement? _editingItem;
-    private readonly CheckBox _bold = new() { Content = "Жирный шрифт", Foreground = Brushes.White, Margin = new Thickness(0, 8, 0, 0) };
+    private readonly CheckBox _bold = new() { Content = "Жирный шрифт", Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"), Margin = new Thickness(0, 8, 0, 0) };
 
     public List<EnergyMapElement> Elements => _elements;
 
@@ -454,7 +454,7 @@ internal sealed class EnergyMapEditorWindow : Window
         MinHeight = 540;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = EnergyMapEditorSystemTheme.BrushFor("background|surface");
-        Foreground = Brushes.White;
+        Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
 
         var root = new DockPanel { Margin = new Thickness(16) };
         var footer = new StackPanel
@@ -500,18 +500,18 @@ internal sealed class EnergyMapEditorWindow : Window
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         _list.DisplayMemberPath = "Text";
         _list.Background = EnergyMapEditorSystemTheme.BrushFor("background|surface");
-        _list.Foreground = Brushes.White;
+        _list.Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
         _list.BorderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border");
         var listItemStyle = new Style(typeof(ListBoxItem));
         listItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("background|surface")));
-        listItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        listItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, EnergyMapEditorSystemTheme.BrushFor("text|primary")));
         listItemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(7, 5, 7, 5)));
         var listHover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         listHover.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("state|hover")));
         listItemStyle.Triggers.Add(listHover);
         var listSelected = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
         listSelected.Setters.Add(new Setter(Control.BackgroundProperty, EnergyMapEditorSystemTheme.BrushFor("state|selected")));
-        listSelected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        listSelected.Setters.Add(new Setter(Control.ForegroundProperty, EnergyMapEditorSystemTheme.BrushFor("text|primary")));
         listItemStyle.Triggers.Add(listSelected);
         _list.ItemContainerStyle = listItemStyle;
         _list.SelectionChanged += (_, _) =>
@@ -539,7 +539,7 @@ internal sealed class EnergyMapEditorWindow : Window
         AddField(editor, "Цвет рамки", "BorderColor");
         AddField(editor, "Толщина рамки", "BorderWidth");
         AddField(editor, "Скругление", "CornerRadius");
-        editor.Children.Add(new TextBlock { Text = "Источник данных", Margin = new Thickness(0, 8, 0, 4), Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255)) });
+        editor.Children.Add(new TextBlock { Text = "Источник данных", Margin = new Thickness(0, 8, 0, 4), Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary") });
         foreach (var item in new[] { "", "Pv1Power", "Pv1Voltage", "Pv1Current", "Pv2Power", "Pv2Voltage", "Pv2Current", "InverterPower" })
             _dataSource.Items.Add(item);
         _dataSource.Background = EnergyMapEditorSystemTheme.BrushFor("background|surface");
@@ -565,21 +565,21 @@ internal sealed class EnergyMapEditorWindow : Window
         Padding = new Thickness(12, 7, 12, 7),
         Margin = new Thickness(0, 0, 8, 0),
         Background = EnergyMapEditorSystemTheme.BrushFor("background|surface"),
-        Foreground = Brushes.White,
+        Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
         BorderThickness = new Thickness(0)
     };
 
     private void AddField(Panel parent, string label, string key)
     {
-        parent.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 8, 0, 4), Foreground = Brushes.White });
+        parent.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 8, 0, 4), Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary") });
         var box = new TextBox
         {
             Height = 30,
             Padding = new Thickness(7, 4, 7, 4),
             Background = EnergyMapEditorSystemTheme.BrushFor("background|input"),
-            Foreground = Brushes.White,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             BorderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border"),
-            CaretBrush = Brushes.White,
+            CaretBrush = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             SelectionBrush = EnergyMapEditorSystemTheme.BrushFor("state|selection")
         };
         _fields[key] = box;
@@ -748,7 +748,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.CanResize;
         Background = EnergyMapEditorSystemTheme.BrushFor("background|window");
-        Foreground = Brushes.White;
+        Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
 
         var root = new DockPanel { Margin = new Thickness(18) };
         var buttons = new StackPanel
@@ -792,8 +792,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
         {
             Text = element.Text, Height = 58, AcceptsReturn = true,
             TextWrapping = TextWrapping.Wrap, Padding = new Thickness(7),
-            Background = InputBackground(), Foreground = Brushes.White,
-            BorderBrush = InputBorder(), CaretBrush = Brushes.White
+            Background = InputBackground(), Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
+            BorderBrush = InputBorder(), CaretBrush = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         };
         fields.Children.Add(_textBox);
 
@@ -802,8 +802,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
         {
             Text = element.FontSize.ToString("0.##", CultureInfo.InvariantCulture),
             Height = 30, Padding = new Thickness(7, 4, 7, 4),
-            Background = InputBackground(), Foreground = Brushes.White,
-            BorderBrush = InputBorder(), CaretBrush = Brushes.White
+            Background = InputBackground(), Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
+            BorderBrush = InputBorder(), CaretBrush = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         };
         fields.Children.Add(_fontSizeBox);
 
@@ -816,7 +816,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
             Setters =
             {
                 new Setter(Control.BackgroundProperty, InputBackground()),
-                new Setter(Control.ForegroundProperty, Brushes.White),
+                new Setter(Control.ForegroundProperty, EnergyMapEditorSystemTheme.BrushFor("text|primary")),
                 new Setter(Control.BorderThicknessProperty, new Thickness(0)),
                 new Setter(Control.PaddingProperty, new Thickness(7, 4, 7, 4)),
                 new Setter(Control.VerticalContentAlignmentProperty, VerticalAlignment.Center)
@@ -830,7 +830,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         {
             Content = "Жирный текст",
             IsChecked = element.Bold,
-            Foreground = Brushes.White,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             Margin = new Thickness(0, 9, 0, 2)
         };
         fields.Children.Add(_boldBox);
@@ -856,8 +856,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
         {
             Text = element.BorderWidth.ToString("0.##", CultureInfo.InvariantCulture),
             Height = 30, Padding = new Thickness(7, 4, 7, 4),
-            Background = InputBackground(), Foreground = Brushes.White,
-            BorderBrush = InputBorder(), CaretBrush = Brushes.White,
+            Background = InputBackground(), Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
+            BorderBrush = InputBorder(), CaretBrush = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             IsReadOnly = false, IsEnabled = true, Focusable = true, IsTabStop = true,
             AcceptsReturn = false
         };
@@ -877,8 +877,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
         _accentTextBox = new TextBox
         {
             Text = element.AccentText, Height = 30, Padding = new Thickness(7, 4, 7, 4),
-            Background = InputBackground(), Foreground = Brushes.White,
-            BorderBrush = InputBorder(), CaretBrush = Brushes.White
+            Background = InputBackground(), Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
+            BorderBrush = InputBorder(), CaretBrush = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         };
         fields.Children.Add(_accentTextBox);
         AddLabel(fields, "Цвет акцента");
@@ -897,7 +897,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         AddLabel(fields, "Предпросмотр");
         _previewText = new TextBlock
         {
-            Text = element.Text, Foreground = Brushes.White, FontSize = element.FontSize,
+            Text = element.Text, Foreground = PaletteBrush(_textColorBox), FontSize = element.FontSize,
             FontFamily = new FontFamily("Arial"), TextAlignment = TextAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap
         };
@@ -929,7 +929,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
             Text = "Цвета выбираются из готовой палитры. Настройки сохраняются вместе с блоком.",
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 7, 0, 0),
-            Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255))
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         });
 
         root.Children.Add(new ScrollViewer
@@ -1040,7 +1040,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
         parent.Children.Add(new TextBlock
         {
             Text = label, Margin = new Thickness(0, 8, 0, 4),
-            Foreground = Brushes.White
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         });
 
     private static void AddField(Grid parent, string label, out TextBox box, double value, int column)
@@ -1051,8 +1051,8 @@ internal sealed class EnergyMapPropertiesDialog : Window
         {
             Text = value.ToString("0.##", CultureInfo.InvariantCulture),
             Height = 30, Padding = new Thickness(7, 4, 7, 4),
-            Background = InputBackground(), Foreground = Brushes.White,
-            BorderBrush = InputBorder(), CaretBrush = Brushes.White
+            Background = InputBackground(), Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
+            BorderBrush = InputBorder(), CaretBrush = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         };
         panel.Children.Add(box);
         Grid.SetColumn(panel, column);
@@ -1063,7 +1063,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
     {
         var combo = new ComboBox
         {
-            Height = 30, Background = InputBackground(), Foreground = Brushes.White,
+            Height = 30, Background = InputBackground(), Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             BorderBrush = InputBorder()
         };
         foreach (var value in values) combo.Items.Add(value);
@@ -1075,7 +1075,7 @@ internal sealed class EnergyMapPropertiesDialog : Window
     {
         var combo = new ComboBox
         {
-            Height = 30, Background = InputBackground(), Foreground = Brushes.White,
+            Height = 30, Background = InputBackground(), Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             BorderBrush = InputBorder(), DisplayMemberPath = "Name",
             SelectedValuePath = "Value"
         };
@@ -1130,7 +1130,7 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.CanResize;
         Background = EnergyMapEditorSystemTheme.BrushFor("background|window");
-        Foreground = Brushes.White;
+        Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
 
         var root = new DockPanel { Margin = new Thickness(18) };
         var buttons = new StackPanel
@@ -1147,7 +1147,7 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
             Padding = new Thickness(14, 7, 14, 7),
             Margin = new Thickness(0, 0, 8, 0),
             Background = EnergyMapEditorSystemTheme.BrushFor("background|button"),
-            Foreground = Brushes.White,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             BorderThickness = new Thickness(0),
             IsCancel = true
         };
@@ -1156,7 +1156,7 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
             Content = "Сохранить",
             Padding = new Thickness(14, 7, 14, 7),
             Background = EnergyMapEditorSystemTheme.BrushFor("background|button"),
-            Foreground = Brushes.White,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             BorderThickness = new Thickness(0),
             FontWeight = FontWeights.Bold,
             IsDefault = true
@@ -1175,7 +1175,7 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
         {
             Text = "Ключ привязки к датчикам / функциям",
             Margin = new Thickness(0, 4, 0, 5),
-            Foreground = Brushes.White
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         });
         _bindingBox = new TextBox
         {
@@ -1183,9 +1183,9 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
             Height = 32,
             Padding = new Thickness(7, 5, 7, 5),
             Background = EnergyMapEditorSystemTheme.BrushFor("background|input"),
-            Foreground = Brushes.White,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             BorderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border"),
-            CaretBrush = Brushes.White
+            CaretBrush = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         };
         fields.Children.Add(_bindingBox);
         fields.Children.Add(new TextBlock
@@ -1193,7 +1193,7 @@ internal sealed class EnergyMapObjectPropertiesDialog : Window
             Text = "Поле сохраняет идентификатор привязки. Подключение к датчикам и выполнение функций будут реализованы отдельно.",
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 12, 0, 0),
-            Foreground = Brushes.White
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary")
         });
         root.Children.Add(fields);
         Content = root;
@@ -1218,7 +1218,7 @@ internal sealed class EnergyMapTextDialog : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.CanResize;
         Background = EnergyMapEditorSystemTheme.BrushFor("background|window");
-        Foreground = Brushes.White;
+        Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary");
 
         var root = new DockPanel { Margin = new Thickness(16) };
         var buttons = new StackPanel
@@ -1235,7 +1235,7 @@ internal sealed class EnergyMapTextDialog : Window
             Padding = new Thickness(14, 7, 14, 7),
             Margin = new Thickness(0, 0, 8, 0),
             Background = EnergyMapEditorSystemTheme.BrushFor("background|button"),
-            Foreground = Brushes.White,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             BorderThickness = new Thickness(0),
             IsCancel = true
         };
@@ -1244,7 +1244,7 @@ internal sealed class EnergyMapTextDialog : Window
             Content = "Сохранить",
             Padding = new Thickness(14, 7, 14, 7),
             Background = EnergyMapEditorSystemTheme.BrushFor("background|button"),
-            Foreground = Brushes.White,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             BorderThickness = new Thickness(0),
             FontWeight = FontWeights.Bold,
             IsDefault = true
@@ -1262,9 +1262,9 @@ internal sealed class EnergyMapTextDialog : Window
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Padding = new Thickness(9),
             Background = EnergyMapEditorSystemTheme.BrushFor("background|input"),
-            Foreground = Brushes.White,
+            Foreground = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             BorderBrush = EnergyMapEditorSystemTheme.BrushFor("background|border"),
-            CaretBrush = Brushes.White,
+            CaretBrush = EnergyMapEditorSystemTheme.BrushFor("text|primary"),
             SelectionBrush = EnergyMapEditorSystemTheme.BrushFor("state|selection")
         };
         root.Children.Add(_textBox);
