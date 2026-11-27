@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Xml.Linq;
 
@@ -341,6 +342,7 @@ internal static class EnergyMapEditorSystemTheme
         var toolTipStyle = new Style(typeof(ToolTip));
         toolTipStyle.Setters.Add(new Setter(Control.BackgroundProperty, background));
         toolTipStyle.Setters.Add(new Setter(Control.ForegroundProperty, foreground));
+        toolTipStyle.Setters.Add(new Setter(Control.BorderBrushProperty, background));
         window.Resources[typeof(ToolTip)] = toolTipStyle;
 
         var calendarDayStyle = new Style(typeof(CalendarDayButton));
@@ -353,6 +355,17 @@ internal static class EnergyMapEditorSystemTheme
         calendarHover.Setters.Add(new Setter(Control.BackgroundProperty, selection));
         calendarDayStyle.Triggers.Add(calendarHover);
         window.Resources[typeof(CalendarDayButton)] = calendarDayStyle;
+        var calendarButtonStyle = new Style(typeof(CalendarButton));
+        calendarButtonStyle.Setters.Add(new Setter(Control.BackgroundProperty, background));
+        calendarButtonStyle.Setters.Add(new Setter(Control.ForegroundProperty, foreground));
+        var calendarButtonHover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+        calendarButtonHover.Setters.Add(new Setter(Control.BackgroundProperty, selection));
+        calendarButtonStyle.Triggers.Add(calendarButtonHover);
+        var calendarStyle = new Style(typeof(Calendar));
+        calendarStyle.Setters.Add(new Setter(Control.BackgroundProperty, background));
+        calendarStyle.Setters.Add(new Setter(Control.ForegroundProperty, foreground));
+        window.Resources[typeof(CalendarButton)] = calendarButtonStyle;
+        window.Resources[typeof(Calendar)] = calendarStyle;
 
         void Visit(DependencyObject parent)
         {
@@ -392,6 +405,8 @@ internal static class EnergyMapEditorSystemTheme
                 datePicker.Background = background;
                 SetSystemBrushes(datePicker.Resources, background, foreground, selection);
                 datePicker.Resources[typeof(CalendarDayButton)] = calendarDayStyle;
+                datePicker.Resources[typeof(CalendarButton)] = calendarButtonStyle;
+                datePicker.Resources[typeof(Calendar)] = calendarStyle;
             }
             else if (parent is Control control)
             {
