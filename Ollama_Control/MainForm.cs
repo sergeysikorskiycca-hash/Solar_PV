@@ -152,7 +152,22 @@ internal sealed class MainForm : Form
         address.ForeColor = keep.ForeColor = ColorTranslator.FromHtml(cfg.TextPrimary);
     }
 
-    private void DrawModelItem(object? sender, DrawItemEventArgs e)\n    {\n        e.DrawBackground();\n        if (e.Index >= 0)\n        {\n            using var background = new SolidBrush(ColorTranslator.FromHtml(cfg.ModelListBackground));\n            using var foreground = new SolidBrush(ColorTranslator.FromHtml(cfg.TextPrimary));\n            e.Graphics.FillRectangle(background, e.Bounds);\n            var value = models.Items[e.Index]?.ToString() ?? "";\n            TextRenderer.DrawText(e.Graphics, value, e.Font, e.Bounds, foreground.Color,\n                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);\n        }\n        e.DrawFocusRectangle();\n    }\n\n    private void ApplyTheme(Control parent)
+    private void DrawModelItem(object? sender, DrawItemEventArgs e)
+    {
+        e.DrawBackground();
+        if (e.Index >= 0)
+        {
+            using var background = new SolidBrush(ColorTranslator.FromHtml(cfg.ModelListBackground));
+            using var foreground = new SolidBrush(ColorTranslator.FromHtml(cfg.TextPrimary));
+            e.Graphics.FillRectangle(background, e.Bounds);
+            var value = models.Items[e.Index]?.ToString() ?? "";
+            TextRenderer.DrawText(e.Graphics, value, e.Font, e.Bounds, foreground.Color,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+        }
+        e.DrawFocusRectangle();
+    }
+
+    private void ApplyTheme(Control parent)
     {
         foreach (Control control in parent.Controls)
         {
@@ -191,7 +206,9 @@ internal sealed class MainForm : Form
         {
             ("Фон окна", () => cfg.WindowBackground, value => cfg.WindowBackground = value),
             ("Фон панелей", () => cfg.PanelBackground, value => cfg.PanelBackground = value),
-            ("Фон полей ввода", () => cfg.InputBackground, value => cfg.InputBackground = value),\n            ("Фон списка моделей", () => cfg.ModelListBackground, value => cfg.ModelListBackground = value),\n            ("Фон выбранной модели", () => cfg.SelectedModelBackground, value => cfg.SelectedModelBackground = value),
+            ("Фон полей ввода", () => cfg.InputBackground, value => cfg.InputBackground = value),
+            ("Фон списка моделей", () => cfg.ModelListBackground, value => cfg.ModelListBackground = value),
+            ("Фон выбранной модели", () => cfg.SelectedModelBackground, value => cfg.SelectedModelBackground = value),
             ("Фон кнопок", () => cfg.ButtonBackground, value => cfg.ButtonBackground = value),
             ("Контур кнопок", () => cfg.ButtonBorderColor, value => cfg.ButtonBorderColor = value),
             ("Фон информационных полей", () => cfg.TextBackground, value => cfg.TextBackground = value),
