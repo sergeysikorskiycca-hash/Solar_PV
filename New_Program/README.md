@@ -6,4 +6,13 @@
 
 Перед началом **каждой** задачи сначала прочитай [AI_ENTRY_GATE.md](AI_ENTRY_GATE.md) полностью и выполни все пункты входного контроля. Затем прочитай этот README и изучи актуальную структуру и код проекта.
 
+### Дополнительное правило для папки Windows_programs
+
+Если задача относится к папке `Windows_programs` или предполагает работу внутри неё, до начала анализа этой папки и её содержимого обязательно полностью прочитай оба документа:
+
+1. [`Windows_programs/AGENTS.md`](https://github.com/sergeysikorskiycca-hash/Solar_PV/blob/main/New_Program/Windows_programs/AGENTS.md)
+2. [`Windows_programs/README.md`](https://github.com/sergeysikorskiycca-hash/Solar_PV/blob/main/New_Program/Windows_programs/README.md)
+
+Сначала прочитай `AGENTS.md`, затем `README.md`. Оба документа обязательны к исполнению. Не начинай в `Windows_programs` анализ задачи, изучение или изменение файлов, пока оба документа не прочитаны и их указания не выполнены.
+
 **Не начинай анализ изменений и тем более редактирование кода, пока не пройден входной контроль.**
