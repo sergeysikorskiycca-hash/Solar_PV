@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Net;
@@ -12,7 +11,6 @@ internal sealed class MonitorForm : Form
     private readonly string ollamaUrl;
     private readonly AppSettings cfg;
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(4) };
-    private readonly HttpClient eventHttp = new() { Timeout = Timeout.InfiniteTimeSpan };
     private readonly TextBox report = new()
     {
         Dock = DockStyle.Fill,
@@ -25,9 +23,6 @@ internal sealed class MonitorForm : Form
     private readonly Button refreshButton = new() { Text = "Обновить", AutoSize = true };
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 3000 };
     private readonly Dictionary<int, (TimeSpan Cpu, DateTime Sample)> cpuSamples = new();
-    private readonly ConcurrentQueue<string> openCodeEvents = new();
-    private CancellationTokenSource? eventCts;
-    private string? eventServerUrl;
     private bool refreshing;
 
     public MonitorForm(string apiUrl, AppSettings settings)
@@ -71,10 +66,7 @@ internal sealed class MonitorForm : Form
         {
             timer.Stop();
             timer.Dispose();
-            eventCts?.Cancel();
-            eventCts?.Dispose();
             http.Dispose();
-            eventHttp.Dispose();
         };
     }
 
@@ -123,76 +115,84 @@ internal sealed class MonitorForm : Form
             }
 
             lines.Add("");
-            lines.Add("OPENCODE — API И СЕССИИ");
-            var server = await FindOpenCodeServerAsync();
-            if (server is null)
+            lines.Add("OPENCODE — АКТИВНОСТЬ АГЕНТА");
+            var cliPath = FindOpenCodeCli();
+            if (cliPath is null)
             {
-                StopEventStream();
-                lines.Add("Локальный API-сервер OpenCode не обнаружен.");
-                lines.Add("Проверены все локальные TCP-порты прослушивания, включая localhost:4096.");
-                lines.Add("Процесс OpenCode может работать без запущенного режима сервера.");
+                lines.Add("Сервис OpenCode CLI не найден (процесс opencode-cli.exe отсутствует).");
             }
             else
             {
-                lines.Add("API: доступен · " + server.Value.Url);
-                lines.Add("Версия: " + server.Value.Version);
-                StartEventStream(server.Value.Url);
-
                 try
                 {
-                    using var sessionsResponse = await http.GetAsync(server.Value.Url + "/session");
-                    sessionsResponse.EnsureSuccessStatusCode();
-                    using var sessionsJson = JsonDocument.Parse(await sessionsResponse.Content.ReadAsStringAsync());
-                    using var statusResponse = await http.GetAsync(server.Value.Url + "/session/status");
-                    statusResponse.EnsureSuccessStatusCode();
-                    using var statusJson = JsonDocument.Parse(await statusResponse.Content.ReadAsStringAsync());
+                    using var infoJson = JsonDocument.Parse(await RunOpenCodeApiAsync(cliPath, "/api/info"));
+                    var info = infoJson.RootElement;
+                    lines.Add("API: доступен · версия " + (GetString(info, "version") ?? "?"));
+                    lines.Add("Сервис PID: " + (GetString(info, "pid") ?? "?"));
 
-                    var sessions = sessionsJson.RootElement.ValueKind == JsonValueKind.Array
-                        ? sessionsJson.RootElement.EnumerateArray().ToList()
-                        : new List<JsonElement>();
-                    lines.Add("Сессий в списке: " + sessions.Count);
-                    if (sessions.Count == 0) lines.Add("  Сессий нет.");
-                    foreach (var session in sessions.Take(30))
+                    using var activeJson = JsonDocument.Parse(await RunOpenCodeApiAsync(cliPath, "/api/session/active"));
+                    var activeData = activeJson.RootElement.TryGetProperty("data", out var ad) ? ad : default;
+                    var activeIds = new HashSet<string>(StringComparer.Ordinal);
+                    if (activeData.ValueKind == JsonValueKind.Object)
                     {
-                        var id = GetString(session, "id") ?? GetString(session, "sessionID") ?? "?";
+                        foreach (var item in activeData.EnumerateObject())
+                        {
+                            var state = GetString(item.Value, "type") ?? item.Value.ToString();
+                            activeIds.Add(item.Name);
+                            lines.Add("АГЕНТ: " + (state == "running" ? "РАБОТАЕТ" : state) + " · сессия " + item.Name);
+                        }
+                    }
+                    if (activeIds.Count == 0) lines.Add("АГЕНТ: нет активных сессий.");
+
+                    using var sessionsJson = JsonDocument.Parse(await RunOpenCodeApiAsync(cliPath, "/api/session"));
+                    var sessionsData = sessionsJson.RootElement.TryGetProperty("data", out var sd) ? sd : default;
+                    var sessions = sessionsData.ValueKind == JsonValueKind.Array
+                        ? sessionsData.EnumerateArray().ToList()
+                        : new List<JsonElement>();
+                    lines.Add("Сессий в истории: " + sessions.Count);
+                    foreach (var session in sessions.Take(20))
+                    {
+                        var id = GetString(session, "id") ?? "?";
                         var title = GetString(session, "title") ?? "(без названия)";
-                        var status = GetSessionStatus(statusJson.RootElement, id);
+                        var model = session.TryGetProperty("model", out var modelData)
+                            ? GetString(modelData, "id") ?? "?" : "?";
+                        var agent = GetString(session, "agent") ?? "?";
+                        var outcome = GetString(session, "outcome") ?? "неизвестно";
+                        var state = activeIds.Contains(id) ? "РАБОТАЕТ" : outcome;
                         var updated = GetTimestamp(session, "time", "updated");
-                        lines.Add("  • [" + status + "] " + title);
+                        var tokenText = "";
+                        if (session.TryGetProperty("tokens", out var tokens))
+                        {
+                            var input = GetString(tokens, "input") ?? "?";
+                            var output = GetString(tokens, "output") ?? "?";
+                            tokenText = " · токены вход/выход: " + input + "/" + output;
+                        }
+                        lines.Add("  • [" + state + "] " + title);
+                        lines.Add("      Модель: " + model + " · агент: " + agent + tokenText);
                         lines.Add("      ID: " + id + (updated.Length == 0 ? "" : " · обновлена: " + updated));
                     }
-                    if (sessions.Count > 30) lines.Add("  … показаны первые 30 сессий.");
+                    if (sessions.Count > 20) lines.Add("  … показаны последние 20 сессий.");
                 }
                 catch (Exception ex)
                 {
-                    lines.Add("Не удалось получить сессии: " + ex.Message);
+                    lines.Add("Не удалось получить данные OpenCode: " + ex.Message);
                 }
             }
-
-            lines.Add("");
-            lines.Add("СОБЫТИЯ OPENCODE (последние 20)");
-            var recentEvents = openCodeEvents.ToArray();
-            if (recentEvents.Length == 0)
-                lines.Add(eventServerUrl is null
-                    ? "Поток событий не подключён."
-                    : "Ожидание событий. События появятся при активности сессий.");
-            else
-                foreach (var item in recentEvents.Reverse()) lines.Add("  " + item);
 
             lines.Add("");
             lines.Add("ПРОЦЕССЫ WINDOWS");
             AppendProcesses(lines, "ollama", "Ollama");
             AppendProcesses(lines, "ollama_llama_server", "Сервер вычислений Ollama");
             AppendProcesses(lines, "opencode", "OpenCode");
+            AppendProcesses(lines, "opencode-cli", "Сервис OpenCode CLI");
 
             lines.Add("");
             lines.Add("ПОЯСНЕНИЯ И ОГРАНИЧЕНИЯ");
-            lines.Add("• Состояние busy/idle берётся из API OpenCode, а не вычисляется по загрузке CPU.");
-            lines.Add("• События показывают начало/завершение шагов, поток текста и работу инструментов, если их публикует сервер.");
-            lines.Add("• События начинают записываться после подключения мониторинга; это не архив прошлых действий.");
-            lines.Add("• Ollama /api/ps показывает загруженные модели, но не предоставляет список чужих активных запросов.");
-            lines.Add("• Скорость токенов внешнего запроса Ollama нельзя достоверно получить из одного списка процессов.");
-            lines.Add("• Низкая нагрузка CPU сама по себе не означает зависание.");
+            lines.Add("• /api/session/active показывает активные сессии OpenCode; running означает, что агент занят.");
+            lines.Add("• /api/session показывает модель, агента, результат, время обновления и счётчики токенов.");
+            lines.Add("• Ollama /api/ps показывает загруженные модели, но не доказывает, что модель прямо сейчас генерирует.");
+            lines.Add("• Состояние running само по себе ещё не доказывает зависание или генерацию токенов.");
+
 
             report.Text = string.Join(Environment.NewLine, lines);
             report.SelectionStart = 0;
@@ -209,151 +209,62 @@ internal sealed class MonitorForm : Form
         }
     }
 
-    private async Task<(string Url, string Version)?> FindOpenCodeServerAsync()
+    private static string? FindOpenCodeCli()
     {
-        var ports = new HashSet<int> { 4096 };
-        try
-        {
-            foreach (var endpoint in IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners())
-                if (endpoint.Port > 0) ports.Add(endpoint.Port);
-        }
-        catch { }
+        Process[] processes;
+        try { processes = Process.GetProcessesByName("opencode-cli"); }
+        catch { return null; }
 
-        var probes = new List<Task<(string Url, string Version)?>>();
-        foreach (var port in ports)
-        {
-            probes.Add(ProbeOpenCodeEndpointAsync("http://127.0.0.1:" + port));
-            probes.Add(ProbeOpenCodeEndpointAsync("http://[::1]:" + port));
-        }
-
-        try
-        {
-            var results = await Task.WhenAll(probes);
-            return results.FirstOrDefault(result => result is not null);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private async Task<(string Url, string Version)?> ProbeOpenCodeEndpointAsync(string url)
-    {
-        try
-        {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(900));
-            using var response = await http.GetAsync(
-                url + "/global/health",
-                HttpCompletionOption.ResponseHeadersRead,
-                timeout.Token);
-            if (!response.IsSuccessStatusCode) return null;
-
-            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(timeout.Token));
-            if (!json.RootElement.TryGetProperty("healthy", out var healthy) ||
-                healthy.ValueKind != JsonValueKind.True)
-                return null;
-
-            var version = GetString(json.RootElement, "version") ?? "?";
-            return (url, version);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private void StartEventStream(string baseUrl)
-    {
-        if (string.Equals(eventServerUrl, baseUrl, StringComparison.OrdinalIgnoreCase) &&
-            eventCts is { IsCancellationRequested: false }) return;
-
-        StopEventStream();
-        eventServerUrl = baseUrl;
-        eventCts = new CancellationTokenSource();
-        var token = eventCts.Token;
-        _ = Task.Run(() => ReadEventStreamAsync(baseUrl, token), token);
-    }
-
-    private void StopEventStream()
-    {
-        eventCts?.Cancel();
-        eventCts?.Dispose();
-        eventCts = null;
-        eventServerUrl = null;
-    }
-
-    private async Task ReadEventStreamAsync(string baseUrl, CancellationToken token)
-    {
-        while (!token.IsCancellationRequested)
+        foreach (var process in processes)
         {
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Get, baseUrl + "/event");
-                using var response = await eventHttp.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-                response.EnsureSuccessStatusCode();
-                await using var stream = await response.Content.ReadAsStreamAsync(token);
-                using var reader = new StreamReader(stream);
-                string? line;
-                var data = new List<string>();
-                while (!token.IsCancellationRequested && (line = await reader.ReadLineAsync(token)) is not null)
-                {
-                    if (line.StartsWith("data:", StringComparison.Ordinal))
-                        data.Add(line[5..].Trim());
-                    else if (line.Length == 0 && data.Count > 0)
-                    {
-                        AddEvent(string.Join("", data));
-                        data.Clear();
-                    }
-                }
+                var path = process.MainModule?.FileName;
+                if (!string.IsNullOrWhiteSpace(path) && File.Exists(path)) return path;
             }
-            catch (OperationCanceledException) { break; }
-            catch (Exception ex)
-            {
-                AddEvent("Поток событий: переподключение (" + ex.Message + ")");
-            }
-
-            try { await Task.Delay(2000, token); }
-            catch (OperationCanceledException) { break; }
+            catch { }
+            finally { process.Dispose(); }
         }
+        return null;
     }
 
-    private void AddEvent(string jsonText)
+    private static async Task<string> RunOpenCodeApiAsync(string executable, string apiPath)
     {
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo
+        {
+            FileName = executable,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        process.StartInfo.ArgumentList.Add("api");
+        process.StartInfo.ArgumentList.Add("get");
+        process.StartInfo.ArgumentList.Add(apiPath);
+
+        if (!process.Start()) throw new InvalidOperationException("Не удалось запустить OpenCode CLI.");
+
+        var outputTask = process.StandardOutput.ReadToEndAsync();
+        var errorTask = process.StandardError.ReadToEndAsync();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         try
         {
-            using var json = JsonDocument.Parse(jsonText);
-            var root = json.RootElement;
-            var payload = root.TryGetProperty("payload", out var p) ? p : root;
-            var type = GetString(payload, "type") ?? GetString(root, "type") ?? "событие";
-            var properties = payload.TryGetProperty("properties", out var props) ? props : payload;
-            var sessionId = GetString(properties, "sessionID") ?? GetString(properties, "sessionId");
-            var tool = GetString(properties, "tool") ?? GetString(properties, "name");
-            var detail = type;
-            if (!string.IsNullOrWhiteSpace(sessionId)) detail += " · сессия " + sessionId;
-            if (!string.IsNullOrWhiteSpace(tool)) detail += " · " + tool;
-            EnqueueEvent(DateTime.Now.ToString("HH:mm:ss") + " " + detail);
+            await process.WaitForExitAsync(timeout.Token);
         }
-        catch
+        catch (OperationCanceledException)
         {
-            EnqueueEvent(DateTime.Now.ToString("HH:mm:ss") + " Получено событие OpenCode.");
+            try { process.Kill(true); } catch { }
+            throw new TimeoutException("OpenCode CLI не ответил за 5 секунд.");
         }
-    }
 
-    private void EnqueueEvent(string value)
-    {
-        openCodeEvents.Enqueue(value);
-        while (openCodeEvents.Count > 20) openCodeEvents.TryDequeue(out _);
-    }
-
-    private static string GetSessionStatus(JsonElement statuses, string id)
-    {
-        if (statuses.ValueKind == JsonValueKind.Object &&
-            statuses.TryGetProperty(id, out var status))
-        {
-            if (status.ValueKind == JsonValueKind.String) return status.GetString() ?? "неизвестно";
-            return GetString(status, "type") ?? GetString(status, "status") ?? status.ToString();
-        }
-        return "нет статуса";
+        var output = await outputTask;
+        var error = await errorTask;
+        if (process.ExitCode != 0)
+            throw new InvalidOperationException(string.IsNullOrWhiteSpace(error) ? output.Trim() : error.Trim());
+        if (string.IsNullOrWhiteSpace(output))
+            throw new InvalidOperationException("OpenCode CLI вернул пустой ответ.");
+        return output;
     }
 
     private static string? GetString(JsonElement element, string property)
